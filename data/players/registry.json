@@ -1,0 +1,180 @@
+[
+  {
+    "name": "Domas Sabonis",
+    "team": "Sacramento Kings",
+    "country": "Lithuania",
+    "active": true,
+    "sources": [
+      { "competition": "NBA", "type": "nba", "id": "1627734" }
+    ]
+  },
+  {
+    "name": "Mathias Lessort",
+    "team": "Panathinaikos",
+    "country": "France",
+    "active": true,
+    "sources": [
+      { "competition": "EuroLeague",  "type": "euroleague", "id": "P003842" },
+      { "competition": "Greek League", "type": "eurobasket", "id": "252481"  }
+    ]
+  },
+  {
+    "name": "Nemanja Nedović",
+    "team": "AS Monaco",
+    "country": "Serbia",
+    "active": true,
+    "sources": [
+      { "competition": "EuroLeague", "type": "euroleague", "id": "P000848" },
+      { "competition": "LNB Pro A",  "type": "eurobasket", "id": "130801"  }
+    ]
+  },
+  {
+    "name": "Dylan Osetkowski",
+    "team": "Partizan Mozzart Bet",
+    "country": "United States",
+    "active": true,
+    "sources": [
+      { "competition": "EuroLeague", "type": "euroleague", "id": "P010581" },
+      { "competition": "ABA League", "type": "aba",        "id": "5100"    }
+    ]
+  },
+  {
+    "name": "Darío Brizuela",
+    "team": "FC Barcelona",
+    "country": "Spain",
+    "active": true,
+    "sources": [
+      { "competition": "EuroLeague", "type": "euroleague", "id": "P009992"  },
+      { "competition": "ACB",        "type": "acb",        "id": "20209919" }
+    ]
+  },
+  {
+    "name": "Tyson Carter",
+    "team": "Crvena zvezda",
+    "country": "United States",
+    "active": true,
+    "sources": [
+      { "competition": "EuroLeague", "type": "euroleague", "id": "P011305" },
+      { "competition": "ABA League", "type": "aba",        "id": "5075"    }
+    ]
+  },
+  {
+    "name": "Yankuba Sima",
+    "team": "Valencia Basket",
+    "country": "Spain",
+    "active": true,
+    "sources": [
+      { "competition": "EuroLeague", "type": "euroleague", "id": "P005596"  },
+      { "competition": "ACB",        "type": "acb",        "id": "20213230" }
+    ]
+  },
+  {
+    "name": "Kameron Taylor",
+    "team": "Valencia Basket",
+    "country": "United States",
+    "active": true,
+    "sources": [
+      { "competition": "EuroLeague", "type": "euroleague", "id": "P011217"  },
+      { "competition": "ACB",        "type": "acb",        "id": "30001981" }
+    ]
+  },
+  {
+    "name": "Giorgi Shermadini",
+    "team": "Lenovo Tenerife",
+    "country": "Georgia",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "20210659" }
+    ]
+  },
+  {
+    "name": "Rubén Guerrero",
+    "team": "MoraBanc Andorra",
+    "country": "Spain",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "20210707" }
+    ]
+  },
+  {
+    "name": "Augusto Lima",
+    "team": "San Pablo Burgos",
+    "country": "Brazil",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "20200277" }
+    ]
+  },
+  {
+    "name": "Axel Bouteille",
+    "team": "Budućnost VOLI",
+    "country": "France",
+    "active": true,
+    "sources": [
+      { "competition": "EuroCup",    "type": "eurocup", "id": "P003840" },
+      { "competition": "ABA League", "type": "aba",     "id": "5073"    }
+    ]
+  },
+  {
+    "name": "Mindaugas Kuzminskas",
+    "team": "AEK Athens",
+    "country": "Lithuania",
+    "active": true,
+    "sources": [
+      { "competition": "Greek League", "type": "eurobasket", "id": "26892"  },
+      { "competition": "BCL",          "type": "bcl",        "id": "161021" }
+    ]
+  },
+  {
+    "name": "Dragan Milosavljević",
+    "team": "Igokea m:tel",
+    "country": "Serbia",
+    "active": true,
+    "sources": [
+      { "competition": "ABA League", "type": "aba", "id": "1076" }
+    ]
+  },
+  {
+    "name": "Jayson Granger",
+    "team": "CB Estudiantes",
+    "country": "Uruguay",
+    "active": true,
+    "sources": [
+      { "competition": "Primera FEB", "type": "feb", "id": "951466" }
+    ]
+  },
+  {
+    "name": "Sasu Salin",
+    "team": "CB Estudiantes",
+    "country": "Finland",
+    "active": true,
+    "sources": [
+      { "competition": "Primera FEB", "type": "feb", "id": "791394" }
+    ]
+  },
+  {
+    "name": "Kyle Wiltjer",
+    "team": "Umana Reyer Venezia",
+    "country": "Canada",
+    "active": true,
+    "sources": [
+      { "competition": "Lega A", "type": "lega", "id": "7079" }
+    ]
+  },
+  {
+    "name": "Mario Saint-Supéry",
+    "team": "Gonzaga Bulldogs",
+    "country": "Spain",
+    "active": true,
+    "sources": [
+      { "competition": "NCAA", "type": "ncaa_espn", "id": "5313012" }
+    ]
+  },
+  {
+    "name": "Adam Waczyński",
+    "team": "Free Agent",
+    "country": "Poland",
+    "active": false,
+    "sources": []
+  }
+]
