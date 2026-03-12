@@ -1,17 +1,17 @@
 """
-EuroLeague / EuroCup data fetcher using the incrowdsports v2 API.
+EuroLeague / EuroCup latest game box score via incrowdsports v2 API.
 
-Endpoint:
-  GET https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions/{comp}/seasons/{season}/people/{player_code}/stats?phaseTypeCode=RS
+Two-step process:
+  1. GET /competitions/{comp}/seasons/{season}/games?personCode={code}
+     → returns list of games with codes and dates
+  2. GET /competitions/{comp}/seasons/{season}/games/{gameCode}/stats
+     → returns full box score; find player in home/away players list
 
 Competition codes:
   EuroLeague : comp="E"  season="E2024"
   EuroCup    : comp="U"  season="U2024"
 
-Player codes follow the P0XXXXX format found on euroleaguebasketball.net
-(e.g. "P003842" for Mathias Lessort).
-
-Returns the canonical full-stats dict with per-game averages.
+Player codes follow the P0XXXXX format (e.g. "P003842").
 """
 
 from __future__ import annotations
@@ -24,10 +24,9 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-_BASE = "https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions"
+_BASE    = "https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions"
 _TIMEOUT = 15
 
-# Default season codes
 _EL_COMP   = "E"
 _EC_COMP   = "U"
 _EL_SEASON = "E2024"
@@ -39,9 +38,9 @@ _HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/121.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/json",
-    "Origin": "https://www.euroleaguebasketball.net",
-    "Referer": "https://www.euroleaguebasketball.net/",
+    "Accept":   "application/json",
+    "Origin":   "https://www.euroleaguebasketball.net",
+    "Referer":  "https://www.euroleaguebasketball.net/",
 }
 
 
@@ -50,7 +49,6 @@ _HEADERS = {
 # ---------------------------------------------------------------------------
 
 def _safe_float(value: Any) -> float | None:
-    """Parse a value to float. Handles percentage strings like '68.2%'."""
     if value is None:
         return None
     text = str(value).strip().rstrip("%").replace(",", ".")
@@ -61,7 +59,6 @@ def _safe_float(value: Any) -> float | None:
 
 
 def _parse_minutes(value: Any) -> float | None:
-    """Parse minutes. Handles 'MM:SS', decimal strings, or numeric."""
     if value is None:
         return None
     text = str(value).strip()
@@ -74,6 +71,97 @@ def _parse_minutes(value: Any) -> float | None:
     return _safe_float(text)
 
 
+def _pct(value: Any) -> float | None:
+    """Normalise a percentage: if ≤ 1.0 treat as 0–1 decimal → multiply by 100."""
+    v = _safe_float(value)
+    if v is None:
+        return None
+    return round(v * 100, 1) if v <= 1.0 else round(v, 1)
+
+
+# ---------------------------------------------------------------------------
+# API calls
+# ---------------------------------------------------------------------------
+
+def _get_json(url: str, params: dict | None = None) -> dict | list | None:
+    try:
+        resp = requests.get(url, headers=_HEADERS, params=params, timeout=_TIMEOUT)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.HTTPError as exc:
+        logger.warning("EL/EC HTTP error %s: %s", url, exc)
+    except requests.RequestException as exc:
+        logger.warning("EL/EC request failed %s: %s", url, exc)
+    except ValueError as exc:
+        logger.warning("EL/EC JSON parse error %s: %s", url, exc)
+    return None
+
+
+def _latest_game_code(
+    competition: str, season: str, player_code: str
+) -> tuple[int | None, str]:
+    """
+    Return (game_code, game_date_str) for the most recently played game.
+    game_date_str is ISO date "YYYY-MM-DD" or "" if unknown.
+    """
+    url  = f"{_BASE}/{competition}/seasons/{season}/games"
+    data = _get_json(url, params={"personCode": player_code})
+
+    if not data or not isinstance(data, dict):
+        return None, ""
+
+    games = data.get("data", [])
+    if not games:
+        return None, ""
+
+    # Filter to played games (status finished/played)
+    played = [
+        g for g in games
+        if str(g.get("status", "")).lower() in ("played", "finished", "result", "")
+        or g.get("score") is not None
+    ]
+    if not played:
+        played = games  # fall back to all
+
+    # Sort by date descending; take most recent
+    def _sort_key(g: dict) -> str:
+        return str(g.get("date", ""))
+
+    played.sort(key=_sort_key, reverse=True)
+    latest = played[0]
+
+    code      = latest.get("code") or latest.get("identifier", "").split("_")[-1]
+    raw_date  = str(latest.get("date", ""))
+    game_date = raw_date[:10] if raw_date else ""  # "YYYY-MM-DD"
+
+    try:
+        return int(code), game_date
+    except (TypeError, ValueError):
+        return None, game_date
+
+
+def _fetch_game_stats(
+    competition: str, season: str, game_code: int, player_code: str
+) -> dict | None:
+    """Fetch a single game box score and extract the target player's stats."""
+    url  = f"{_BASE}/{competition}/seasons/{season}/games/{game_code}/stats"
+    data = _get_json(url)
+
+    if not data or not isinstance(data, dict):
+        return None
+
+    game_data = data.get("data", data)
+
+    for side in ("home", "away"):
+        team = game_data.get(side, {})
+        players = team.get("players", [])
+        for p in players:
+            if p.get("code") == player_code or p.get("person", {}).get("code") == player_code:
+                return p.get("stats", {})
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -83,113 +171,72 @@ def fetch_player_stats(
     *,
     competition: str = _EL_COMP,
     season: str = _EL_SEASON,
-    phase: str = "RS",
 ) -> dict:
     """
-    Fetch season stats for a EuroLeague or EuroCup player.
+    Fetch the most recent game box score for a EuroLeague or EuroCup player.
 
     Args:
         player_code:  incrowdsports player code, e.g. "P003842".
         competition:  "E" for EuroLeague, "U" for EuroCup.
         season:       Season code, e.g. "E2024" or "U2024".
-        phase:        Phase type code: "RS" (regular season), "PO" (playoff).
 
     Returns:
-        Canonical per-game stats dict, or empty dict on failure.
+        Canonical single-game stats dict, or empty dict on failure.
     """
-    url = f"{_BASE}/{competition}/seasons/{season}/people/{player_code}/stats"
-    params = {"phaseTypeCode": phase}
-    logger.debug("EuroLeague/EuroCup fetch: %s  params=%s", url, params)
+    game_code, game_date = _latest_game_code(competition, season, player_code)
 
-    try:
-        resp = requests.get(url, headers=_HEADERS, params=params, timeout=_TIMEOUT)
-        resp.raise_for_status()
-        data: dict = resp.json()
-    except requests.HTTPError as exc:
-        logger.warning("EL/EC HTTP error player=%s: %s", player_code, exc)
-        return {}
-    except requests.RequestException as exc:
-        logger.warning("EL/EC request failed player=%s: %s", player_code, exc)
-        return {}
-    except ValueError as exc:
-        logger.warning("EL/EC JSON parse error player=%s: %s", player_code, exc)
+    if game_code is None:
+        logger.warning("EL/EC: no played games found for player=%s", player_code)
         return {}
 
-    avg: dict = data.get("averagePerGame", {}) or {}
-    acc: dict = data.get("accumulated", {}) or {}
-
-    if not avg and not acc:
-        logger.warning("EL/EC: no stats data for player=%s season=%s", player_code, season)
-        return {}
-
-    # Player / team info (may be absent)
-    player_info: dict = data.get("player", {}) or {}
-    team_info:   dict = data.get("club",   {}) or data.get("team", {}) or {}
-
-    player_name = (
-        player_info.get("name")
-        or player_info.get("fullName")
-        or player_info.get("alias")
-        or player_code
+    logger.debug(
+        "EL/EC: fetching game %s stats for player=%s (date=%s)",
+        game_code, player_code, game_date,
     )
-    team_name = (
-        team_info.get("name")
-        or team_info.get("alias")
-        or team_info.get("abbreviatedName")
-        or ""
-    )
+    stats = _fetch_game_stats(competition, season, game_code, player_code)
 
-    gp = int(_safe_float(avg.get("gamesPlayed") or acc.get("gamesPlayed") or 0) or 0)
-
-    # Percentages come as "68.2%" strings or already as floats
-    t2_pct  = _safe_float(avg.get("twoPointShootingPercentage"))
-    t3_pct  = _safe_float(avg.get("threePointShootingPercentage"))
-    ft_pct  = _safe_float(avg.get("freeThrowShootingPercentage"))
-
-    # Convert 0–1 decimal to 0–100 if percentages look like decimals
-    def _normalise_pct(v: float | None) -> float | None:
-        if v is None:
-            return None
-        return round(v * 100, 1) if v <= 1.0 else round(v, 1)
+    if stats is None:
+        logger.warning(
+            "EL/EC: player %s not found in game %s box score", player_code, game_code
+        )
+        return {}
 
     competition_label = "EuroLeague" if competition == _EL_COMP else "EuroCup"
 
+    t2m = _safe_float(stats.get("fieldGoalsMade2"))
+    t2a = _safe_float(stats.get("fieldGoalsAttempted2"))
+    t2_pct = round(t2m / t2a * 100, 1) if t2m is not None and t2a else _pct(stats.get("twoPointShootingPercentage"))
+
+    t3m = _safe_float(stats.get("fieldGoalsMade3"))
+    t3a = _safe_float(stats.get("fieldGoalsAttempted3"))
+    t3_pct = round(t3m / t3a * 100, 1) if t3m is not None and t3a else _pct(stats.get("threePointShootingPercentage"))
+
+    ftm = _safe_float(stats.get("freeThrowsMade"))
+    fta = _safe_float(stats.get("freeThrowsAttempted"))
+    ft_pct = round(ftm / fta * 100, 1) if ftm is not None and fta else _pct(stats.get("freeThrowShootingPercentage"))
+
     return {
-        "player_id":    player_code,
-        "player_name":  player_name,
-        "team":         team_name,
-        "source":       competition_label.lower().replace(" ", ""),
-        "competition":  competition_label,
-        "season":       season,
-        "date":         str(date.today()),
-        "games_played": gp or None,
-        # Scoring
-        "pts":          _safe_float(avg.get("points")),
-        # 2-point shooting
-        "t2m":          _safe_float(avg.get("fieldGoalsMade2")),
-        "t2a":          _safe_float(avg.get("fieldGoalsAttempted2")),
-        "t2_pct":       _normalise_pct(t2_pct),
-        # 3-point shooting
-        "t3m":          _safe_float(avg.get("fieldGoalsMade3")),
-        "t3a":          _safe_float(avg.get("fieldGoalsAttempted3")),
-        "t3_pct":       _normalise_pct(t3_pct),
-        # Free throws
-        "ftm":          _safe_float(avg.get("freeThrowsMade")),
-        "fta":          _safe_float(avg.get("freeThrowsAttempted")),
-        "ft_pct":       _normalise_pct(ft_pct),
-        # Rebounds
-        "reb_off":      _safe_float(avg.get("offensiveRebounds")),
-        "reb_def":      _safe_float(avg.get("defensiveRebounds")),
-        "reb":          _safe_float(avg.get("totalRebounds")),
-        # Other
-        "ast":          _safe_float(avg.get("assistances")),
-        "stl":          _safe_float(avg.get("steals")),
-        "tov":          _safe_float(avg.get("turnovers")),
-        "blk":          _safe_float(avg.get("blocksFavour")),
-        "fouls":        _safe_float(avg.get("foulsCommited")),
-        "plus_minus":   _safe_float(avg.get("plusMinus")),
-        "val":          _safe_float(avg.get("valuation")),
-        "min":          _parse_minutes(avg.get("timePlayed")),
+        "player_id":   player_code,
+        "source":      competition_label.lower().replace(" ", ""),
+        "competition": competition_label,
+        "season":      season,
+        "game_date":   game_date,
+        "date":        str(date.today()),
+        "min":         _parse_minutes(stats.get("timePlayed")),
+        "pts":         _safe_float(stats.get("points")),
+        "t2m":         t2m,   "t2a":  t2a,  "t2_pct":  t2_pct,
+        "t3m":         t3m,   "t3a":  t3a,  "t3_pct":  t3_pct,
+        "ftm":         ftm,   "fta":  fta,  "ft_pct":  ft_pct,
+        "reb_off":     _safe_float(stats.get("offensiveRebounds")),
+        "reb_def":     _safe_float(stats.get("defensiveRebounds")),
+        "reb":         _safe_float(stats.get("totalRebounds")),
+        "ast":         _safe_float(stats.get("assistances")),
+        "stl":         _safe_float(stats.get("steals")),
+        "tov":         _safe_float(stats.get("turnovers")),
+        "blk":         _safe_float(stats.get("blocksFavour")),
+        "fouls":       _safe_float(stats.get("foulsCommited")),
+        "plus_minus":  _safe_float(stats.get("plusMinus")),
+        "val":         _safe_float(stats.get("valuation")),
     }
 
 

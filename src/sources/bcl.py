@@ -220,7 +220,7 @@ def _parse_stats_table(
                 "competition":  "BCL",
                 "season":       "2025-26",
                 "date":         str(date.today()),
-                "games_played": int(games_played_val) if games_played_val else None,
+                "game_date":    "",
                 "pts":          _get("pts"),
                 "t2m":          _get("t2m"),
                 "t2a":          _get("t2a"),
