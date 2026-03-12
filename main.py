@@ -15,6 +15,7 @@ The script:
 from __future__ import annotations
 
 import argparse
+import io
 import logging
 import sys
 from datetime import date
@@ -27,14 +28,29 @@ from src.router import fetch_all_stats
 from src.storage import save_daily_stats, save_csv_snapshot
 
 # ---------------------------------------------------------------------------
-# Logging setup
+# Logging setup — force UTF-8 on Windows console to avoid cp1252 errors
 # ---------------------------------------------------------------------------
+
+def _utf8_stdout() -> io.TextIOWrapper:
+    """Return a UTF-8 writer over stdout's binary buffer (works on Windows)."""
+    buf = getattr(sys.stdout, "buffer", None)
+    if buf is not None:
+        return io.TextIOWrapper(buf, encoding="utf-8", errors="replace", line_buffering=True)
+    # Fallback: reconfigure in-place (Python 3.7+)
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
+    except AttributeError:
+        pass
+    return sys.stdout  # type: ignore[return-value]
+
+
+_log_stream = _utf8_stdout()
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(name)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
-    stream=open(sys.stdout.fileno(), mode="w", encoding="utf-8", closefd=False),
+    stream=_log_stream,
 )
 logger = logging.getLogger("main")
 
@@ -53,7 +69,7 @@ def run_job() -> None:
         logger.warning("No active players found — check registry.json.")
         return
 
-    logger.info("Fetching stats for %d active player(s)…", len(players))
+    logger.info("Fetching stats for %d active player(s)...", len(players))
     stats = fetch_all_stats(players)
 
     if not stats:
@@ -74,7 +90,7 @@ def run_job() -> None:
 def _fmt(val: object, decimals: int = 1) -> str:
     """Format a stat value: float → '12.3', None/missing → '—'."""
     if val is None:
-        return "—"
+        return "-"
     try:
         return f"{float(val):.{decimals}f}"
     except (TypeError, ValueError):

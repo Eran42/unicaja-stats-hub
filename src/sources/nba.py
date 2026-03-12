@@ -82,6 +82,20 @@ def _row_to_dict(headers: list[str], row: list) -> dict:
     return dict(zip(headers, row))
 
 
+def _parse_opponent(matchup: str) -> str:
+    """
+    Extract the opponent team abbreviation from an NBA matchup string.
+
+    'SAC vs. GSW'  → 'vs. GSW'   (home game)
+    'SAC @ LAL'    → '@ LAL'     (away game)
+    """
+    if " vs. " in matchup:
+        return "vs. " + matchup.split(" vs. ", 1)[1]
+    if " @ " in matchup:
+        return "@ " + matchup.split(" @ ", 1)[1]
+    return matchup
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -157,12 +171,13 @@ def fetch_season_averages(player_id: str | int, season: str = _CURRENT_SEASON) -
 
     return {
         "player_id":   str(player_id),
+        "player_name": "",                        # router fills via setdefault
         "source":      "nba",
         "competition": "NBA",
         "season":      season,
         "game_date":   game_date,
-        "opponent":    matchup,
-        "result":      str(row.get("WL", "")),
+        "opponent":    _parse_opponent(matchup),
+        "result":      str(row.get("WL", "")),    # "W" or "L" — team score not in playergamelog
         "date":        str(date.today()),
         "min":         _parse_minutes(row.get("MIN")),
         "pts":         _safe_float(row.get("PTS")),

@@ -103,9 +103,21 @@ def _get_json(url: str, params: dict | None = None) -> dict | list | None:
     return None
 
 
+def _team_score(team: dict) -> int | None:
+    """Extract the final team score from an incrowdsports team object."""
+    for field in ("score", "totalPoints", "points", "total", "pts"):
+        v = team.get(field)
+        if v is not None:
+            try:
+                return int(v)
+            except (TypeError, ValueError):
+                pass
+    return None
+
+
 def _fetch_game_stats(
     competition: str, season: str, game_code: int, bare_code: str
-) -> tuple[dict | None, str, str]:
+) -> tuple[dict | None, str, str, str]:
     """
     Fetch a single game box score and extract the target player's stats.
 
@@ -113,13 +125,14 @@ def _fetch_game_stats(
         bare_code: player code WITHOUT the leading 'P' (e.g. "010581").
 
     Returns:
-        (stats_dict, player_name, opponent_name) or (None, "", "") if not found.
+        (stats_dict, player_name, opponent_name, result_str) or (None, "", "", "") if not found.
+        result_str is formatted "V 85-76" or "D 76-85" when team scores are available.
     """
     url  = f"{_BASE}/{competition}/seasons/{season}/games/{game_code}/stats"
     data = _get_json(url)
 
     if not data or not isinstance(data, dict):
-        return None, "", ""
+        return None, "", "", ""
 
     # Box score top-level keys are 'local' (home) and 'road' (away)
     sides = ("local", "road")
@@ -131,17 +144,28 @@ def _fetch_game_stats(
                 # Opponent is the other side
                 other_side = sides[1 - i]
                 opp_team = data.get(other_side, {})
-                # Club name is nested under the first player's club, or team-level
+
+                # Club name from first player's club data or team-level
                 opp_players = opp_team.get("players", [])
                 opponent = ""
                 if opp_players:
                     opponent = (
                         opp_players[0].get("player", {}).get("club", {}).get("name", "")
                     )
-                player_name = person.get("name", "").title()
-                return p.get("stats", {}), player_name, opponent
 
-    return None, "", ""
+                player_name = person.get("name", "").title()
+
+                # Build result string from team scores
+                my_score  = _team_score(team)
+                opp_score = _team_score(opp_team)
+                result = ""
+                if my_score is not None and opp_score is not None:
+                    wl = "V" if my_score > opp_score else "D"
+                    result = f"{wl} {my_score}-{opp_score}"
+
+                return p.get("stats", {}), player_name, opponent, result
+
+    return None, "", "", ""
 
 
 # ---------------------------------------------------------------------------
@@ -189,7 +213,7 @@ def fetch_player_stats(
     # Try the most recent games until we find one the player appeared in
     competition_label = "EuroLeague" if competition == _EL_COMP else "EuroCup"
 
-    for game in played[:10]:
+    for game in played[:20]:
         raw_code = game.get("code")
         try:
             game_code = int(raw_code)
@@ -203,7 +227,7 @@ def fetch_player_stats(
             "EL/EC: checking game %s (%s) for player=%s",
             game_code, game_date, player_code,
         )
-        stats, player_name, opponent = _fetch_game_stats(
+        stats, player_name, opponent, result = _fetch_game_stats(
             competition, season, game_code, bare_code
         )
 
@@ -230,7 +254,7 @@ def fetch_player_stats(
             "season":      season,
             "game_date":   game_date,
             "opponent":    opponent,
-            "result":      "",
+            "result":      result,
             "date":        str(date.today()),
             "min":         _parse_minutes(stats.get("timePlayed")),
             "pts":         _safe_float(stats.get("points")),
@@ -249,10 +273,102 @@ def fetch_player_stats(
             "val":         _safe_float(stats.get("valuation")),
         }
 
-    logger.warning("EL/EC: player %s not found in last 10 played games", player_code)
+    logger.warning("EL/EC: player %s not found in last 20 played games", player_code)
     return {}
+
+
+def find_player_code(
+    name_fragment: str,
+    *,
+    competition: str = _EL_COMP,
+    season: str = _EL_SEASON,
+    max_games: int = 10,
+) -> list[dict]:
+    """
+    Search for a player by partial name across recent box scores.
+
+    Useful for verifying or discovering the correct player code.
+    Returns a list of dicts: {code, name, game_code, game_date}.
+
+    Usage (from repo root):
+        python -c "from src.sources.euroleague import find_player_code; print(find_player_code('lessort'))"
+    """
+    url  = f"{_BASE}/{competition}/seasons/{season}/games"
+    data = _get_json(url, params={"limit": 200})
+    if not data or not isinstance(data, dict):
+        return []
+
+    games = data.get("data", [])
+    played = [g for g in games if str(g.get("status", "")).lower() == "result"]
+    played.sort(key=lambda g: str(g.get("date", "")), reverse=True)
+
+    hits: list[dict] = []
+    seen_codes: set[str] = set()
+    needle = name_fragment.lower()
+
+    for game in played[:max_games]:
+        raw_code = game.get("code")
+        try:
+            game_code = int(raw_code)
+        except (TypeError, ValueError):
+            continue
+
+        game_date = str(game.get("date", ""))[:10]
+        stats_url = f"{_BASE}/{competition}/seasons/{season}/games/{game_code}/stats"
+        box = _get_json(stats_url)
+        if not box or not isinstance(box, dict):
+            continue
+
+        for side in ("local", "road"):
+            for p in box.get(side, {}).get("players", []):
+                person = p.get("player", {}).get("person", {})
+                full_name = person.get("name", "")
+                if needle in full_name.lower():
+                    code = person.get("code", "")
+                    if code not in seen_codes:
+                        seen_codes.add(code)
+                        hits.append({
+                            "code": f"P{code}",
+                            "name": full_name,
+                            "game_code": game_code,
+                            "game_date": game_date,
+                        })
+
+    return hits
 
 
 def fetch_eurocup_player_stats(player_code: str, season: str = _EC_SEASON) -> dict:
     """Convenience wrapper for EuroCup stats."""
     return fetch_player_stats(player_code, competition=_EC_COMP, season=season)
+
+
+# ---------------------------------------------------------------------------
+# CLI debug helper
+#   Fetch a player:  python -m src.sources.euroleague P003842
+#   Search by name:  python -m src.sources.euroleague --find lessort
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import sys as _sys
+    import json as _json
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(levelname)s  %(name)s - %(message)s",
+        stream=_sys.stdout,
+    )
+
+    args = _sys.argv[1:]
+    if args and args[0] == "--find":
+        fragment = args[1] if len(args) > 1 else "lessort"
+        print(f"\n--- EuroLeague name search: '{fragment}' ---\n")
+        results = find_player_code(fragment)
+        print(_json.dumps(results, indent=2, ensure_ascii=False))
+    else:
+        code = args[0] if args else "P003842"  # default: Lessort
+        print(f"\n--- EuroLeague debug fetch: player_code={code} ---\n")
+        result = fetch_player_stats(code)
+        if result:
+            print(_json.dumps(result, indent=2, ensure_ascii=False))
+        else:
+            print("(no data returned)")

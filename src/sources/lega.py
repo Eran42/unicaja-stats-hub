@@ -88,6 +88,9 @@ def _build_stat_dict(
         "competition":  "Lega A",
         "season":       "2025-26",
         "date":         str(date.today()),
+        "game_date":    "",   # Lega A provides season averages, not per-game data
+        "opponent":     "",
+        "result":       "",
         "games_played": int(_g("games_played") or 0) or None,
         "pts":          _g("pts"),
         "t2m":          _g("t2m"),

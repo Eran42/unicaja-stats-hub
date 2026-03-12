@@ -76,6 +76,42 @@ def _find_col_map(header_row: list[str]) -> dict[str, int]:
     return {h.lower().strip(): idx for idx, h in enumerate(header_row)}
 
 
+def _parse_espn_date(raw: str) -> str:
+    """
+    Normalise ESPN game-log date strings to YYYY-MM-DD.
+
+    ESPN formats encountered:
+      'Nov 1'        — month name + day, no year
+      'Nov 1, 2025'  — month name + day + year
+      'Mon 11/1'     — day-of-week prefix + M/D
+      '11/1'         — M/D without year
+    Year is inferred for season 2025-26: month >= 9 → 2025, else → 2026.
+    """
+    from datetime import datetime as _dt
+    raw = raw.strip()
+    # Strip optional day-of-week prefix ('Mon ', 'Sat ', etc.)
+    raw = re.sub(r"^[A-Za-z]{2,3}\s+(?=\d)", "", raw)
+
+    # M/D or M/D/YYYY
+    m = re.match(r"^(\d{1,2})/(\d{1,2})(?:/(\d{4}))?$", raw)
+    if m:
+        mo, d = int(m.group(1)), int(m.group(2))
+        y = int(m.group(3)) if m.group(3) else (2025 if mo >= 9 else 2026)
+        return f"{y}-{mo:02d}-{d:02d}"
+
+    # Named month formats
+    for fmt, has_year in (("%b %d, %Y", True), ("%b %d", False)):
+        try:
+            dt = _dt.strptime(raw, fmt)
+            if not has_year:
+                dt = dt.replace(year=2025 if dt.month >= 9 else 2026)
+            return dt.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
+    return raw
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -139,7 +175,7 @@ def fetch_player_stats(
             continue
         # ESPN shows most recent game first — take the first valid row
         last_row_cells = cells
-        last_game_date = _get(cells, "date")
+        last_game_date = _parse_espn_date(_get(cells, "date"))
         last_opponent  = _get(cells, "opp")
         break
 

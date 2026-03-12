@@ -220,7 +220,9 @@ def _parse_stats_table(
                 "competition":  "BCL",
                 "season":       "2025-26",
                 "date":         str(date.today()),
-                "game_date":    "",
+                "game_date":    "",   # BCL provides season averages, not per-game data
+                "opponent":     "",
+                "result":       "",
                 "pts":          _get("pts"),
                 "t2m":          _get("t2m"),
                 "t2a":          _get("t2a"),

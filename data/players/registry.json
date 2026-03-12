@@ -176,5 +176,41 @@
     "country": "Poland",
     "active": false,
     "sources": []
+  },
+  {
+    "name": "Jaime Fernández",
+    "team": "Lenovo Tenerife",
+    "country": "Spain",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "20204124" }
+    ]
+  },
+  {
+    "name": "Tim Abromaitis",
+    "team": "Lenovo Tenerife",
+    "country": "United States",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "20211625" }
+    ]
+  },
+  {
+    "name": "Yannick Nzosa",
+    "team": "San Pablo Burgos",
+    "country": "Congo",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "30000479" }
+    ]
+  },
+  {
+    "name": "Francis Alonso",
+    "team": "San Pablo Burgos",
+    "country": "Spain",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "20210585" }
+    ]
   }
 ]

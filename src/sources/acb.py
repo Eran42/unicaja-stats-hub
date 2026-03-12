@@ -142,7 +142,7 @@ def _parse_reb_cell(text: str) -> tuple[float | None, float | None, float | None
 # ACB game log header labels (lowercase) → canonical field
 _HEADER_MAP: dict[str, str] = {
     "partidos": "opponent",
-    "res.":     "result",   "res": "result",
+    "res.":     "result",   "res": "result",   "r": "result",   "v/d": "result",
     "min.":     "min",      "min": "min",
     "pt":       "pts",      "pts": "pts",
     "t2":       "t2_combined",
@@ -259,6 +259,108 @@ def _parse_game_row(cells: list[Tag], col_map: dict[str, int]) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Game-page result extractor
+# ---------------------------------------------------------------------------
+
+def _extract_result_from_game_page(html: str, opponent_name: str) -> str:
+    """
+    Parse an ACB game stats page (/partido/ver/id/XXXXX) to extract the
+    full result string, e.g. 'V 95-80' or 'D 76-82'.
+
+    Strategy:
+      1. Look for local/visitante score elements (ACB-specific class/id patterns).
+      2. Regex fallback: find two prominent 2-3 digit numbers separated by '-'.
+      3. Determine W/L by matching opponent_name against the team names on the page;
+         fall back to score comparison if names can't be matched.
+    """
+    soup = BeautifulSoup(html, "lxml")
+    opp_lower = opponent_name.strip().lower()
+
+    local_score:   int | None = None
+    visitor_score: int | None = None
+    local_name  = ""
+    visitor_name = ""
+
+    # --- Strategy 1: id/class patterns ACB uses for local vs visitante ----------
+    kw_pairs = [
+        ("local",     "visitante"),
+        ("local",     "visitor"),
+        ("home",      "away"),
+    ]
+
+    def _first_score(els: list) -> int | None:
+        for el in els:
+            t = el.get_text(strip=True)
+            if re.match(r"^\d{2,3}$", t):
+                return int(t)
+        return None
+
+    def _first_name(els: list) -> str:
+        for el in els:
+            t = el.get_text(separator=" ", strip=True)
+            # Reject pure-number elements and very short strings
+            if re.search(r"[A-Za-zÀ-ÿ]{3,}", t) and not re.match(r"^\d+$", t):
+                return t
+        return ""
+
+    for kw_l, kw_v in kw_pairs:
+        loc_els = (
+            soup.find_all(id=re.compile(kw_l, re.I))
+            + soup.find_all(class_=re.compile(kw_l, re.I))
+        )
+        vis_els = (
+            soup.find_all(id=re.compile(kw_v, re.I))
+            + soup.find_all(class_=re.compile(kw_v, re.I))
+        )
+        ls = _first_score(loc_els)
+        vs = _first_score(vis_els)
+        if ls is not None and vs is not None:
+            local_score   = ls
+            visitor_score = vs
+            local_name    = _first_name(loc_els)
+            visitor_name  = _first_name(vis_els)
+            break
+
+    # --- Strategy 2: regex scan on raw text -----------------------------------
+    if local_score is None or visitor_score is None:
+        # Look for a 'NNN - NNN' pattern; take the first match with 2-3 digit numbers
+        for m in re.finditer(r"\b(\d{2,3})\s*[-\u2013]\s*(\d{2,3})\b", html):
+            a, b = int(m.group(1)), int(m.group(2))
+            # Sanity check: basketball scores don't go below 40 or above 200
+            if 40 <= a <= 200 and 40 <= b <= 200:
+                local_score   = a
+                visitor_score = b
+                break
+
+    if local_score is None or visitor_score is None:
+        logger.debug("ACB game page: could not extract score")
+        return ""
+
+    score_str = f"{local_score}-{visitor_score}"
+
+    # --- Determine W/L --------------------------------------------------------
+    # If we have both team names, try to match the opponent to identify player's side
+    if opp_lower and local_name and visitor_name:
+        opp_is_local = (
+            opp_lower in local_name.lower() or local_name.lower() in opp_lower
+        )
+        opp_is_visit = (
+            opp_lower in visitor_name.lower() or visitor_name.lower() in opp_lower
+        )
+        if opp_is_local and not opp_is_visit:
+            # Player is the visitor: player wins if visitor_score > local_score
+            won = visitor_score > local_score
+            return f"{'V' if won else 'D'} {score_str}"
+        if opp_is_visit and not opp_is_local:
+            # Player is local: player wins if local_score > visitor_score
+            won = local_score > visitor_score
+            return f"{'V' if won else 'D'} {score_str}"
+
+    # Opponent name match was ambiguous — return score only
+    return score_str
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -296,19 +398,40 @@ def fetch_player_stats(player_id: str) -> dict:
 
     # Find the game log table — pick the one whose header row has the most
     # recognised columns (avoids picking the season-summary table first)
+    all_tables = soup.find_all("table")
+    logger.debug("ACB id=%s: found %d table(s) in page", player_id, len(all_tables))
+    if not all_tables:
+        # No tables at all — likely a JS-rendered page or wrong URL
+        snippet = resp.text[:500].replace("\n", " ")
+        logger.warning(
+            "ACB id=%s: page has no <table> elements (JS-rendered?). "
+            "URL=%s  HTTP=%s  snippet=%r",
+            player_id, url, resp.status_code, snippet,
+        )
+        return {}
+
     target_table: Tag | None = None
     col_map: dict[str, int] = {}
-    for tbl in soup.find_all("table"):
+    for tbl in all_tables:
         tbl_rows = tbl.find_all("tr")
-        for row in tbl_rows[:3]:
+        # Search up to 5 header rows (some tables have multi-row headers)
+        for row in tbl_rows[:5]:
             cells = row.find_all(["th", "td"])
             candidate = _build_col_map(cells)
             if len(candidate) > len(col_map):
                 col_map = candidate
                 target_table = tbl
 
-    if target_table is None:
-        logger.warning("ACB: no game log table found for id=%s", player_id)
+    logger.debug(
+        "ACB id=%s: best table col_map=%s",
+        player_id, list(col_map.keys()),
+    )
+
+    if target_table is None or len(col_map) < 3:
+        logger.warning(
+            "ACB id=%s: no usable game log table found (best col_map has %d field(s): %s)",
+            player_id, len(col_map), list(col_map.keys()),
+        )
         return {}
 
     # Collect all game rows
@@ -338,9 +461,13 @@ def fetch_player_stats(player_id: str) -> dict:
         logger.warning("ACB: no played game rows found for id=%s", player_id)
         return {}
 
-    # Extract game date from the linked game page in the PARTIDOS cell
-    # The row cells don't contain dates, but the opponent link goes to /partido/ver/id/XXXXX
-    game_date = ""
+    # Extract game date AND result from the linked game page in the PARTIDOS cell.
+    # The game log row gives us V/D from the "Res." column (often empty); the game
+    # stats page (/partido/ver/id/XXXXX) always has the full score.
+    game_date   = ""
+    game_result = stats.get("result", "").strip()  # V or D from game log, may be empty
+    opponent    = stats.get("opponent", "")
+
     for cell in last_cells:  # type: ignore[union-attr]
         link = cell.find("a", href=re.compile(r"/partido/ver/id/\d+"))
         if not link:
@@ -351,6 +478,8 @@ def fetch_player_stats(player_id: str) -> dict:
             gr = requests.get(game_url, headers=_HEADERS, timeout=_TIMEOUT)
             gr.raise_for_status()
             page_text = gr.text
+
+            # Date
             for dm in re.finditer(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", page_text):
                 day, month, year = dm.group(1), dm.group(2), dm.group(3)
                 if not (2020 <= int(year) <= 2035):
@@ -362,6 +491,16 @@ def fetch_player_stats(player_id: str) -> dict:
                 except ValueError:
                     pass
                 break
+
+            # Result / score — extract from the game stats page
+            extracted = _extract_result_from_game_page(page_text, opponent)
+            if extracted:
+                # If we already have V/D from the game log but no score, combine them
+                if game_result in ("V", "D") and not re.search(r"\d", extracted):
+                    game_result = f"{game_result} {extracted}"
+                else:
+                    game_result = extracted
+
         except requests.RequestException:
             pass
         break
@@ -373,8 +512,8 @@ def fetch_player_stats(player_id: str) -> dict:
         "competition": "ACB",
         "season":      "2025-26",
         "game_date":   game_date,
-        "opponent":    stats.get("opponent", ""),
-        "result":      stats.get("result", ""),
+        "opponent":    opponent,
+        "result":      game_result,
         "date":        str(date.today()),
         "min":         stats["min"],
         "pts":         stats["pts"],
@@ -392,3 +531,26 @@ def fetch_player_stats(player_id: str) -> dict:
         "plus_minus":  stats["plus_minus"],
         "val":         stats["val"],
     }
+
+
+# ---------------------------------------------------------------------------
+# CLI debug helper  — run directly: python -m src.sources.acb <player_id>
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import sys as _sys
+    import json as _json
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(levelname)s  %(name)s - %(message)s",
+        stream=_sys.stdout,
+    )
+
+    _id = _sys.argv[1] if len(_sys.argv) > 1 else "20210659"  # default: Shermadini
+    print(f"\n--- ACB debug fetch: player_id={_id} ---\n")
+    result = fetch_player_stats(_id)
+    if result:
+        print(_json.dumps(result, indent=2, ensure_ascii=False))
+    else:
+        print("(no data returned)")

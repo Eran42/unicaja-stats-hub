@@ -84,6 +84,62 @@ def _cell_text(cell) -> str:
     return cell.get_text(strip=True)
 
 
+def _parse_aba_date(raw: str) -> str:
+    """
+    Normalise ABA date strings to YYYY-MM-DD.
+
+    Handles:
+      'DD.MM.YYYY'  e.g. '15.02.2026'
+      'DD.MM.'      e.g. '15.02.'  — year inferred from season (2025-26)
+    """
+    raw = raw.strip()
+    # Full date with year
+    m = re.match(r"(\d{1,2})\.(\d{1,2})\.(\d{4})", raw)
+    if m:
+        d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        try:
+            return f"{y}-{mo:02d}-{d:02d}"
+        except (ValueError, OverflowError):
+            pass
+    # Short date without year (season 2025-26: Sep-Dec → 2025, Jan-Aug → 2026)
+    m = re.match(r"(\d{1,2})\.(\d{1,2})\.", raw)
+    if m:
+        d, mo = int(m.group(1)), int(m.group(2))
+        year = 2025 if mo >= 9 else 2026
+        return f"{year}-{mo:02d}-{d:02d}"
+    return raw
+
+
+def _parse_result(text: str) -> str:
+    """
+    Parse a result/score cell into canonical 'V 82-75' / 'D 75-82' format.
+
+    Recognises:
+      Score patterns: '82-75', '82:75'
+      W/L letters:    'W', 'L', 'V', 'D'
+      Language words: 'Pobjeda'/'Pobeda' (victory), 'Poraz' (defeat)
+    """
+    text = text.strip()
+    score_m = re.search(r"(\d{2,3})[:\-](\d{2,3})", text)
+    score_str = f"{score_m.group(1)}-{score_m.group(2)}" if score_m else ""
+
+    if re.search(r"\bpobje[d]?a\b|\bpobeda\b|\bvictory\b|\bwin\b|\bvictoria\b", text, re.I):
+        wl = "V"
+    elif re.search(r"\bporaz\b|\bloss\b|\bdefeated?\b|\bderrota\b", text, re.I):
+        wl = "D"
+    else:
+        wl_m = re.search(r"\b([WwVv])\b", text)
+        if wl_m:
+            wl = "V"
+        else:
+            wl_m = re.search(r"\b([LlDd])\b", text)
+            wl = "D" if wl_m else ""
+
+    if score_str and wl:
+        return f"{wl} {score_str}"
+    return score_str or wl
+
+
 def _is_game_row(cells) -> bool:
     """True if the row looks like a game row (date in first cell)."""
     if not cells:
@@ -139,11 +195,29 @@ def fetch_player_stats(
     def _get(idx: int) -> str | None:
         return _cell_text(c[idx]) if idx < len(c) else None
 
-    # Determine column offset (skip date + opponent leading cells)
-    # Game rows: col0=date, col1=opponent/result, then stats start
+    # Determine column offset (skip date + leading context cells)
+    # Short rows (< 26 cols): col0=date, col1=opponent+result combined, stats from col2
+    # Long rows (>= 26 cols): col0=date, col1=opponent, col2=result, stats from col3
     offset = 2
     if len(c) >= 26:
         offset = 3
+
+    # Extract opponent and result from the leading context cells
+    if offset == 3:
+        opponent   = _get(1) or ""
+        result_raw = _get(2) or ""
+        result     = _parse_result(result_raw)
+    else:
+        # col1 may contain opponent name and/or result info
+        combined = _get(1) or ""
+        # If combined contains a score pattern, parse as result; take text before as opponent
+        score_m = re.search(r"(\d{2,3})[:\-](\d{2,3})", combined)
+        if score_m:
+            opponent = combined[:score_m.start()].strip()
+            result   = _parse_result(combined)
+        else:
+            opponent = combined
+            result   = ""
 
     def _s(rel: int) -> str | None:
         return _get(offset + rel)
@@ -154,7 +228,9 @@ def fetch_player_stats(
         "source":      "aba",
         "competition": "ABA League",
         "season":      "2025-26",
-        "game_date":   last_game_date,
+        "game_date":   _parse_aba_date(last_game_date),
+        "opponent":    opponent,
+        "result":      result,
         "date":        str(date.today()),
         "min":         _parse_minutes(_s(0)),
         "pts":         _safe_float(_s(1)),

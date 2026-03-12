@@ -78,6 +78,67 @@ def _cell_text(cell: Tag) -> str:
     return cell.get_text(strip=True)
 
 
+def _parse_date_flexible(raw: str) -> str:
+    """
+    Try common date formats and return YYYY-MM-DD, or the raw string if none match.
+
+    Handles: '15 Feb 2026', 'Feb 15, 2026', '15/02/2026', '02/15/2026',
+             '2026-02-15', '15.02.2026', 'Feb 15'.
+    For formats without a year, the season 2025-26 rule applies:
+      month >= 9 → 2025, month <= 8 → 2026.
+    """
+    from datetime import datetime as _dt
+    raw = raw.strip()
+    if not raw:
+        return raw
+
+    # Already ISO
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", raw):
+        return raw
+
+    candidates = [
+        ("%d %b %Y", True),
+        ("%b %d, %Y", True),
+        ("%d/%m/%Y", True),
+        ("%m/%d/%Y", True),
+        ("%d.%m.%Y", True),
+        ("%b %d", False),     # no year
+        ("%d %b", False),     # no year
+    ]
+    for fmt, has_year in candidates:
+        try:
+            dt = _dt.strptime(raw, fmt)
+            if not has_year:
+                year = 2025 if dt.month >= 9 else 2026
+                dt = dt.replace(year=year)
+            return dt.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return raw
+
+
+def _parse_result(text: str) -> str:
+    """
+    Parse a result/score cell into canonical 'V 85-76' / 'D 76-85' format.
+
+    Recognises score patterns ('85-76', '85:76') and W/L indicators.
+    """
+    text = text.strip()
+    score_m = re.search(r"(\d{2,3})[:\-](\d{2,3})", text)
+    score_str = f"{score_m.group(1)}-{score_m.group(2)}" if score_m else ""
+
+    if re.search(r"\b(win|won|victory|victoria|w)\b", text, re.I):
+        wl = "V"
+    elif re.search(r"\b(loss|lost|defeat|derrota|l)\b", text, re.I):
+        wl = "D"
+    else:
+        wl = ""
+
+    if score_str and wl:
+        return f"{wl} {score_str}"
+    return score_str or wl
+
+
 # Column header → stat field
 _HEADER_MAP: dict[str, str] = {
     "min": "min", "pts": "pts",
@@ -154,8 +215,9 @@ def fetch_player_stats(
     soup = BeautifulSoup(resp.text, "html.parser")
 
     # Look for any table with a date/game column and stat columns
-    last_row: list[str] | None = None
-    col_map: dict[str, int] = {}
+    last_row:   list[str] | None = None
+    last_cells: list[Tag]  | None = None
+    col_map:    dict[str, int]    = {}
     game_date = ""
 
     for table in soup.find_all("table"):
@@ -170,16 +232,28 @@ def fetch_player_stats(
         for row in rows[1:]:
             cells = row.find_all(["td", "th"])
             if _is_game_row(cells, cmap):
-                last_row  = [_cell_text(c) for c in cells]
-                col_map   = cmap
-                # First cell often contains the date
-                game_date = _cell_text(cells[0])
+                last_row   = [_cell_text(c) for c in cells]
+                last_cells = cells
+                col_map    = cmap
+                game_date  = _cell_text(cells[0])
 
-    if last_row is None or not col_map:
+    if last_row is None or last_cells is None or not col_map:
         logger.warning(
             "Eurobasket: no game rows found for player_id=%s", player_id
         )
         return {}
+
+    # Identify how many leading context columns (date, opponent, result) precede stats.
+    # The minimum stat-column index in col_map tells us where stats begin.
+    first_stat_col = min(col_map.values())  # e.g. if "min" is col 3, context fills cols 0-2
+
+    # Extract context cells by position
+    opponent   = last_row[1] if first_stat_col > 1 and len(last_row) > 1 else ""
+    result_raw = last_row[2] if first_stat_col > 2 and len(last_row) > 2 else ""
+    # Only treat cells[2] as result if it doesn't look like a pure stat number
+    if result_raw and re.match(r"^\d+(\.\d+)?$", result_raw):
+        result_raw = ""
+    result = _parse_result(result_raw)
 
     def _get(field: str) -> float | None:
         idx = col_map.get(field)
@@ -193,7 +267,9 @@ def fetch_player_stats(
         "source":      "eurobasket",
         "competition": competition,
         "season":      "2025-26",
-        "game_date":   game_date,
+        "game_date":   _parse_date_flexible(game_date),
+        "opponent":    opponent,
+        "result":      result,
         "date":        str(date.today()),
         "min":         _parse_minutes(_get("min")) if _get("min") else None,
         "pts":         _get("pts"),
