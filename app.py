@@ -64,7 +64,7 @@ _DISPLAY_COLS = (
 )
 
 # How far back a game_date can be and still count as "played this window"
-_WINDOW_DAYS = 2
+_WINDOW_DAYS = 7
 
 
 # ---------------------------------------------------------------------------
@@ -87,13 +87,18 @@ def _load_all() -> dict[str, list[dict]]:
     return {d: load_stats(d) for d in get_all_dates()}
 
 
-def _fmt_val(val: object) -> str:
-    """Format a stat cell: float → '12.3', None → 'N/A'."""
+_PCT_COLS = {"t2_pct", "t3_pct", "ft_pct"}
+
+
+def _fmt_val(val: object, field: str = "") -> str:
+    """Format a stat cell. Percentages get 1 decimal; all other stats are integers."""
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return "N/A"
     try:
         f = float(val)
-        return f"{f:.1f}"
+        if field in _PCT_COLS:
+            return f"{f:.1f}"
+        return str(int(round(f)))
     except (TypeError, ValueError):
         return str(val) if val != "" else "N/A"
 
@@ -120,7 +125,7 @@ def _build_row(record: dict) -> dict:
     for field in _DISPLAY_COLS:
         label = _COL_LABELS.get(field, field)
         if field in _STAT_COLS:
-            row[label] = _fmt_val(record.get(field))
+            row[label] = _fmt_val(record.get(field), field)
         else:
             row[label] = record.get(field) or "N/A"
     return row

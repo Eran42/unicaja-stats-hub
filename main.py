@@ -32,9 +32,9 @@ from src.storage import save_daily_stats, save_csv_snapshot
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
+    format="%(asctime)s  %(levelname)-8s  %(name)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
-    stream=sys.stdout,
+    stream=open(sys.stdout.fileno(), mode="w", encoding="utf-8", closefd=False),
 )
 logger = logging.getLogger("main")
 
@@ -63,8 +63,8 @@ def run_job() -> None:
     json_path = save_daily_stats(stats, today)
     csv_path  = save_csv_snapshot(stats, today)
 
-    logger.info("Saved %d record(s) → %s", len(stats), json_path)
-    logger.info("CSV snapshot          → %s", csv_path)
+    logger.info("Saved %d record(s) -> %s", len(stats), json_path)
+    logger.info("CSV snapshot       -> %s", csv_path)
     logger.info("=== Run complete ===")
 
     # Print a quick summary table to stdout
@@ -104,7 +104,7 @@ def _print_summary(stats: list[dict]) -> None:
         f" {'AST':>{SW}} {'STL':>{SW}} {'TOV':>{SW}} {'BLK':>{SW}}"
         f" {'F':>{SW}} {'+/-':>{SW}} {'VAL':>{SW}}"
     )
-    sep = "─" * len(header)
+    sep = "-" * len(header)
 
     print(f"\n{sep}")
     print(header)

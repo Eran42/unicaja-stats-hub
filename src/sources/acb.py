@@ -68,14 +68,30 @@ def _parse_minutes(text: str) -> float | None:
 
 
 def _parse_shot_cell(text: str) -> tuple[float | None, float | None, float | None]:
-    """Parse 'M/A/%' combined cell → (made, attempted, pct)."""
+    """Parse combined shooting cell → (made, attempted, pct).
+
+    Handles formats:
+      'M/A/%'      e.g. '10/14/71.4'
+      'M/A pct%'   e.g. '10/14 71.0%'  (ACB game log format)
+      'M/A'        e.g. '10/14'
+    """
     text = text.strip()
     if "/" in text:
-        parts = [p.strip().rstrip("%") for p in text.split("/")]
-        if len(parts) == 3:
-            return _safe_float(parts[0]), _safe_float(parts[1]), _safe_float(parts[2])
-        if len(parts) == 2:
-            return _safe_float(parts[0]), _safe_float(parts[1]), None
+        slash_parts = text.split("/")
+        made = _safe_float(slash_parts[0].strip())
+        if len(slash_parts) >= 2:
+            # Second part may be 'A pct%' or 'A/pct' or just 'A'
+            second = slash_parts[1].strip()
+            # Split on whitespace to separate attempted from pct
+            tokens = second.split()
+            attempted = _safe_float(tokens[0].rstrip("%"))
+            if len(slash_parts) == 3:
+                pct = _safe_float(slash_parts[2].strip().rstrip("%"))
+            elif len(tokens) >= 2:
+                pct = _safe_float(tokens[1].rstrip("%"))
+            else:
+                pct = None
+            return made, attempted, pct
     return _safe_float(text), None, None
 
 
@@ -91,8 +107,8 @@ def _parse_reb_cell(text: str) -> tuple[float | None, float | None, float | None
     """
     text = text.strip()
 
-    # Format: '4(2+2)' — total before parens, D+O inside
-    paren_match = re.match(r"(\d+)\((\d+)\+(\d+)\)", text)
+    # Format: '4(2+2)' or '4 (2+2)' — total before parens, D+O inside
+    paren_match = re.match(r"(\d+)\s*\((\d+)\+(\d+)\)", text)
     if paren_match:
         t = _safe_float(paren_match.group(1))
         d = _safe_float(paren_match.group(2))
@@ -278,32 +294,25 @@ def fetch_player_stats(player_id: str) -> dict:
     if h1:
         player_name = h1.get_text(strip=True)
 
-    # Find the game log table
+    # Find the game log table — pick the one whose header row has the most
+    # recognised columns (avoids picking the season-summary table first)
     target_table: Tag | None = None
+    col_map: dict[str, int] = {}
     for tbl in soup.find_all("table"):
-        text = tbl.get_text(" ", strip=True).lower()
-        if any(kw in text for kw in ("partidos", "rival", "jornada", "resultado")):
-            target_table = tbl
-            break
-    if target_table is None:
-        tables = soup.find_all("table")
-        if tables:
-            target_table = tables[0]
+        tbl_rows = tbl.find_all("tr")
+        for row in tbl_rows[:3]:
+            cells = row.find_all(["th", "td"])
+            candidate = _build_col_map(cells)
+            if len(candidate) > len(col_map):
+                col_map = candidate
+                target_table = tbl
 
     if target_table is None:
         logger.warning("ACB: no game log table found for id=%s", player_id)
         return {}
 
-    # Build column map from header rows
-    col_map: dict[str, int] = {}
-    all_rows = target_table.find_all("tr")
-    for row in all_rows[:3]:  # headers are in first few rows
-        cells = row.find_all(["th", "td"])
-        candidate = _build_col_map(cells)
-        if len(candidate) > len(col_map):
-            col_map = candidate
-
     # Collect all game rows
+    all_rows = target_table.find_all("tr")
     game_rows: list[list[Tag]] = []
     for row in all_rows:
         cells = row.find_all(["td", "th"])
@@ -329,22 +338,33 @@ def fetch_player_stats(player_id: str) -> dict:
         logger.warning("ACB: no played game rows found for id=%s", player_id)
         return {}
 
-    # Try to extract game date from the selected row — scan all cells for a date pattern
-    # Never fall back to today's date (would make old games appear recent)
+    # Extract game date from the linked game page in the PARTIDOS cell
+    # The row cells don't contain dates, but the opponent link goes to /partido/ver/id/XXXXX
     game_date = ""
     for cell in last_cells:  # type: ignore[union-attr]
-        cell_text = cell.get_text(strip=True)
-        # Match DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
-        m = re.search(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})", cell_text)
-        if m:
-            day, month, year = m.group(1), m.group(2), m.group(3)
-            if len(year) == 2:
-                year = "20" + year
-            try:
-                game_date = f"{year}-{int(month):02d}-{int(day):02d}"
-            except ValueError:
-                game_date = cell_text
-            break
+        link = cell.find("a", href=re.compile(r"/partido/ver/id/\d+"))
+        if not link:
+            continue
+        game_url = "https://www.acb.com" + link["href"]
+        try:
+            time.sleep(0.5)
+            gr = requests.get(game_url, headers=_HEADERS, timeout=_TIMEOUT)
+            gr.raise_for_status()
+            page_text = gr.text
+            for dm in re.finditer(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", page_text):
+                day, month, year = dm.group(1), dm.group(2), dm.group(3)
+                if not (2020 <= int(year) <= 2035):
+                    continue
+                if not (1 <= int(month) <= 12 and 1 <= int(day) <= 31):
+                    continue
+                try:
+                    game_date = f"{year}-{int(month):02d}-{int(day):02d}"
+                except ValueError:
+                    pass
+                break
+        except requests.RequestException:
+            pass
+        break
 
     return {
         "player_id":   player_id,
