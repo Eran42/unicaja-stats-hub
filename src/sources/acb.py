@@ -82,16 +82,30 @@ def _parse_shot_cell(text: str) -> tuple[float | None, float | None, float | Non
 def _parse_reb_cell(text: str) -> tuple[float | None, float | None, float | None]:
     """
     Parse rebounds cell.
-    Formats: 'D+O' like '5+2', 'D/O/T' like '5/2/7', or plain number.
+    Formats:
+      'T(D+O)' like '4(2+2)' → total=4, def=2, off=2
+      'D+O'    like '5+2'    → def=5, off=2, total=7
+      'D/O/T'  like '5/2/7'  → def=5, off=2, total=7
+      plain number            → total only
     Returns (reb_def, reb_off, reb_total).
     """
     text = text.strip()
+
+    # Format: '4(2+2)' — total before parens, D+O inside
+    paren_match = re.match(r"(\d+)\((\d+)\+(\d+)\)", text)
+    if paren_match:
+        t = _safe_float(paren_match.group(1))
+        d = _safe_float(paren_match.group(2))
+        o = _safe_float(paren_match.group(3))
+        return d, o, t
+
     if "+" in text:
         parts = text.split("+")
         d = _safe_float(parts[0])
         o = _safe_float(parts[1]) if len(parts) > 1 else None
         t = (d + o) if d is not None and o is not None else None
         return d, o, t
+
     if "/" in text:
         parts = text.split("/")
         d = _safe_float(parts[0])
@@ -100,6 +114,7 @@ def _parse_reb_cell(text: str) -> tuple[float | None, float | None, float | None
             (d + o) if d is not None and o is not None else None
         )
         return d, o, t
+
     total = _safe_float(text)
     return None, None, total
 
@@ -110,18 +125,20 @@ def _parse_reb_cell(text: str) -> tuple[float | None, float | None, float | None
 
 # ACB game log header labels (lowercase) → canonical field
 _HEADER_MAP: dict[str, str] = {
-    "min.": "min",  "min": "min",
-    "pt":   "pts",  "pts": "pts",
-    "t2":   "t2_combined",
-    "t3":   "t3_combined",
-    "t1":   "ft_combined",
-    "t(d+o)": "reb_combined",
-    "a":    "ast",
-    "br":   "stl",
-    "bp":   "tov",
-    "c":    "fouls",
-    "+/-":  "plus_minus",
-    "v":    "val",
+    "partidos": "opponent",
+    "res.":     "result",   "res": "result",
+    "min.":     "min",      "min": "min",
+    "pt":       "pts",      "pts": "pts",
+    "t2":       "t2_combined",
+    "t3":       "t3_combined",
+    "t1":       "ft_combined",
+    "t(d+o)":   "reb_combined",
+    "a":        "ast",
+    "br":       "stl",
+    "bp":       "tov",
+    "c":        "fouls",
+    "+/-":      "plus_minus",  "+/--": "plus_minus",
+    "v":        "val",
     # split variants
     "t2c":  "t2m",  "t2i": "t2a",  "%t2": "t2_pct",
     "t3c":  "t3m",  "t3i": "t3a",  "%t3": "t3_pct",
@@ -164,10 +181,11 @@ def _parse_game_row(cells: list[Tag], col_map: dict[str, int]) -> dict:
         idx = col_map.get(field)
         return g(idx) if idx is not None else ""
 
-    # Opponent and result — not in col_map, use positional fallback
-    # Typically col 1 = opponent, col 2 = result (after game# col 0)
-    opponent = g(1)
-    result   = g(2)
+    # Opponent and result — use header-detected positions, fall back to col 1/2
+    opp_idx = col_map.get("opponent")
+    res_idx = col_map.get("result")
+    opponent = g(opp_idx) if opp_idx is not None else g(1)
+    result   = g(res_idx) if res_idx is not None else g(2)
 
     min_val = _parse_minutes(_at("min"))
     pts     = _safe_float(_at("pts"))
@@ -300,12 +318,22 @@ def fetch_player_stats(player_id: str) -> dict:
     last_cells = game_rows[-1]
     stats = _parse_game_row(last_cells, col_map)
 
-    # Try to extract game date from opponent/partidos cell text
-    game_date = str(date.today())
-    partidos_text = last_cells[1].get_text(strip=True) if len(last_cells) > 1 else ""
-    date_match = re.search(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})", partidos_text)
-    if date_match:
-        game_date = partidos_text  # store as-is; best effort
+    # Try to extract game date — scan all cells for a date pattern
+    # Never fall back to today's date (would make old games appear recent)
+    game_date = ""
+    for cell in last_cells:
+        cell_text = cell.get_text(strip=True)
+        # Match DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+        m = re.search(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})", cell_text)
+        if m:
+            day, month, year = m.group(1), m.group(2), m.group(3)
+            if len(year) == 2:
+                year = "20" + year
+            try:
+                game_date = f"{year}-{int(month):02d}-{int(day):02d}"
+            except ValueError:
+                game_date = cell_text
+            break
 
     return {
         "player_id":   player_id,

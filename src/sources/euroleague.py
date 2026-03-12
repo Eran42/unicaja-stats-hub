@@ -114,14 +114,15 @@ def _latest_game_code(
     if not games:
         return None, ""
 
-    # Filter to played games (status finished/played)
+    # Filter to confirmed played games only — must have explicit status or a score
     played = [
         g for g in games
-        if str(g.get("status", "")).lower() in ("played", "finished", "result", "")
+        if str(g.get("status", "")).lower() in ("played", "finished", "result")
         or g.get("score") is not None
     ]
     if not played:
-        played = games  # fall back to all
+        # No confirmed played games found — do not fall back to all games
+        return None, ""
 
     # Sort by date descending; take most recent
     def _sort_key(g: dict) -> str:
@@ -142,24 +143,42 @@ def _latest_game_code(
 
 def _fetch_game_stats(
     competition: str, season: str, game_code: int, player_code: str
-) -> dict | None:
-    """Fetch a single game box score and extract the target player's stats."""
+) -> tuple[dict | None, str, str]:
+    """
+    Fetch a single game box score and extract the target player's stats.
+    Returns (stats_dict, player_name, opponent_name).
+    """
     url  = f"{_BASE}/{competition}/seasons/{season}/games/{game_code}/stats"
     data = _get_json(url)
 
     if not data or not isinstance(data, dict):
-        return None
+        return None, "", ""
 
     game_data = data.get("data", data)
 
-    for side in ("home", "away"):
+    sides = ("home", "away")
+    for i, side in enumerate(sides):
         team = game_data.get(side, {})
         players = team.get("players", [])
         for p in players:
             if p.get("code") == player_code or p.get("person", {}).get("code") == player_code:
-                return p.get("stats", {})
+                # Opponent is the other side's team name
+                other_side = sides[1 - i]
+                opp_team = game_data.get(other_side, {})
+                opponent = (
+                    opp_team.get("club", {}).get("name", "")
+                    or opp_team.get("name", "")
+                    or opp_team.get("teamCode", "")
+                )
+                # Player name
+                person = p.get("person", {})
+                player_name = (
+                    person.get("name", "")
+                    or f"{person.get('firstName', '')} {person.get('lastName', '')}".strip()
+                )
+                return p.get("stats", {}), player_name, opponent
 
-    return None
+    return None, "", ""
 
 
 # ---------------------------------------------------------------------------
@@ -193,7 +212,7 @@ def fetch_player_stats(
         "EL/EC: fetching game %s stats for player=%s (date=%s)",
         game_code, player_code, game_date,
     )
-    stats = _fetch_game_stats(competition, season, game_code, player_code)
+    stats, player_name, opponent = _fetch_game_stats(competition, season, game_code, player_code)
 
     if stats is None:
         logger.warning(
@@ -217,10 +236,13 @@ def fetch_player_stats(
 
     return {
         "player_id":   player_code,
+        "player_name": player_name or player_code,
         "source":      competition_label.lower().replace(" ", ""),
         "competition": competition_label,
         "season":      season,
         "game_date":   game_date,
+        "opponent":    opponent,
+        "result":      "",
         "date":        str(date.today()),
         "min":         _parse_minutes(stats.get("timePlayed")),
         "pts":         _safe_float(stats.get("points")),
