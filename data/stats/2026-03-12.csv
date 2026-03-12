@@ -1,0 +1,8 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20209919,Darío Brizuela,acb,ACB,2025-26,2026-03-12,18:22,"9,5",2026-03-12,54.1,35.0,0.1,0.7,8.0,82.8,1.6,2.0,,,,,,,,,,,,0.7,8.0,FC Barcelona
+20213230,Yankuba Sima,acb,ACB,2025-26,2026-03-12,13:49,"5,3",2026-03-12,55.0,5.6,0.3,0.4,5.4,53.4,3.0,0.7,,,,,,,,,,,,0.4,5.4,Valencia Basket
+30001981,Kameron Taylor,acb,ACB,2025-26,2026-03-12,21:47,"10,9",2026-03-12,55.0,37.7,0.3,1.3,12.6,76.6,4.0,2.6,,,,,,,,,,,,1.3,12.6,Valencia Basket
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2026-03-12,22:15,"13,5",2026-03-12,66.3,0.0,0.5,0.6,18.2,83.9,5.6,1.0,,,,,,,,,,,,0.6,18.2,Lenovo Tenerife
+20210707,Rubén Guerrero,acb,ACB,2025-26,2026-03-12,12:36,"3,5",2026-03-12,60.8,0.0,0.4,0.2,4.6,64.5,3.3,0.4,,,,,,,,,,,,0.2,4.6,MoraBanc Andorra
+20200277,Augusto Lima,acb,ACB,2025-26,2026-03-12,17:48,"6,5",2026-03-12,56.0,14.3,0.6,0.8,9.6,51.9,5.2,1.0,,,,,,,,,,,,0.8,9.6,San Pablo Burgos
+5313012,Mario Saint-Supéry,ncaa_espn,NCAA,2025-26,Mon 11/3,vs TXSO,W 98-43,2026-03-12,19.0,8.0,1.0,5.0,20.0,1.0,3.0,33.3,3.0,4.0,75.0,,,2.0,3.0,1.0,1.0,0.0,3.0,,,Gonzaga Bulldogs
