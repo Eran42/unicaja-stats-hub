@@ -314,14 +314,25 @@ def fetch_player_stats(player_id: str) -> dict:
         logger.warning("ACB: no game rows found for id=%s", player_id)
         return {}
 
-    # Most recent = last row
-    last_cells = game_rows[-1]
-    stats = _parse_game_row(last_cells, col_map)
+    # Most recent *played* game = last row that has actual stats
+    # Future scheduled games appear at the bottom with no stats (only a time in opponent column)
+    last_cells: list[Tag] | None = None
+    stats: dict = {}
+    for cells in reversed(game_rows):
+        candidate = _parse_game_row(cells, col_map)
+        if candidate.get("min") is not None or candidate.get("pts") is not None:
+            last_cells = cells
+            stats = candidate
+            break
 
-    # Try to extract game date — scan all cells for a date pattern
+    if last_cells is None:
+        logger.warning("ACB: no played game rows found for id=%s", player_id)
+        return {}
+
+    # Try to extract game date from the selected row — scan all cells for a date pattern
     # Never fall back to today's date (would make old games appear recent)
     game_date = ""
-    for cell in last_cells:
+    for cell in last_cells:  # type: ignore[union-attr]
         cell_text = cell.get_text(strip=True)
         # Match DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
         m = re.search(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})", cell_text)
