@@ -1,51 +1,46 @@
 """
-NBA data fetcher using the stats.nba.com API (no authentication required).
+NBA latest game box score via stats.nba.com playergamelog API.
 
-Endpoint used:
-  GET https://stats.nba.com/stats/playercareerstats
-      ?PlayerID={player_id}&PerMode=PerGame
+Endpoint:
+  GET https://stats.nba.com/stats/playergamelog
+      ?PlayerID={id}&Season=2024-25&SeasonType=Regular+Season
 
-The response contains a `resultSets` array. The "SeasonTotalsRegularSeason"
-result set has per-game averages when PerMode=PerGame is requested.
+Returns games in reverse-chronological order (most recent first).
+We take row 0.
 
-Player IDs come from nba.com URLs, e.g.:
+Player IDs from nba.com URLs, e.g.:
   https://www.nba.com/player/1627734/domantas-sabonis → ID 1627734
-
-Returns the canonical full-stats dict matching the ACB / EuroLeague schema.
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import requests
 
 logger = logging.getLogger(__name__)
 
-_BASE_URL = "https://stats.nba.com/stats/playercareerstats"
-_TIMEOUT  = 15
+_BASE_URL       = "https://stats.nba.com/stats/playergamelog"
+_TIMEOUT        = 15
+_CURRENT_SEASON = "2024-25"
 
-# stats.nba.com requires specific headers to avoid 403
 _HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/121.0.0.0 Safari/537.36"
     ),
-    "Accept":          "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Referer":         "https://www.nba.com/",
-    "Origin":          "https://www.nba.com",
-    "Connection":      "keep-alive",
+    "Accept":             "application/json, text/plain, */*",
+    "Accept-Language":    "en-US,en;q=0.9",
+    "Accept-Encoding":    "gzip, deflate, br",
+    "Referer":            "https://www.nba.com/",
+    "Origin":             "https://www.nba.com",
+    "Connection":         "keep-alive",
     "x-nba-stats-origin": "stats",
     "x-nba-stats-token":  "true",
 }
-
-# Current NBA season year (start year of the season, e.g. 2024 for 2024-25)
-_CURRENT_SEASON = "2024-25"
 
 
 # ---------------------------------------------------------------------------
@@ -61,17 +56,26 @@ def _safe_float(value: Any) -> float | None:
         return None
 
 
+def _parse_nba_date(value: str) -> str:
+    """Convert 'MAR 10, 2026' → 'YYYY-MM-DD'."""
+    try:
+        return datetime.strptime(value.strip(), "%b %d, %Y").strftime("%Y-%m-%d")
+    except ValueError:
+        return value
+
+
 def _parse_minutes(value: Any) -> float | None:
-    """Parse minutes — stats.nba.com returns a decimal float for PerGame."""
-    return _safe_float(value)
-
-
-def _parse_resultset(data: dict, set_name: str) -> tuple[list[str], list[list]]:
-    """Extract headers and rows from a named resultSet."""
-    for rs in data.get("resultSets", []):
-        if rs.get("name") == set_name:
-            return rs.get("headers", []), rs.get("rowSet", [])
-    return [], []
+    """NBA game log returns minutes as 'MM:SS' string."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if ":" in text:
+        parts = text.split(":")
+        try:
+            return round(float(parts[0]) + float(parts[1]) / 60, 2)
+        except (ValueError, IndexError):
+            return None
+    return _safe_float(text)
 
 
 def _row_to_dict(headers: list[str], row: list) -> dict:
@@ -84,20 +88,21 @@ def _row_to_dict(headers: list[str], row: list) -> dict:
 
 def fetch_season_averages(player_id: str | int, season: str = _CURRENT_SEASON) -> dict:
     """
-    Fetch per-game season averages for an NBA player from stats.nba.com.
+    Fetch the most recent game box score for an NBA player.
 
     Args:
-        player_id:  NBA player ID (e.g. 1627734 for Domantas Sabonis).
-        season:     Season string in "YYYY-YY" format (e.g. "2024-25").
+        player_id:  NBA player ID.
+        season:     Season string "YYYY-YY" (e.g. "2024-25").
 
     Returns:
-        Canonical per-game stats dict, or empty dict on failure.
+        Canonical single-game stats dict, or empty dict on failure.
     """
     params = {
-        "PlayerID": str(player_id),
-        "PerMode": "PerGame",
+        "PlayerID":   str(player_id),
+        "Season":     season,
+        "SeasonType": "Regular Season",
     }
-    logger.debug("NBA fetch: player_id=%s season=%s", player_id, season)
+    logger.debug("NBA game log fetch: player_id=%s season=%s", player_id, season)
 
     try:
         resp = requests.get(_BASE_URL, headers=_HEADERS, params=params, timeout=_TIMEOUT)
@@ -113,85 +118,65 @@ def fetch_season_averages(player_id: str | int, season: str = _CURRENT_SEASON) -
         logger.warning("NBA JSON parse error player_id=%s: %s", player_id, exc)
         return {}
 
-    headers, rows = _parse_resultset(data, "SeasonTotalsRegularSeason")
-    if not headers or not rows:
-        logger.warning("NBA: no SeasonTotalsRegularSeason for player_id=%s", player_id)
-        return {}
-
-    # Find the row matching the requested season
-    season_row: dict | None = None
-    for row in reversed(rows):  # most recent first
-        r = _row_to_dict(headers, row)
-        if r.get("SEASON_ID") == season:
-            season_row = r
+    # Find the "PlayerGameLog" result set
+    result_set = None
+    for rs in data.get("resultSets", []):
+        if rs.get("name") == "PlayerGameLog":
+            result_set = rs
             break
 
-    # Fallback to most recent season if target not found
-    if season_row is None and rows:
-        season_row = _row_to_dict(headers, rows[-1])
-        logger.info(
-            "NBA: season %s not found for player_id=%s, using %s instead.",
-            season, player_id, season_row.get("SEASON_ID"),
-        )
-
-    if season_row is None:
+    if result_set is None:
+        logger.warning("NBA: PlayerGameLog result set missing for player_id=%s", player_id)
         return {}
 
-    # stats.nba.com stores FG% as 0–1 decimal; convert to 0–100
+    headers = result_set.get("headers", [])
+    rows    = result_set.get("rowSet", [])
+
+    if not rows:
+        logger.warning("NBA: no game log rows for player_id=%s season=%s", player_id, season)
+        return {}
+
+    # Row 0 = most recent game
+    row = _row_to_dict(headers, rows[0])
+
+    fgm  = _safe_float(row.get("FGM"))
+    fga  = _safe_float(row.get("FGA"))
+    fg3m = _safe_float(row.get("FG3M"))
+    fg3a = _safe_float(row.get("FG3A"))
+
+    t2m = round(fgm  - fg3m, 1) if fgm  is not None and fg3m is not None else None
+    t2a = round(fga  - fg3a, 1) if fga  is not None and fg3a is not None else None
+    t2_pct = round(t2m / t2a * 100, 1) if t2m is not None and t2a else None
+
     def _pct(v: Any) -> float | None:
         f = _safe_float(v)
         return round(f * 100, 1) if f is not None else None
 
-    fgm  = _safe_float(season_row.get("FGM"))
-    fga  = _safe_float(season_row.get("FGA"))
-    fg3m = _safe_float(season_row.get("FG3M"))
-    fg3a = _safe_float(season_row.get("FG3A"))
-
-    # Derive 2-point made/attempted by subtracting 3-pointers from total FG
-    t2m = round(fgm  - fg3m,  2) if fgm  is not None and fg3m  is not None else None
-    t2a = round(fga  - fg3a,  2) if fga  is not None and fg3a  is not None else None
-    t2_pct: float | None = None
-    if t2m is not None and t2a and t2a > 0:
-        t2_pct = round(t2m / t2a * 100, 1)
-
-    player_name = season_row.get("PLAYER_NAME") or str(player_id)
-    team_abbrev = season_row.get("TEAM_ABBREVIATION") or ""
-    season_id   = season_row.get("SEASON_ID", season)
+    matchup   = str(row.get("MATCHUP", ""))
+    game_date = _parse_nba_date(str(row.get("GAME_DATE", "")))
 
     return {
-        "player_id":    str(player_id),
-        "player_name":  player_name,
-        "team":         team_abbrev,
-        "source":       "nba",
-        "competition":  "NBA",
-        "season":       season_id,
-        "date":         str(date.today()),
-        "games_played": int(_safe_float(season_row.get("GP")) or 0) or None,
-        # Scoring
-        "pts":          _safe_float(season_row.get("PTS")),
-        # 2-point shooting (derived)
-        "t2m":          t2m,
-        "t2a":          t2a,
-        "t2_pct":       t2_pct,
-        # 3-point shooting
-        "t3m":          fg3m,
-        "t3a":          fg3a,
-        "t3_pct":       _pct(season_row.get("FG3_PCT")),
-        # Free throws
-        "ftm":          _safe_float(season_row.get("FTM")),
-        "fta":          _safe_float(season_row.get("FTA")),
-        "ft_pct":       _pct(season_row.get("FT_PCT")),
-        # Rebounds
-        "reb_off":      _safe_float(season_row.get("OREB")),
-        "reb_def":      _safe_float(season_row.get("DREB")),
-        "reb":          _safe_float(season_row.get("REB")),
-        # Other
-        "ast":          _safe_float(season_row.get("AST")),
-        "stl":          _safe_float(season_row.get("STL")),
-        "tov":          _safe_float(season_row.get("TOV")),
-        "blk":          _safe_float(season_row.get("BLK")),
-        "fouls":        _safe_float(season_row.get("PF")),
-        "plus_minus":   _safe_float(season_row.get("PLUS_MINUS")),
-        "val":          None,  # No NBA equivalent for ACB/EL valoration
-        "min":          _parse_minutes(season_row.get("MIN")),
+        "player_id":   str(player_id),
+        "source":      "nba",
+        "competition": "NBA",
+        "season":      season,
+        "game_date":   game_date,
+        "opponent":    matchup,
+        "result":      str(row.get("WL", "")),
+        "date":        str(date.today()),
+        "min":         _parse_minutes(row.get("MIN")),
+        "pts":         _safe_float(row.get("PTS")),
+        "t2m":         t2m,                           "t2a":  t2a,                           "t2_pct":  t2_pct,
+        "t3m":         fg3m,                          "t3a":  fg3a,                          "t3_pct":  _pct(row.get("FG3_PCT")),
+        "ftm":         _safe_float(row.get("FTM")),   "fta":  _safe_float(row.get("FTA")),   "ft_pct":  _pct(row.get("FT_PCT")),
+        "reb_off":     _safe_float(row.get("OREB")),
+        "reb_def":     _safe_float(row.get("DREB")),
+        "reb":         _safe_float(row.get("REB")),
+        "ast":         _safe_float(row.get("AST")),
+        "stl":         _safe_float(row.get("STL")),
+        "tov":         _safe_float(row.get("TOV")),
+        "blk":         _safe_float(row.get("BLK")),
+        "fouls":       _safe_float(row.get("PF")),
+        "plus_minus":  _safe_float(row.get("PLUS_MINUS")),
+        "val":         None,
     }

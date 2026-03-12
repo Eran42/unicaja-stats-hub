@@ -30,7 +30,7 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 
 _STAT_COLS = [
-    "player_name", "team", "competition", "games_played",
+    "player_name", "team", "competition", "game_date",
     "min", "pts",
     "t2m", "t2a", "t2_pct",
     "t3m", "t3a", "t3_pct",
@@ -43,7 +43,7 @@ _COL_LABELS = {
     "player_name":  "Player",
     "team":         "Team",
     "competition":  "Competition",
-    "games_played": "GP",
+    "game_date":    "Game Date",
     "min":          "MIN",
     "pts":          "PTS",
     "t2m":          "T2M",
@@ -69,7 +69,7 @@ _COL_LABELS = {
 
 # Columns shown in the "compact" view
 _COMPACT_COLS = [
-    "player_name", "team", "competition", "games_played",
+    "player_name", "team", "competition", "game_date",
     "min", "pts", "t2_pct", "t3_pct", "ft_pct",
     "reb", "ast", "stl", "tov", "val",
 ]
@@ -192,7 +192,8 @@ with col1:
 with col2:
     st.metric("Players", df["Player"].nunique() if "Player" in df else 0)
 with col3:
-    st.metric("Records", len(df))
+    latest = df["Game Date"].max() if "Game Date" in df.columns else "—"
+    st.metric("Latest game", latest)
 
 # Stats table
 pct_cols = [c for c in ["T2%", "T3%", "FT%"] if c in df.columns]
@@ -231,7 +232,7 @@ if selected_player:
         cols = st.columns(8)
         metrics = [
             ("Competition", comp),
-            ("GP",  row.get("GP",  "—")),
+            ("Game Date", row.get("Game Date", "—")),
             ("PTS", row.get("PTS", "—")),
             ("REB", row.get("RT",  "—")),
             ("AST", row.get("AST", "—")),

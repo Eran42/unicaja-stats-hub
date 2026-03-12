@@ -244,6 +244,9 @@ def fetch_player_stats(player_id: str | int) -> dict:
             return _safe_float(avg_row[idx])
         return None
 
+    # Game date from first cell of the avg row (best effort)
+    game_date = avg_row[0] if avg_row else ""
+
     return {
         "player_id":    str(player_id),
         "player_name":  player_name,
@@ -251,8 +254,8 @@ def fetch_player_stats(player_id: str | int) -> dict:
         "source":       "feb",
         "competition":  "Primera FEB",
         "season":       "2025-26",
+        "game_date":    game_date,
         "date":         str(date.today()),
-        "games_played": games_played,
         # Scoring
         "pts":          _get("pts"),
         # 2-point shooting

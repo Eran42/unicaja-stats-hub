@@ -91,9 +91,11 @@ def _print_summary(stats: list[dict]) -> None:
     CW = 14   # competition width
     SW = 5    # stat column width
 
+    DW = 10  # date column width
+
     header = (
-        f"{'Player':<{NW}} {'Competition':<{CW}}"
-        f" {'GP':>{SW}} {'MIN':>{SW}} {'PTS':>{SW}}"
+        f"{'Player':<{NW}} {'Competition':<{CW}} {'Game':>{DW}}"
+        f" {'MIN':>{SW}} {'PTS':>{SW}}"
         f" {'T2%':>{SW}} {'T3%':>{SW}} {'FT%':>{SW}}"
         f" {'T2M':>{SW}} {'T2A':>{SW}}"
         f" {'T3M':>{SW}} {'T3A':>{SW}}"
@@ -109,13 +111,13 @@ def _print_summary(stats: list[dict]) -> None:
     print(sep)
 
     for s in sorted(stats, key=lambda x: (x.get("player_name", ""), x.get("competition", ""))):
-        name = (s.get("player_name") or "")[:NW]
-        comp = (s.get("competition") or "")[:CW]
-        gp   = str(s.get("games_played") or "—")
+        name      = (s.get("player_name") or "")[:NW]
+        comp      = (s.get("competition") or "")[:CW]
+        game_date = (s.get("game_date") or "—")[:DW]
 
         print(
-            f"{name:<{NW}} {comp:<{CW}}"
-            f" {gp:>{SW}} {_fmt(s.get('min')):>{SW}} {_fmt(s.get('pts')):>{SW}}"
+            f"{name:<{NW}} {comp:<{CW}} {game_date:>{DW}}"
+            f" {_fmt(s.get('min')):>{SW}} {_fmt(s.get('pts')):>{SW}}"
             f" {_fmt(s.get('t2_pct')):>{SW}} {_fmt(s.get('t3_pct')):>{SW}} {_fmt(s.get('ft_pct')):>{SW}}"
             f" {_fmt(s.get('t2m')):>{SW}} {_fmt(s.get('t2a')):>{SW}}"
             f" {_fmt(s.get('t3m')):>{SW}} {_fmt(s.get('t3a')):>{SW}}"
