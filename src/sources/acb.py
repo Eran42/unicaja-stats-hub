@@ -105,79 +105,106 @@ def _parse_reb_cell(text: str) -> tuple[float | None, float | None, float | None
 
 
 # ---------------------------------------------------------------------------
+# Header detection
+# ---------------------------------------------------------------------------
+
+# ACB game log header labels (lowercase) → canonical field
+_HEADER_MAP: dict[str, str] = {
+    "min.": "min",  "min": "min",
+    "pt":   "pts",  "pts": "pts",
+    "t2":   "t2_combined",
+    "t3":   "t3_combined",
+    "t1":   "ft_combined",
+    "t(d+o)": "reb_combined",
+    "a":    "ast",
+    "br":   "stl",
+    "bp":   "tov",
+    "c":    "fouls",
+    "+/-":  "plus_minus",
+    "v":    "val",
+    # split variants
+    "t2c":  "t2m",  "t2i": "t2a",  "%t2": "t2_pct",
+    "t3c":  "t3m",  "t3i": "t3a",  "%t3": "t3_pct",
+    "tlc":  "ftm",  "tli": "fta",  "%tl": "ft_pct",
+    "ro":   "reb_off", "rd": "reb_def", "rt": "reb",
+    "d":    "reb_def", "o":  "reb_off",
+}
+
+
+def _build_col_map(header_cells: list[Tag]) -> dict[str, int]:
+    mapping: dict[str, int] = {}
+    for idx, cell in enumerate(header_cells):
+        key = cell.get_text(strip=True).lower()
+        field = _HEADER_MAP.get(key)
+        if field and field not in mapping:
+            mapping[field] = idx
+    return mapping
+
+
+# ---------------------------------------------------------------------------
 # Game row parsing
 # ---------------------------------------------------------------------------
 
 def _is_game_row(cells: list[Tag]) -> bool:
-    """Return True if this row looks like an individual game row (not header/total/avg)."""
+    """Return True if this row looks like an individual game row."""
     if len(cells) < 5:
         return False
     first = cells[0].get_text(strip=True)
-    # Game rows typically start with a game number or date
     return bool(re.match(r"^\d+", first))
 
 
-def _parse_game_row(cells: list[Tag]) -> dict:
-    """
-    Parse one game row from the ACB game log.
-
-    The column layout (0-indexed after the leading game# cell) is:
-      0: game#  1: opponent/partidos  2: result  3: minutes
-      4: pts    5: T2 (M/A/%)        6: T3       7: T1 (FT)
-      8: T(D+O) or separate reb cols ...
-    """
+def _parse_game_row(cells: list[Tag], col_map: dict[str, int]) -> dict:
+    """Parse one game row using header-derived column positions."""
     n = len(cells)
 
     def g(idx: int) -> str:
         return cells[idx].get_text(strip=True) if idx < n else ""
 
-    # Opponent/date may be in cell 1 (includes date info sometimes)
+    def _at(field: str) -> str:
+        idx = col_map.get(field)
+        return g(idx) if idx is not None else ""
+
+    # Opponent and result — not in col_map, use positional fallback
+    # Typically col 1 = opponent, col 2 = result (after game# col 0)
     opponent = g(1)
     result   = g(2)
-    min_val  = _parse_minutes(g(3))
-    pts      = _safe_float(g(4))
 
-    # Shooting columns — detect combined vs split
-    cell5 = g(5)
-    if "/" in cell5:
-        # Combined format: T2, T3, T1 each as "M/A/%"
-        t2m, t2a, t2_pct = _parse_shot_cell(g(5))
-        t3m, t3a, t3_pct = _parse_shot_cell(g(6))
-        ftm, fta, ft_pct = _parse_shot_cell(g(7))
-        reb_offset = 8
+    min_val = _parse_minutes(_at("min"))
+    pts     = _safe_float(_at("pts"))
+
+    # Shooting — combined cells take priority
+    t2_raw = _at("t2_combined")
+    if t2_raw:
+        t2m, t2a, t2_pct = _parse_shot_cell(t2_raw)
     else:
-        # Split format: separate columns for each
-        t3m  = _safe_float(g(5))
-        t3a  = _safe_float(g(6))
-        t3_pct = _safe_float(g(7))
-        t2m  = _safe_float(g(8))
-        t2a  = _safe_float(g(9))
-        t2_pct = _safe_float(g(10))
-        ftm  = _safe_float(g(11))
-        fta  = _safe_float(g(12))
-        ft_pct = _safe_float(g(13))
-        reb_offset = 14
+        t2m  = _safe_float(_at("t2m"))
+        t2a  = _safe_float(_at("t2a"))
+        t2_pct = _safe_float(_at("t2_pct"))
+
+    t3_raw = _at("t3_combined")
+    if t3_raw:
+        t3m, t3a, t3_pct = _parse_shot_cell(t3_raw)
+    else:
+        t3m  = _safe_float(_at("t3m"))
+        t3a  = _safe_float(_at("t3a"))
+        t3_pct = _safe_float(_at("t3_pct"))
+
+    ft_raw = _at("ft_combined")
+    if ft_raw:
+        ftm, fta, ft_pct = _parse_shot_cell(ft_raw)
+    else:
+        ftm  = _safe_float(_at("ftm"))
+        fta  = _safe_float(_at("fta"))
+        ft_pct = _safe_float(_at("ft_pct"))
 
     # Rebounds
-    reb_cell = g(reb_offset)
-    if "+" in reb_cell or ("/" in reb_cell and reb_cell.count("/") >= 2):
-        reb_def, reb_off, reb = _parse_reb_cell(reb_cell)
-        ao = reb_offset + 1
+    reb_raw = _at("reb_combined")
+    if reb_raw:
+        reb_def, reb_off, reb = _parse_reb_cell(reb_raw)
     else:
-        reb_def = _safe_float(reb_cell)
-        reb_off = _safe_float(g(reb_offset + 1))
-        reb     = _safe_float(g(reb_offset + 2))
-        ao = reb_offset + 3
-
-    ast   = _safe_float(g(ao))
-    stl   = _safe_float(g(ao + 1))
-    tov   = _safe_float(g(ao + 2))
-    fouls = _safe_float(g(ao + 3))
-
-    # +/- and val are near the end
-    # Scan from the end: last cell = val, second-to-last = +/-
-    plus_minus = _safe_float(g(n - 2)) if n >= 2 else None
-    val        = _safe_float(g(n - 1))
+        reb_def = _safe_float(_at("reb_def"))
+        reb_off = _safe_float(_at("reb_off"))
+        reb     = _safe_float(_at("reb"))
 
     return {
         "opponent":   opponent,
@@ -188,12 +215,12 @@ def _parse_game_row(cells: list[Tag]) -> dict:
         "t3m":        t3m,    "t3a":    t3a,    "t3_pct":  t3_pct,
         "ftm":        ftm,    "fta":    fta,    "ft_pct":  ft_pct,
         "reb_def":    reb_def, "reb_off": reb_off, "reb": reb,
-        "ast":        ast,
-        "stl":        stl,
-        "tov":        tov,
-        "fouls":      fouls,
-        "plus_minus": plus_minus,
-        "val":        val,
+        "ast":        _safe_float(_at("ast")),
+        "stl":        _safe_float(_at("stl")),
+        "tov":        _safe_float(_at("tov")),
+        "fouls":      _safe_float(_at("fouls")),
+        "plus_minus": _safe_float(_at("plus_minus")),
+        "val":        _safe_float(_at("val")),
     }
 
 
@@ -249,9 +276,18 @@ def fetch_player_stats(player_id: str) -> dict:
         logger.warning("ACB: no game log table found for id=%s", player_id)
         return {}
 
+    # Build column map from header rows
+    col_map: dict[str, int] = {}
+    all_rows = target_table.find_all("tr")
+    for row in all_rows[:3]:  # headers are in first few rows
+        cells = row.find_all(["th", "td"])
+        candidate = _build_col_map(cells)
+        if len(candidate) > len(col_map):
+            col_map = candidate
+
     # Collect all game rows
     game_rows: list[list[Tag]] = []
-    for row in target_table.find_all("tr"):
+    for row in all_rows:
         cells = row.find_all(["td", "th"])
         if _is_game_row(cells):
             game_rows.append(cells)
@@ -262,7 +298,7 @@ def fetch_player_stats(player_id: str) -> dict:
 
     # Most recent = last row
     last_cells = game_rows[-1]
-    stats = _parse_game_row(last_cells)
+    stats = _parse_game_row(last_cells, col_map)
 
     # Try to extract game date from opponent/partidos cell text
     game_date = str(date.today())

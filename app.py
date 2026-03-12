@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import streamlit as st
 
+from src.players import get_active_players
 from src.storage import get_all_dates, load_stats
 
 # ---------------------------------------------------------------------------
@@ -157,6 +158,9 @@ def render_latest(run_date: str, records: list[dict]) -> None:
     played_rows: list[dict]    = []
     no_game_rows: list[dict]   = []
 
+    # Track which players appeared in the records
+    players_with_records: set[str] = set(by_player.keys())
+
     for name, player_records in sorted(by_player.items()):
         for rec in player_records:
             gd = str(rec.get("game_date", ""))
@@ -166,6 +170,11 @@ def render_latest(run_date: str, records: list[dict]) -> None:
                 no_game_rows.append(_no_game_row(
                     name, rec.get("team", "")
                 ))
+
+    # Add any active players whose scrapers returned nothing at all
+    for player in get_active_players():
+        if player.name not in players_with_records:
+            no_game_rows.append(_no_game_row(player.name, player.team))
 
     all_rows = played_rows + no_game_rows
     if not all_rows:
