@@ -137,9 +137,11 @@ def fetch_player_stats(
         pts_text = _get(cells, "pts")
         if not pts_text or not re.match(r"^\d", pts_text):
             continue
+        # ESPN shows most recent game first — take the first valid row
         last_row_cells = cells
         last_game_date = _get(cells, "date")
         last_opponent  = _get(cells, "opp")
+        break
 
     if last_row_cells is None:
         logger.warning("ESPN NCAA: no game rows for player_id=%s", player_id)
