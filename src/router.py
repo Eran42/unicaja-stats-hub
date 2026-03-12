@@ -49,7 +49,7 @@ def _fetch_source(player: "Player", src: "PlayerSource") -> dict | None:
 
         elif stype == "euroleague":
             from src.sources import euroleague
-            result = euroleague.fetch_player_stats(sid, competition="E", season="E2024")
+            result = euroleague.fetch_player_stats(sid)
 
         elif stype == "eurocup":
             from src.sources import euroleague

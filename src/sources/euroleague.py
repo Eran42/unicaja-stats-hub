@@ -8,8 +8,8 @@ Two-step process:
      → returns full box score; find player in home/away players list
 
 Competition codes:
-  EuroLeague : comp="E"  season="E2024"
-  EuroCup    : comp="U"  season="U2024"
+  EuroLeague : comp="E"  season="E2025"
+  EuroCup    : comp="U"  season="U2025"
 
 Player codes follow the P0XXXXX format (e.g. "P003842").
 """
@@ -29,8 +29,8 @@ _TIMEOUT = 15
 
 _EL_COMP   = "E"
 _EC_COMP   = "U"
-_EL_SEASON = "E2024"
-_EC_SEASON = "U2024"
+_EL_SEASON = "E2025"
+_EC_SEASON = "U2025"
 
 _HEADERS = {
     "User-Agent": (
