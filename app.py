@@ -54,7 +54,7 @@ def _inject_css() -> None:
             letter-spacing: -0.5px;
         }}
         h2, h3 {{
-            color: {_UNICAJA_GREEN} !important;
+            color: {_UNICAJA_GREEN};
             font-weight: 700 !important;
         }}
 
@@ -302,11 +302,13 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
             if name and _is_real_name(name):
                 all_names.add(name)
 
-    selected = st.selectbox(
-        "Select player",
-        options=sorted(all_names),
-        key="history_player",
-    )
+    col, _ = st.columns([1, 3])
+    with col:
+        selected = st.selectbox(
+            "Select player",
+            options=sorted(all_names),
+            key="history_player",
+        )
     if not selected:
         return
 
@@ -343,11 +345,12 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         f'<strong>{len(game_rows)}</strong> game(s) collected for <strong>{selected}</strong></p>',
         unsafe_allow_html=True,
     )
+    height = min(_HEADER_HEIGHT_PX + len(game_rows) * _ROW_HEIGHT_PX + 4, 500)
     st.dataframe(
         df.style.apply(_stripe_rows_purple, axis=1),
         use_container_width=True,
         hide_index=True,
-        height=500,
+        height=height,
     )
 
 
