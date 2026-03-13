@@ -99,21 +99,27 @@ def _parse_reb_cell(text: str) -> tuple[float | None, float | None, float | None
     """
     Parse rebounds cell.
     Formats:
-      'T(D+O)' like '4(2+2)' → total=4, def=2, off=2
+      'T(D+O)' like '4(2+2)' → total=4, off=2, def=2
       'D+O'    like '5+2'    → def=5, off=2, total=7
       'D/O/T'  like '5/2/7'  → def=5, off=2, total=7
       plain number            → total only
     Returns (reb_def, reb_off, reb_total).
+
+    NOTE: ACB game log uses T(D+O) format where the labels are counterintuitive.
+    The live.acb.com legend explicitly maps DR→Offensive and OR→Defensive, meaning
+    the first sub-value (D) = offensive rebounds and second (O) = defensive rebounds.
+    We swap them here so that reb_def and reb_off are stored correctly.
     """
     text = text.strip()
 
-    # Format: '4(2+2)' or '4 (2+2)' — total before parens, D+O inside
+    # Format: '4(2+2)' or '4 (2+2)' — total before parens, D+O inside.
+    # Despite the label 'D', the first sub-value is offensive; second is defensive.
     paren_match = re.match(r"(\d+)\s*\((\d+)\+(\d+)\)", text)
     if paren_match:
-        t = _safe_float(paren_match.group(1))
-        d = _safe_float(paren_match.group(2))
-        o = _safe_float(paren_match.group(3))
-        return d, o, t
+        t   = _safe_float(paren_match.group(1))
+        off = _safe_float(paren_match.group(2))   # mislabeled 'D' = offensive
+        def_ = _safe_float(paren_match.group(3))  # mislabeled 'O' = defensive
+        return def_, off, t
 
     if "+" in text:
         parts = text.split("+")
@@ -252,7 +258,10 @@ def _parse_game_row(cells: list[Tag], col_map: dict[str, int]) -> dict:
         "ast":        _safe_float(_at("ast")),
         "stl":        _safe_float(_at("stl")),
         "tov":        _safe_float(_at("tov")),
-        "fouls":      _safe_float(_at("fouls")),
+        # Fouls committed: capped at 5 (ACB foul-out limit). The 'C' column can
+        # occasionally contain a season-cumulative value (> 5) rather than per-game;
+        # treating those as invalid keeps downstream data clean.
+        "fouls":      _f if (_f := _safe_float(_at("fouls"))) is None or _f <= 5 else None,
         "plus_minus": _safe_float(_at("plus_minus")),
         "val":        _safe_float(_at("val")),
     }

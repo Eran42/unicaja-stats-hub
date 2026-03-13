@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 import pandas as pd
 import streamlit as st
 
-from src.players import get_active_players
 from src.storage import get_all_dates, load_stats
 
 # ---------------------------------------------------------------------------
@@ -63,10 +62,6 @@ _DISPLAY_COLS = (
     + _STAT_COLS
 )
 
-# How far back a game_date can be and still count as "played this window"
-_WINDOW_DAYS = 7
-
-
 # ---------------------------------------------------------------------------
 # Data helpers
 # ---------------------------------------------------------------------------
@@ -103,20 +98,22 @@ def _fmt_val(val: object, field: str = "") -> str:
         return str(val) if val != "" else "N/A"
 
 
-def _game_is_recent(game_date: str, run_date: str) -> bool:
+def _game_is_within_24h(game_date: str) -> bool:
     """
-    True if game_date is within _WINDOW_DAYS of run_date.
-    Handles ISO dates (YYYY-MM-DD) and best-effort for other formats.
+    True if game_date falls within the last 24 hours from now.
+    Only ISO dates (YYYY-MM-DD) are supported; anything else returns False.
     """
     if not game_date or game_date in ("—", "N/A"):
         return False
     try:
+        # Compare dates only — game_date has no time component, so a game on
+        # "2026-03-12" could have been played at any hour that day. We include
+        # any game whose calendar date falls on or after (today − 1 day).
         gd = datetime.strptime(game_date[:10], "%Y-%m-%d").date()
-        rd = datetime.strptime(run_date[:10], "%Y-%m-%d").date()
-        return (rd - gd).days <= _WINDOW_DAYS
+        cutoff = (datetime.now() - timedelta(hours=24)).date()
+        return gd >= cutoff
     except ValueError:
-        # Can't parse date — assume recent if it exists
-        return bool(game_date)
+        return False
 
 
 def _build_row(record: dict) -> dict:
@@ -148,7 +145,8 @@ def _no_game_row(player_name: str, team: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def render_latest(run_date: str, records: list[dict]) -> None:
-    st.subheader(f"Latest games — run {run_date}")
+    cutoff_label = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M")
+    st.subheader(f"Games in the last 24 hours (since {cutoff_label})")
 
     if not records:
         st.warning("No data yet. Run `python main.py` to fetch stats.")
@@ -160,38 +158,23 @@ def render_latest(run_date: str, records: list[dict]) -> None:
         name = r.get("player_name", "Unknown")
         by_player.setdefault(name, []).append(r)
 
-    played_rows: list[dict]    = []
-    no_game_rows: list[dict]   = []
-
-    # Track which players appeared in the records
-    players_with_records: set[str] = set(by_player.keys())
+    played_rows: list[dict] = []
 
     for name, player_records in sorted(by_player.items()):
         for rec in player_records:
             gd = str(rec.get("game_date", ""))
-            if _game_is_recent(gd, run_date):
+            # Exclude rows with no game date — without a date we can't verify
+            # what game the stats refer to.
+            if gd and gd not in ("", "—", "N/A") and _game_is_within_24h(gd):
                 played_rows.append(_build_row(rec))
-            else:
-                no_game_rows.append(_no_game_row(
-                    name, rec.get("team", "")
-                ))
 
-    # Add any active players whose scrapers returned nothing at all
-    for player in get_active_players():
-        if player.name not in players_with_records:
-            no_game_rows.append(_no_game_row(player.name, player.team))
-
-    all_rows = played_rows + no_game_rows
-    if not all_rows:
-        st.info("No recent games found in this run.")
+    if not played_rows:
+        st.info("No games in the last 24 hours.")
         return
 
-    df = pd.DataFrame(all_rows)
+    df = pd.DataFrame(played_rows)
 
-    st.caption(
-        f"🟢 **{len(played_rows)}** game(s) played · "
-        f"⚪ **{len(no_game_rows)}** player(s) with no recent game"
-    )
+    st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
     st.dataframe(df, use_container_width=True, hide_index=True, height=600)
 
 
@@ -257,6 +240,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 
 st.title("🏀 Unicaja Baloncesto — Ex-Players Stats")
 st.caption("Latest game box scores for former Unicaja players.")
+st.warning("⚡ v2 — 24h filter active")
 
 dates = get_all_dates()
 if not dates:
