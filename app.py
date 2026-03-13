@@ -46,11 +46,6 @@ def _inject_css() -> None:
             height: 4px;
         }}
 
-        /* ── Page background ── */
-        [data-testid="stAppViewContainer"] > .main {{
-            background-color: #f8faf9;
-        }}
-
         /* ── Title / headings ── */
         h1 {{
             color: {_UNICAJA_GREEN_DARK} !important;
@@ -60,8 +55,6 @@ def _inject_css() -> None:
         h2, h3 {{
             color: {_UNICAJA_GREEN} !important;
             font-weight: 700 !important;
-            border-left: 4px solid {_UNICAJA_GREEN};
-            padding-left: 10px;
         }}
 
         /* ── Divider ── */
@@ -74,11 +67,6 @@ def _inject_css() -> None:
         [data-testid="stSelectbox"] > div:focus-within {{
             border-color: {_UNICAJA_GREEN} !important;
             box-shadow: 0 0 0 2px {_UNICAJA_GREEN_MID} !important;
-        }}
-
-        /* ── Caption text ── */
-        [data-testid="stCaptionContainer"] p {{
-            color: #3a5a45 !important;
         }}
 
         /* ── Info / warning boxes ── */
@@ -114,10 +102,10 @@ def _render_header() -> None:
                 line-height: 1;
             ">UNICAJA</div>
             <div>
-                <div style="font-size: 22px; font-weight: 700; color: {_UNICAJA_GREEN_DARK}; font-family: sans-serif;">
+                <div style="font-size: 22px; font-weight: 700; font-family: sans-serif;">
                     Ex-Players Stats
                 </div>
-                <div style="font-size: 13px; color: #4a7a5a; font-family: sans-serif;">
+                <div style="font-size: 13px; opacity: 0.65; font-family: sans-serif;">
                     Latest game box scores for former Unicaja Baloncesto players
                 </div>
             </div>
@@ -248,8 +236,8 @@ _HEADER_HEIGHT_PX = 38
 
 
 def _stripe_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """Return a Styler with alternating white / pale-green row bands."""
-    colors = ["background-color: #ffffff", f"background-color: {_UNICAJA_GREEN_PALE}"]
+    """Alternating transparent / faint-green rows — works in light and dark mode."""
+    colors = ["", "background-color: rgba(0, 102, 51, 0.08)"]
     styles = [
         {col: colors[i % 2] for col in df.columns}
         for i in range(len(df))
