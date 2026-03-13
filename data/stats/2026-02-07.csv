@@ -1,0 +1,7 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20210585,Francis Alonso,acb,ACB,2025-26,2026-02-07,Río Breogán-UCAM Murcia,95-106,2026-03-13,19.8,8.0,1.0,3.0,33.0,0.0,4.0,0.0,6.0,6.0,100.0,0.0,0.0,0.0,2.0,1.0,1.0,,0.0,-4.0,7.0,San Pablo Burgos
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2026-02-07,Recoletas Salud-La Laguna TFE,96-88,2026-03-13,25.62,12.0,3.0,4.0,75.0,0.0,0.0,0.0,6.0,8.0,75.0,4.0,1.0,5.0,1.0,0.0,1.0,,0.0,-4.0,18.0,Lenovo Tenerife
+20204124,Jaime Fernández,acb,ACB,2025-26,2026-02-07,Recoletas Salud-La Laguna TFE,96-88,2026-03-13,21.05,14.0,3.0,6.0,50.0,2.0,3.0,66.0,2.0,4.0,50.0,2.0,0.0,2.0,7.0,1.0,4.0,,2.0,3.0,14.0,Lenovo Tenerife
+5313012,Mario Saint-Supéry,ncaa_espn,NCAA,2025-26,2026-02-07,@ ORST,W 81-61,2026-03-13,26.0,5.0,1.0,6.0,16.7,1.0,3.0,33.3,0.0,0.0,,,,1.0,5.0,0.0,0.0,0.0,2.0,,,Gonzaga Bulldogs
+20210707,Rubén Guerrero,acb,ACB,2025-26,2026-02-07,Unicaja-MoraBanc And,91-79,2026-03-13,12.42,0.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,2.0,3.0,0.0,0.0,0.0,,0.0,-2.0,0.0,MoraBanc Andorra
+20211625,Tim Abromaitis,acb,ACB,2025-26,2026-02-07,Recoletas Salud-La Laguna TFE,96-88,2026-03-13,13.15,7.0,1.0,1.0,100.0,1.0,1.0,100.0,2.0,2.0,100.0,3.0,0.0,3.0,0.0,0.0,0.0,,0.0,4.0,8.0,Lenovo Tenerife

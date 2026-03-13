@@ -1,0 +1,3 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P010581,Dylan Osetkowski,Partizan Mozzart Bet,euroleague,EuroLeague,E2025,2025-12-26,Maccabi Rapyd Tel Aviv,D 87-112,2026-03-13,19.8,8.0,2.0,3.0,66.7,0.0,4.0,0.0,4.0,4.0,100.0,0.0,1.0,1.0,3.0,0.0,1.0,0.0,0.0,-12.0,8.0
+P000848,Nemanja Nedović,AS Monaco,euroleague,EuroLeague,E2025,2025-12-26,Real Madrid,V 100-95,2026-03-13,17.03,12.0,3.0,4.0,75.0,2.0,2.0,100.0,0.0,0.0,,0.0,3.0,3.0,0.0,1.0,2.0,1.0,3.0,16.0,12.0

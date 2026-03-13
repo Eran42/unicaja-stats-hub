@@ -1,0 +1,8 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20200277,Augusto Lima,acb,ACB,2025-26,2026-02-14,UCAM Murcia-Recoletas Salud,101-82,2026-03-13,2.13,1.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,2.0,50.0,1.0,2.0,3.0,0.0,0.0,0.0,,0.0,2.0,3.0,San Pablo Burgos
+20210585,Francis Alonso,acb,ACB,2025-26,2026-02-14,La Laguna TFE-Río Breogán,90-81,2026-03-13,27.53,16.0,1.0,3.0,33.0,1.0,5.0,20.0,11.0,11.0,100.0,5.0,0.0,5.0,2.0,1.0,2.0,,0.0,-6.0,20.0,San Pablo Burgos
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2026-02-14,La Laguna TFE-Río Breogán,90-81,2026-03-13,23.12,18.0,8.0,11.0,72.0,0.0,0.0,0.0,2.0,4.0,50.0,2.0,3.0,5.0,0.0,1.0,2.0,,0.0,6.0,20.0,Lenovo Tenerife
+20204124,Jaime Fernández,acb,ACB,2025-26,2026-02-14,La Laguna TFE-Río Breogán,90-81,2026-03-13,17.67,16.0,4.0,9.0,44.0,1.0,1.0,100.0,5.0,8.0,62.0,1.0,1.0,2.0,1.0,1.0,4.0,,0.0,13.0,9.0,Lenovo Tenerife
+5313012,Mario Saint-Supéry,ncaa_espn,NCAA,2025-26,2026-02-14,@ SCU,W 94-86,2026-03-13,33.0,8.0,3.0,3.0,100.0,0.0,4.0,0.0,2.0,2.0,100.0,,,4.0,5.0,0.0,2.0,0.0,1.0,,,Gonzaga Bulldogs
+20211625,Tim Abromaitis,acb,ACB,2025-26,2026-02-14,La Laguna TFE-Río Breogán,90-81,2026-03-13,12.05,3.0,0.0,0.0,0.0,1.0,3.0,33.0,0.0,0.0,0.0,3.0,0.0,3.0,1.0,0.0,0.0,,0.0,5.0,2.0,Lenovo Tenerife
+30000479,Yannick Nzosa,acb,ACB,2025-26,2026-02-14,UCAM Murcia-Recoletas Salud,101-82,2026-03-13,4.8,2.0,1.0,1.0,100.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,,0.0,-2.0,3.0,San Pablo Burgos

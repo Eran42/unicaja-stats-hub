@@ -1,0 +1,4 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P010581,Dylan Osetkowski,Partizan Mozzart Bet,euroleague,EuroLeague,E2025,2025-10-15,Real Madrid,D 86-93,2026-03-13,24.3,11.0,1.0,3.0,33.3,1.0,2.0,50.0,6.0,6.0,100.0,1.0,5.0,6.0,2.0,1.0,0.0,0.0,1.0,6.0,20.0
+P011217,Kameron Taylor,Valencia Basket,euroleague,EuroLeague,E2025,2025-10-15,Hapoel IBI Tel Aviv,D 93-100,2026-03-13,21.15,8.0,0.0,1.0,0.0,2.0,6.0,33.3,2.0,2.0,100.0,0.0,5.0,5.0,0.0,1.0,3.0,0.0,3.0,-1.0,6.0
+P000848,Nemanja Nedović,AS Monaco,euroleague,EuroLeague,E2025,2025-10-15,Virtus Bologna,D 73-77,2026-03-13,12.53,3.0,0.0,0.0,,1.0,4.0,25.0,0.0,0.0,,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,-11.0,0.0

@@ -1,0 +1,4 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P009992,Darío Brizuela,FC Barcelona,euroleague,EuroLeague,E2025,2026-02-25,Virtus Bologna,D 80-85,2026-03-13,3.75,0.0,0.0,0.0,,0.0,1.0,0.0,0.0,0.0,,0.0,1.0,1.0,0.0,0.0,2.0,0.0,1.0,-2.0,-3.0
+P010581,Dylan Osetkowski,Partizan Mozzart Bet,euroleague,EuroLeague,E2025,2026-02-25,Fenerbahce Beko Istanbul,D 78-81,2026-03-13,30.57,6.0,1.0,2.0,50.0,1.0,3.0,33.3,1.0,1.0,100.0,1.0,0.0,1.0,2.0,1.0,0.0,0.0,3.0,-2.0,4.0
+5313012,Mario Saint-Supéry,Gonzaga Bulldogs,ncaa_espn,NCAA,2025-26,2026-02-25,vs PORT,W 89-48,2026-03-13,26.0,12.0,0.0,0.0,,4.0,7.0,57.1,0.0,0.0,,,,1.0,2.0,0.0,0.0,0.0,1.0,,

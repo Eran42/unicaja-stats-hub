@@ -1,0 +1,7 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20209919,Darío Brizuela,acb,ACB,2025-26,2025-11-23,Dreamland GC-Barça,61-72,2026-03-13,6.48,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,,0.0,-3.0,0.0,FC Barcelona
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2025-11-23,Casademont Zgz-La Laguna TFE,76-84,2026-03-13,19.15,11.0,4.0,6.0,66.0,0.0,0.0,0.0,3.0,4.0,75.0,0.0,1.0,1.0,0.0,0.0,2.0,,2.0,1.0,13.0,Lenovo Tenerife
+20204124,Jaime Fernández,acb,ACB,2025-26,2025-11-23,Casademont Zgz-La Laguna TFE,76-84,2026-03-13,16.73,16.0,5.0,6.0,83.0,0.0,4.0,0.0,6.0,6.0,100.0,1.0,1.0,2.0,1.0,2.0,2.0,,2.0,-4.0,19.0,Lenovo Tenerife
+20210707,Rubén Guerrero,acb,ACB,2025-26,2025-11-23,MoraBanc And-Joventut,76-83,2026-03-13,8.53,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0.0,-5.0,0.0,MoraBanc Andorra
+20211625,Tim Abromaitis,acb,ACB,2025-26,2025-11-23,Casademont Zgz-La Laguna TFE,76-84,2026-03-13,14.1,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3.0,0.0,3.0,1.0,0.0,0.0,,0.0,5.0,2.0,Lenovo Tenerife
+20213230,Yankuba Sima,acb,ACB,2025-26,2025-11-23,Valencia Basket-Bàsquet Girona,98-72,2026-03-13,14.7,4.0,1.0,1.0,100.0,0.0,1.0,0.0,2.0,4.0,50.0,1.0,1.0,2.0,0.0,0.0,0.0,,0.0,3.0,3.0,Valencia Basket

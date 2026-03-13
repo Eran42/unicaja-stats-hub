@@ -1,0 +1,4 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P010581,Dylan Osetkowski,Partizan Mozzart Bet,euroleague,EuroLeague,E2025,2025-11-25,Panathinaikos AKTOR Athens,D 69-91,2026-03-13,10.0,4.0,1.0,2.0,50.0,0.0,1.0,0.0,2.0,2.0,100.0,1.0,1.0,2.0,1.0,1.0,0.0,0.0,1.0,1.0,6.0
+P011217,Kameron Taylor,Valencia Basket,euroleague,EuroLeague,E2025,2025-11-25,FC Bayern Munich,V 90-64,2026-03-13,18.05,8.0,1.0,2.0,50.0,2.0,4.0,50.0,0.0,0.0,,0.0,6.0,6.0,2.0,0.0,2.0,0.0,2.0,12.0,10.0
+5313012,Mario Saint-Supéry,Gonzaga Bulldogs,ncaa_espn,NCAA,2025-26,2025-11-25,vs MD,W 100-61,2026-03-13,22.0,5.0,1.0,1.0,100.0,1.0,5.0,20.0,0.0,0.0,,,,3.0,9.0,0.0,2.0,0.0,2.0,,

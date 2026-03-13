@@ -1,0 +1,6 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2026-03-07,BAXI Manresa-La Laguna TFE,86-80,2026-03-13,23.73,24.0,7.0,9.0,77.0,0.0,0.0,0.0,10.0,11.0,90.0,2.0,2.0,4.0,1.0,0.0,1.0,,0.0,-4.0,29.0,Lenovo Tenerife
+20204124,Jaime Fernández,acb,ACB,2025-26,2026-03-07,BAXI Manresa-La Laguna TFE,86-80,2026-03-13,26.7,8.0,2.0,2.0,100.0,1.0,3.0,33.0,1.0,4.0,25.0,4.0,1.0,5.0,5.0,1.0,1.0,,0.0,-9.0,16.0,Lenovo Tenerife
+20210707,Rubén Guerrero,acb,ACB,2025-26,2026-03-07,MoraBanc And-Casademont Zgz,113-111,2026-03-13,6.72,4.0,1.0,1.0,100.0,0.0,0.0,0.0,2.0,2.0,100.0,1.0,0.0,1.0,0.0,1.0,0.0,,2.0,2.0,5.0,MoraBanc Andorra
+20211625,Tim Abromaitis,acb,ACB,2025-26,2026-03-07,BAXI Manresa-La Laguna TFE,86-80,2026-03-13,22.82,4.0,0.0,3.0,0.0,1.0,4.0,25.0,1.0,2.0,50.0,2.0,1.0,3.0,0.0,2.0,1.0,,0.0,8.0,0.0,Lenovo Tenerife
+30000479,Yannick Nzosa,acb,ACB,2025-26,2026-03-07,Recoletas Salud-Surne Bilbao,96-88,2026-03-13,2.52,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0.0,0.0,0.0,San Pablo Burgos

@@ -1,0 +1,4 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20209919,Darío Brizuela,acb,ACB,2025-26,2025-10-19,Unicaja-Barça,77-83,2026-03-13,6.43,0.0,0.0,1.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,,0.0,-9.0,-4.0,FC Barcelona
+30001981,Kameron Taylor,acb,ACB,2025-26,2025-10-19,Hiopos Lleida-Valencia Basket,78-99,2026-03-13,18.72,14.0,2.0,3.0,66.0,2.0,2.0,100.0,4.0,5.0,80.0,4.0,0.0,4.0,1.0,1.0,2.0,,0.0,9.0,15.0,Valencia Basket
+30000479,Yannick Nzosa,acb,ACB,2025-26,2025-10-19,Real Madrid-Recoletas Salud,90-80,2026-03-13,6.4,7.0,3.0,4.0,75.0,0.0,0.0,0.0,1.0,2.0,50.0,0.0,0.0,0.0,1.0,0.0,0.0,,0.0,2.0,6.0,San Pablo Burgos

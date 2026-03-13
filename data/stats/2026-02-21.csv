@@ -1,0 +1,2 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+5313012,Mario Saint-Supéry,ncaa_espn,NCAA,2025-26,2026-02-21,vs PAC,W 71-62,2026-03-13,25.0,2.0,1.0,6.0,16.7,0.0,1.0,0.0,0.0,0.0,,,,6.0,1.0,1.0,0.0,1.0,0.0,,,Gonzaga Bulldogs

@@ -1,0 +1,6 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P003840,Axel Bouteille,Budućnost VOLI,eurocup,EuroCup,U2025,2025-12-05,Cosea JL Bourg-en-Bresse,D 73-88,2026-03-13,18.47,6.0,0.0,4.0,0.0,1.0,1.0,100.0,3.0,3.0,100.0,0.0,1.0,1.0,0.0,0.0,1.0,0.0,1.0,-1.0,3.0
+P009992,Darío Brizuela,FC Barcelona,euroleague,EuroLeague,E2025,2025-12-05,Crvena Zvezda Meridianbet Belgrade,V 89-79,2026-03-13,13.98,17.0,3.0,3.0,100.0,3.0,6.0,50.0,2.0,2.0,100.0,0.0,1.0,1.0,2.0,2.0,1.0,0.0,2.0,11.0,18.0
+P011217,Kameron Taylor,Valencia Basket,euroleague,EuroLeague,E2025,2025-12-05,Panathinaikos AKTOR Athens,V 89-79,2026-03-13,27.55,18.0,2.0,3.0,66.7,4.0,10.0,40.0,2.0,2.0,100.0,0.0,2.0,2.0,2.0,1.0,3.0,0.0,1.0,16.0,15.0
+5313012,Mario Saint-Supéry,Gonzaga Bulldogs,ncaa_espn,NCAA,2025-26,2025-12-05,vs 18 UK,W 94-59,2026-03-13,21.0,6.0,0.0,1.0,0.0,2.0,4.0,50.0,0.0,0.0,,,,3.0,2.0,0.0,1.0,0.0,2.0,,
+P005596,Yankuba Sima,Valencia Basket,euroleague,EuroLeague,E2025,2025-12-05,Panathinaikos AKTOR Athens,V 89-79,2026-03-13,9.35,4.0,1.0,1.0,100.0,0.0,1.0,0.0,2.0,4.0,50.0,1.0,1.0,2.0,0.0,0.0,1.0,0.0,3.0,-4.0,2.0

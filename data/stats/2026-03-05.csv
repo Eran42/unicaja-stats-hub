@@ -1,0 +1,4 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P009992,Darío Brizuela,FC Barcelona,euroleague,EuroLeague,E2025,2026-03-05,EA7 Emporio Armani Milan,D 84-87,2026-03-13,10.85,7.0,2.0,3.0,66.7,1.0,3.0,33.3,0.0,0.0,,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,-11.0,7.0
+P011217,Kameron Taylor,Valencia Basket,euroleague,EuroLeague,E2025,2026-03-05,Zalgiris Kaunas,V 91-87,2026-03-13,22.92,5.0,1.0,1.0,100.0,1.0,3.0,33.3,0.0,0.0,,1.0,1.0,2.0,3.0,0.0,1.0,0.0,2.0,-2.0,10.0
+P000848,Nemanja Nedović,AS Monaco,euroleague,EuroLeague,E2025,2026-03-05,Fenerbahce Beko Istanbul,D 70-88,2026-03-13,12.67,8.0,1.0,2.0,50.0,2.0,6.0,33.3,0.0,0.0,,0.0,2.0,2.0,0.0,0.0,0.0,0.0,0.0,4.0,6.0

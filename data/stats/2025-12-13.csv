@@ -1,0 +1,7 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20210585,Francis Alonso,acb,ACB,2025-26,2025-12-13,Río Breogán-La Laguna TFE,96-108,2026-03-13,19.12,5.0,1.0,2.0,50.0,0.0,2.0,0.0,3.0,4.0,75.0,1.0,0.0,1.0,1.0,2.0,0.0,,2.0,-2.0,10.0,San Pablo Burgos
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2025-12-13,Río Breogán-La Laguna TFE,96-108,2026-03-13,29.02,18.0,7.0,8.0,87.0,0.0,0.0,0.0,4.0,4.0,100.0,8.0,2.0,10.0,3.0,0.0,1.0,,2.0,24.0,34.0,Lenovo Tenerife
+20204124,Jaime Fernández,acb,ACB,2025-26,2025-12-13,Río Breogán-La Laguna TFE,96-108,2026-03-13,22.72,14.0,3.0,4.0,75.0,2.0,6.0,33.0,2.0,2.0,100.0,1.0,1.0,2.0,6.0,1.0,3.0,,0.0,13.0,16.0,Lenovo Tenerife
+5313012,Mario Saint-Supéry,ncaa_espn,NCAA,2025-26,2025-12-13,vs 25 UCLA,W 82-72,2026-03-13,28.0,12.0,3.0,4.0,75.0,1.0,2.0,50.0,3.0,3.0,100.0,,,4.0,1.0,1.0,1.0,0.0,2.0,,,Gonzaga Bulldogs
+20210707,Rubén Guerrero,acb,ACB,2025-26,2025-12-13,MoraBanc And-Coviran Granada,86-81,2026-03-13,5.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,1.0,,0.0,-2.0,-2.0,MoraBanc Andorra
+20211625,Tim Abromaitis,acb,ACB,2025-26,2025-12-13,Río Breogán-La Laguna TFE,96-108,2026-03-13,14.37,4.0,1.0,2.0,50.0,0.0,0.0,0.0,2.0,2.0,100.0,0.0,0.0,0.0,0.0,0.0,1.0,,0.0,-23.0,1.0,Lenovo Tenerife

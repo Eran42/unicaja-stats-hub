@@ -1,0 +1,2 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+30001981,Kameron Taylor,acb,ACB,2025-26,2026-01-12,Valencia Basket-Casademont Zgz,115-73,2026-03-13,13.98,4.0,2.0,4.0,50.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.0,,2.0,17.0,1.0,Valencia Basket

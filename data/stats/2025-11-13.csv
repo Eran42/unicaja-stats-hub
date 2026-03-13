@@ -1,0 +1,4 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P011217,Kameron Taylor,Valencia Basket,euroleague,EuroLeague,E2025,2025-11-13,Paris Basketball,D 86-90,2026-03-13,24.67,13.0,3.0,5.0,60.0,2.0,5.0,40.0,1.0,2.0,50.0,0.0,5.0,5.0,2.0,2.0,3.0,0.0,1.0,0.0,15.0
+P000848,Nemanja Nedović,AS Monaco,euroleague,EuroLeague,E2025,2025-11-13,Crvena Zvezda Meridianbet Belgrade,D 79-91,2026-03-13,6.83,0.0,0.0,0.0,,0.0,1.0,0.0,0.0,0.0,,1.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0
+P005596,Yankuba Sima,Valencia Basket,euroleague,EuroLeague,E2025,2025-11-13,Paris Basketball,D 86-90,2026-03-13,8.78,8.0,2.0,4.0,50.0,1.0,1.0,100.0,1.0,2.0,50.0,5.0,1.0,6.0,0.0,0.0,2.0,0.0,4.0,10.0,6.0

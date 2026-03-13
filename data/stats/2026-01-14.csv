@@ -1,0 +1,3 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P003840,Axel Bouteille,Budućnost VOLI,eurocup,EuroCup,U2025,2026-01-14,Lietkabelis Panevezys,V 95-81,2026-03-13,29.58,22.0,5.0,6.0,83.3,4.0,5.0,80.0,0.0,0.0,,1.0,2.0,3.0,3.0,1.0,3.0,0.0,1.0,18.0,23.0
+P010581,Dylan Osetkowski,Partizan Mozzart Bet,euroleague,EuroLeague,E2025,2026-01-14,Olympiacos Piraeus,D 66-104,2026-03-13,20.33,2.0,1.0,2.0,50.0,0.0,2.0,0.0,0.0,0.0,,0.0,1.0,1.0,0.0,1.0,0.0,0.0,2.0,-13.0,-1.0

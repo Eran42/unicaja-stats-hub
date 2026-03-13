@@ -1,0 +1,6 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20209919,Darío Brizuela,acb,ACB,2025-26,2026-02-01,UCAM Murcia-Barça,84-83,2026-03-13,4.92,3.0,0.0,0.0,0.0,1.0,1.0,100.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,,0.0,3.0,3.0,FC Barcelona
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2026-02-01,La Laguna TFE-Kosner Baskonia,89-85,2026-03-13,18.63,14.0,4.0,6.0,66.0,0.0,0.0,0.0,6.0,8.0,75.0,3.0,0.0,3.0,0.0,0.0,0.0,,0.0,-4.0,16.0,Lenovo Tenerife
+20204124,Jaime Fernández,acb,ACB,2025-26,2026-02-01,La Laguna TFE-Kosner Baskonia,89-85,2026-03-13,15.23,10.0,3.0,6.0,50.0,0.0,3.0,0.0,4.0,4.0,100.0,2.0,2.0,4.0,2.0,1.0,0.0,,0.0,5.0,12.0,Lenovo Tenerife
+20211625,Tim Abromaitis,acb,ACB,2025-26,2026-02-01,La Laguna TFE-Kosner Baskonia,89-85,2026-03-13,27.18,6.0,1.0,3.0,33.0,1.0,3.0,33.0,1.0,2.0,50.0,4.0,1.0,5.0,1.0,1.0,0.0,,0.0,-5.0,10.0,Lenovo Tenerife
+20213230,Yankuba Sima,acb,ACB,2025-26,2026-02-01,Valencia Basket-Hiopos Lleida,101-65,2026-03-13,9.87,4.0,2.0,3.0,66.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,2.0,0.0,1.0,0.0,,0.0,11.0,6.0,Valencia Basket

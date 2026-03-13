@@ -1,0 +1,6 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20210585,Francis Alonso,acb,ACB,2025-26,2025-10-04,Hiopos Lleida-Río Breogán,87-68,2026-03-13,17.22,8.0,1.0,2.0,50.0,2.0,4.0,50.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,,0.0,-5.0,5.0,San Pablo Burgos
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2025-10-04,La Laguna TFE-BAXI Manresa,104-93,2026-03-13,25.17,28.0,10.0,14.0,71.0,0.0,0.0,0.0,8.0,9.0,88.0,2.0,5.0,7.0,2.0,0.0,1.0,,0.0,-6.0,38.0,Lenovo Tenerife
+20204124,Jaime Fernández,acb,ACB,2025-26,2025-10-04,La Laguna TFE-BAXI Manresa,104-93,2026-03-13,19.75,18.0,3.0,5.0,60.0,2.0,5.0,40.0,6.0,7.0,85.0,1.0,0.0,1.0,5.0,2.0,0.0,,3.0,14.0,21.0,Lenovo Tenerife
+20211625,Tim Abromaitis,acb,ACB,2025-26,2025-10-04,La Laguna TFE-BAXI Manresa,104-93,2026-03-13,17.65,5.0,1.0,1.0,100.0,1.0,2.0,50.0,0.0,0.0,0.0,3.0,0.0,3.0,0.0,0.0,1.0,,0.0,13.0,5.0,Lenovo Tenerife
+30000479,Yannick Nzosa,acb,ACB,2025-26,2025-10-04,Recoletas Salud-Bàsquet Girona,97-79,2026-03-13,4.35,2.0,1.0,2.0,50.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,1.0,1.0,1.0,0.0,,0.0,4.0,2.0,San Pablo Burgos

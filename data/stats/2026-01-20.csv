@@ -1,0 +1,5 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P009992,Darío Brizuela,FC Barcelona,euroleague,EuroLeague,E2025,2026-01-20,Dubai Basketball,V 91-89,2026-03-13,25.25,25.0,6.0,8.0,75.0,4.0,7.0,57.1,1.0,1.0,100.0,0.0,2.0,2.0,4.0,1.0,2.0,0.0,3.0,-6.0,22.0
+P010581,Dylan Osetkowski,Partizan Mozzart Bet,euroleague,EuroLeague,E2025,2026-01-20,FC Bayern Munich,V 67-63,2026-03-13,29.08,6.0,0.0,4.0,0.0,2.0,8.0,25.0,0.0,0.0,,3.0,4.0,7.0,1.0,0.0,2.0,0.0,2.0,10.0,-1.0
+P011217,Kameron Taylor,Valencia Basket,euroleague,EuroLeague,E2025,2026-01-20,Paris Basketball,V 98-84,2026-03-13,21.68,28.0,6.0,8.0,75.0,2.0,5.0,40.0,10.0,10.0,100.0,2.0,4.0,6.0,1.0,0.0,1.0,1.0,3.0,28.0,33.0
+P000848,Nemanja Nedović,AS Monaco,euroleague,EuroLeague,E2025,2026-01-20,Crvena Zvezda Meridianbet Belgrade,D 96-100,2026-03-13,13.63,5.0,0.0,1.0,0.0,1.0,2.0,50.0,2.0,2.0,100.0,1.0,2.0,3.0,0.0,0.0,1.0,0.0,3.0,-6.0,3.0

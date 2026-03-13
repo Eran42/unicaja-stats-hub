@@ -1,0 +1,4 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P009992,Darío Brizuela,FC Barcelona,euroleague,EuroLeague,E2025,2025-10-31,Partizan Mozzart Bet Belgrade,V 78-76,2026-03-13,9.73,3.0,0.0,1.0,0.0,1.0,5.0,20.0,0.0,0.0,,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-5.0,-2.0
+P010581,Dylan Osetkowski,Partizan Mozzart Bet,euroleague,EuroLeague,E2025,2025-10-31,FC Barcelona,D 76-78,2026-03-13,22.23,7.0,1.0,2.0,50.0,1.0,2.0,50.0,2.0,2.0,100.0,3.0,0.0,3.0,3.0,2.0,1.0,0.0,4.0,-15.0,9.0
+P000848,Nemanja Nedović,AS Monaco,euroleague,EuroLeague,E2025,2025-10-31,Panathinaikos AKTOR Athens,V 92-84,2026-03-13,16.38,11.0,2.0,3.0,66.7,2.0,3.0,66.7,1.0,2.0,50.0,0.0,2.0,2.0,3.0,1.0,1.0,0.0,3.0,12.0,11.0

@@ -1,0 +1,8 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20209919,Darío Brizuela,acb,ACB,2025-26,2026-01-25,Barça-La Laguna TFE,82-89,2026-03-13,11.92,5.0,1.0,2.0,50.0,1.0,2.0,50.0,0.0,0.0,0.0,1.0,0.0,1.0,1.0,1.0,2.0,,0.0,8.0,1.0,FC Barcelona
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2026-01-25,Barça-La Laguna TFE,82-89,2026-03-13,21.18,14.0,6.0,10.0,60.0,0.0,0.0,0.0,2.0,2.0,100.0,5.0,0.0,5.0,0.0,0.0,0.0,,0.0,9.0,18.0,Lenovo Tenerife
+20204124,Jaime Fernández,acb,ACB,2025-26,2026-01-25,Barça-La Laguna TFE,82-89,2026-03-13,25.3,10.0,3.0,5.0,60.0,1.0,3.0,33.0,1.0,2.0,50.0,1.0,0.0,1.0,5.0,2.0,1.0,,2.0,7.0,11.0,Lenovo Tenerife
+30001981,Kameron Taylor,acb,ACB,2025-26,2026-01-25,Dreamland GC-Valencia Basket,80-90,2026-03-13,20.7,12.0,6.0,9.0,66.0,0.0,2.0,0.0,0.0,0.0,0.0,5.0,0.0,5.0,5.0,0.0,1.0,,2.0,11.0,12.0,Valencia Basket
+20210707,Rubén Guerrero,acb,ACB,2025-26,2026-01-25,BAXI Manresa-MoraBanc And,91-84,2026-03-13,0.02,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0.0,-2.0,0.0,MoraBanc Andorra
+20211625,Tim Abromaitis,acb,ACB,2025-26,2026-01-25,Barça-La Laguna TFE,82-89,2026-03-13,16.82,3.0,0.0,0.0,0.0,1.0,3.0,33.0,0.0,0.0,0.0,4.0,0.0,4.0,0.0,0.0,0.0,,0.0,0.0,3.0,Lenovo Tenerife
+20213230,Yankuba Sima,acb,ACB,2025-26,2026-01-25,Dreamland GC-Valencia Basket,80-90,2026-03-13,2.63,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,,0.0,-3.0,-2.0,Valencia Basket

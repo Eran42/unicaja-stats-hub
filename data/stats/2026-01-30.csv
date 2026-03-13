@@ -1,0 +1,2 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P000848,Nemanja Nedović,AS Monaco,euroleague,EuroLeague,E2025,2026-01-30,Virtus Bologna,D 82-84,2026-03-13,10.03,4.0,0.0,1.0,0.0,1.0,3.0,33.3,1.0,2.0,50.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,-6.0,1.0

@@ -1,0 +1,6 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+20200277,Augusto Lima,acb,ACB,2025-26,2026-01-18,Recoletas Salud-Barça,79-80,2026-03-13,4.82,2.0,1.0,1.0,100.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,2.0,0.0,0.0,0.0,,0.0,4.0,2.0,San Pablo Burgos
+20209919,Darío Brizuela,acb,ACB,2025-26,2026-01-18,Recoletas Salud-Barça,79-80,2026-03-13,16.78,5.0,1.0,3.0,33.0,1.0,3.0,33.0,0.0,0.0,0.0,2.0,0.0,2.0,3.0,1.0,0.0,,0.0,4.0,5.0,FC Barcelona
+30001981,Kameron Taylor,acb,ACB,2025-26,2026-01-18,Real Madrid-Valencia Basket,94-79,2026-03-13,18.65,4.0,2.0,2.0,100.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,1.0,2.0,0.0,1.0,,2.0,-1.0,4.0,Valencia Basket
+20213230,Yankuba Sima,acb,ACB,2025-26,2026-01-18,Real Madrid-Valencia Basket,94-79,2026-03-13,12.62,1.0,0.0,0.0,0.0,0.0,1.0,0.0,1.0,2.0,50.0,1.0,2.0,3.0,0.0,0.0,1.0,,0.0,-7.0,-1.0,Valencia Basket
+30000479,Yannick Nzosa,acb,ACB,2025-26,2026-01-18,Recoletas Salud-Barça,79-80,2026-03-13,12.52,6.0,3.0,5.0,60.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,1.0,3.0,0.0,0.0,0.0,,0.0,-3.0,7.0,San Pablo Burgos

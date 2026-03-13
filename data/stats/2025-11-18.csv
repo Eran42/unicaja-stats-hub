@@ -1,0 +1,2 @@
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+P003840,Axel Bouteille,Budućnost VOLI,eurocup,EuroCup,U2025,2025-11-18,ratiopharm ulm,V 101-71,2026-03-13,15.13,8.0,1.0,4.0,25.0,2.0,4.0,50.0,0.0,0.0,,0.0,5.0,5.0,0.0,0.0,1.0,0.0,0.0,14.0,6.0
