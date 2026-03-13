@@ -1,17 +1,21 @@
 """
 Unicaja Baloncesto Stats Hub — Streamlit web app.
 
-Main table   : latest run's data — all tracked players, games-first ordering.
+Main table   : all tracked players — games played in last 24 h shown with stats,
+               everyone else shown as "Did not play".
 History table: select a player → every game we've ever collected, one row each.
 """
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from datetime import datetime, timedelta
 
 import pandas as pd
 import streamlit as st
 
+from src.players import get_active_players
 from src.storage import get_all_dates, load_stats
 
 # ---------------------------------------------------------------------------
@@ -29,7 +33,6 @@ st.set_page_config(
 # Constants
 # ---------------------------------------------------------------------------
 
-# All stat columns in display order
 _STAT_COLS = [
     "min", "pts",
     "t2m", "t2a", "t2_pct",
@@ -63,26 +66,37 @@ _DISPLAY_COLS = (
 )
 
 # ---------------------------------------------------------------------------
-# Data helpers
+# Helpers
 # ---------------------------------------------------------------------------
 
-@st.cache_data(ttl=300)
-def _load_latest() -> tuple[str, list[dict]]:
-    """Return (run_date, records) for the most recent saved run."""
-    dates = get_all_dates()
-    if not dates:
-        return "", []
-    latest = dates[-1]
-    return latest, load_stats(latest)
+def _canonical_name(name: str) -> frozenset:
+    """
+    Normalise a player name into a frozenset of lowercase ASCII tokens so that
+    'Lessort, Mathias' and 'Mathias Lessort' compare as equal.
+    """
+    ascii_name = (
+        unicodedata.normalize("NFKD", name)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+    return frozenset(re.sub(r"[^a-z ]", "", ascii_name.lower()).split())
 
 
-@st.cache_data(ttl=300)
-def _load_all() -> dict[str, list[dict]]:
-    """Return {date: records} for every saved run."""
-    return {d: load_stats(d) for d in get_all_dates()}
+def _is_real_name(name: str) -> bool:
+    """Return False for strings that look like player IDs (e.g. '20200277', 'P003842')."""
+    return not re.match(r"^P?\d+$", name.strip())
 
 
-_PCT_COLS = {"t2_pct", "t3_pct", "ft_pct"}
+def _game_is_within_24h(game_date: str) -> bool:
+    """True if game_date (YYYY-MM-DD) falls on or after yesterday's calendar date."""
+    if not game_date or game_date in ("—", "N/A"):
+        return False
+    try:
+        gd = datetime.strptime(game_date[:10], "%Y-%m-%d").date()
+        cutoff = (datetime.now() - timedelta(hours=24)).date()
+        return gd >= cutoff
+    except ValueError:
+        return False
 
 
 def _fmt_val(val: object, field: str = "") -> str:
@@ -91,33 +105,14 @@ def _fmt_val(val: object, field: str = "") -> str:
         return "N/A"
     try:
         f = float(val)
-        if field in _PCT_COLS:
+        if field in {"t2_pct", "t3_pct", "ft_pct"}:
             return f"{f:.1f}"
         return str(int(round(f)))
     except (TypeError, ValueError):
         return str(val) if val != "" else "N/A"
 
 
-def _game_is_within_24h(game_date: str) -> bool:
-    """
-    True if game_date falls within the last 24 hours from now.
-    Only ISO dates (YYYY-MM-DD) are supported; anything else returns False.
-    """
-    if not game_date or game_date in ("—", "N/A"):
-        return False
-    try:
-        # Compare dates only — game_date has no time component, so a game on
-        # "2026-03-12" could have been played at any hour that day. We include
-        # any game whose calendar date falls on or after (today − 1 day).
-        gd = datetime.strptime(game_date[:10], "%Y-%m-%d").date()
-        cutoff = (datetime.now() - timedelta(hours=24)).date()
-        return gd >= cutoff
-    except ValueError:
-        return False
-
-
 def _build_row(record: dict) -> dict:
-    """Build a display row from a stat record."""
     row = {}
     for field in _DISPLAY_COLS:
         label = _COL_LABELS.get(field, field)
@@ -128,53 +123,77 @@ def _build_row(record: dict) -> dict:
     return row
 
 
-def _no_game_row(player_name: str, team: str) -> dict:
-    """Placeholder row for a player who didn't play this window."""
+def _did_not_play_row(player_name: str, team: str) -> dict:
     row = {_COL_LABELS.get(f, f): "—" for f in _DISPLAY_COLS}
-    row["Player"]      = player_name
-    row["Team"]        = team
-    row["Competition"] = "—"
-    row["Game Date"]   = "No game played"
-    row["Opponent"]    = "—"
-    row["Result"]      = "—"
+    row["Player"]    = player_name
+    row["Team"]      = team
+    row["Game Date"] = "Did not play"
     return row
+
+
+# ---------------------------------------------------------------------------
+# Data loaders
+# ---------------------------------------------------------------------------
+
+@st.cache_data(ttl=300)
+def _load_latest() -> tuple[str, list[dict]]:
+    dates = get_all_dates()
+    if not dates:
+        return "", []
+    latest = dates[-1]
+    return latest, load_stats(latest)
+
+
+@st.cache_data(ttl=300)
+def _load_all() -> dict[str, list[dict]]:
+    return {d: load_stats(d) for d in get_all_dates()}
 
 
 # ---------------------------------------------------------------------------
 # Main table
 # ---------------------------------------------------------------------------
 
-def render_latest(run_date: str, records: list[dict]) -> None:
+def render_latest(records: list[dict]) -> None:
     cutoff_label = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M")
-    st.subheader(f"Games in the last 24 hours (since {cutoff_label})")
+    st.subheader(f"Last 24 hours — since {cutoff_label}")
 
     if not records:
         st.warning("No data yet. Run `python main.py` to fetch stats.")
         return
 
-    # Build a lookup: player_name → list of records (one per competition)
-    by_player: dict[str, list[dict]] = {}
-    for r in records:
-        name = r.get("player_name", "Unknown")
-        by_player.setdefault(name, []).append(r)
+    # Split records into played (valid date, within 24h) and the rest.
+    # Records with no game_date are excluded from both categories.
+    played_records: list[dict] = []
+    for rec in records:
+        gd = str(rec.get("game_date", ""))
+        if gd and gd not in ("", "—", "N/A") and _game_is_within_24h(gd):
+            played_records.append(rec)
 
-    played_rows: list[dict] = []
+    # Build a set of canonical name tokens for players who played.
+    played_canonical: set[frozenset] = {
+        _canonical_name(r["player_name"])
+        for r in played_records
+        if r.get("player_name")
+    }
 
-    for name, player_records in sorted(by_player.items()):
-        for rec in player_records:
-            gd = str(rec.get("game_date", ""))
-            # Exclude rows with no game date — without a date we can't verify
-            # what game the stats refer to.
-            if gd and gd not in ("", "—", "N/A") and _game_is_within_24h(gd):
-                played_rows.append(_build_row(rec))
+    played_rows: list[dict] = [_build_row(r) for r in played_records]
 
-    if not played_rows:
-        st.info("No games in the last 24 hours.")
+    # Add "Did not play" for every active registry player not in played set.
+    did_not_play_rows: list[dict] = []
+    for player in sorted(get_active_players(), key=lambda p: p.name):
+        if _canonical_name(player.name) not in played_canonical:
+            did_not_play_rows.append(_did_not_play_row(player.name, player.team))
+
+    all_rows = played_rows + did_not_play_rows
+    if not all_rows:
+        st.info("No data available.")
         return
 
-    df = pd.DataFrame(played_rows)
-
-    st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
+    df = pd.DataFrame(all_rows)
+    st.caption(
+        f"🟢 **{len(played_rows)}** game(s) in the last 24 h · "
+        f"⚪ **{len(did_not_play_rows)}** player(s) did not play"
+    )
     st.dataframe(df, use_container_width=True, hide_index=True, height=600)
 
 
@@ -189,12 +208,12 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         st.info("No historical data yet.")
         return
 
-    # Collect all unique player names
+    # Collect real player names (exclude IDs stored as names).
     all_names: set[str] = set()
     for records in all_data.values():
         for r in records:
-            name = r.get("player_name")
-            if name:
+            name = r.get("player_name", "")
+            if name and _is_real_name(name):
                 all_names.add(name)
 
     selected = st.selectbox(
@@ -205,16 +224,21 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     if not selected:
         return
 
-    # Gather every game record for this player across all runs,
-    # deduplicated by (competition, game_date)
+    selected_canonical = _canonical_name(selected)
+
     seen: set[tuple] = set()
     game_rows: list[dict] = []
 
     for run_date in sorted(all_data.keys()):
         for rec in all_data[run_date]:
-            if rec.get("player_name") != selected:
+            name = rec.get("player_name", "")
+            if not name or _canonical_name(name) != selected_canonical:
                 continue
-            key = (rec.get("competition", ""), str(rec.get("game_date", "")))
+            # Exclude records with no game_date — unverifiable.
+            gd = str(rec.get("game_date", ""))
+            if not gd or gd in ("", "—", "N/A"):
+                continue
+            key = (rec.get("competition", ""), gd)
             if key in seen:
                 continue
             seen.add(key)
@@ -225,8 +249,6 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         return
 
     df = pd.DataFrame(game_rows)
-
-    # Sort by Game Date descending
     if "Game Date" in df.columns:
         df = df.sort_values("Game Date", ascending=False)
 
@@ -246,10 +268,10 @@ if not dates:
     st.warning("No data yet. Run `python main.py` to fetch stats.")
     st.stop()
 
-run_date, latest_records = _load_latest()
+_, latest_records = _load_latest()
 all_data = _load_all()
 
-render_latest(run_date, latest_records)
+render_latest(latest_records)
 
 st.divider()
 
