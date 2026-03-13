@@ -72,6 +72,31 @@ reb_off, reb_def, reb, ast, stl, tov, blk, fouls, plus_minus, val
 
 After every run, review what each scraper returned and identify gaps or quality issues per source and competition. For example: missing fields, stale data, wrong stat types, unreliable endpoints, or competitions where a different source would give better coverage. Then fix the code — change the data source, adjust the parser, or add fallback logic — so the next run handles it better. These improvements should be committed alongside the stats output, not deferred.
 
+### Player name canonicalisation
+
+All stored records must use the exact canonical name from `data/players/registry.json`. After any bulk fetch, historical backfill, or data import, run a name audit before committing:
+
+1. **Accent/encoding duplicates** — scrapers and external APIs often return the same player under different encodings:
+   - Correct Unicode: `Darío Brizuela`, `Jaime Fernández`, `Mario Saint-Supéry`, `Rubén Guerrero`, `Nemanja Nedović`, `Dragan Milosavljević`, `Mindaugas Kuzminskas`
+   - Watch for UTF-8 bytes misread as latin-1 (mojibake), e.g. `\xc3\xad` instead of `\xed` for `í`
+2. **"Last, First" format** — EuroLeague incrowdsports API sometimes returns names as `Brizuela, Dario` or `Nedovic, Nemanja`; always remap to canonical
+3. **P-codes as player names** — old daily files may have the EuroLeague player code (e.g. `P009992`) where the name should be; remap using the registry
+4. **De-duplication key** — records are de-duplicated by `(player_name, source, competition, game_date)`; a name mismatch creates phantom duplicates that appear as separate players in the dashboard
+
+After any bulk data operation, verify with:
+```python
+python -c "
+import json, glob, unicodedata
+names = set()
+for f in sorted(glob.glob('data/stats/*.json')):
+    for r in json.load(open(f, encoding='utf-8')):
+        names.add(r.get('player_name', ''))
+for n in sorted(names):
+    print(unicodedata.normalize('NFKD', n).encode('ascii','ignore').decode(), '|', n)
+"
+```
+Any name that doesn't exactly match a registry entry must be fixed before committing.
+
 ### Pre-publish checklist
 
 Before committing or publishing any stats output, go through each of these steps:
