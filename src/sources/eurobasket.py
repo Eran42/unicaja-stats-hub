@@ -175,16 +175,24 @@ def _build_col_map(header_cells: list[Tag]) -> dict[str, int]:
 
 
 def _is_game_row(cells: list[Tag], col_map: dict[str, int]) -> bool:
-    """True if the row contains numeric game data (not header/total/average)."""
+    """True if the row contains numeric game data (not header/total/average/standings)."""
     if len(cells) < 5:
         return False
     pts_idx = col_map.get("pts")
     if pts_idx and pts_idx < len(cells):
         txt = _cell_text(cells[pts_idx])
         if re.match(r"^\d", txt):
-            # Exclude Total / Average rows
             first = _cell_text(cells[0]).lower()
-            return not any(kw in first for kw in ("total", "average", "avg", "media", "sum"))
+            # Reject summary/standings rows by keyword
+            if any(kw in first for kw in (
+                "total", "average", "avg", "media", "sum",
+                "win", "loss", "draw", "pts", "gp", "played",
+            )):
+                return False
+            # First cell must contain at least one digit (dates do; labels like "Wins" don't)
+            if not re.search(r"\d", first):
+                return False
+            return True
     return False
 
 

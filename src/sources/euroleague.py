@@ -104,10 +104,27 @@ def _get_json(url: str, params: dict | None = None) -> dict | list | None:
 
 
 def _team_score(team: dict) -> int | None:
-    """Extract the final team score from an incrowdsports team object."""
-    for field in ("score", "totalPoints", "points", "total", "pts"):
+    """
+    Extract the final team score from an incrowdsports team object.
+
+    The API nests team totals under a 'total' sub-dict:
+      local["total"]["points"] = 90  ← final team score
+    Top-level 'team' sub-dict contains partial/lineup stats and is not the total.
+    """
+    # Primary: totals are under the 'total' key
+    total = team.get("total")
+    if isinstance(total, dict):
+        for field in ("points", "pts", "score", "totalPoints"):
+            v = total.get(field)
+            if v is not None:
+                try:
+                    return int(v)
+                except (TypeError, ValueError):
+                    pass
+    # Fallback: top-level scalar fields (older API versions)
+    for field in ("score", "totalPoints", "pts"):
         v = team.get(field)
-        if v is not None:
+        if v is not None and not isinstance(v, dict):
             try:
                 return int(v)
             except (TypeError, ValueError):
