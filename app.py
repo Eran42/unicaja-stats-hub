@@ -236,19 +236,16 @@ _ROW_HEIGHT_PX  = 35
 _HEADER_HEIGHT_PX = 38
 
 
-def _stripe_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """Alternating transparent / faint-green rows — works in light and dark mode."""
-    colors = ["", "background-color: rgba(0, 102, 51, 0.08)"]
+def _stripe_rows(row: pd.Series) -> list[str]:
+    """Faint-green tint on odd rows; transparent on even rows."""
+    color = "background-color: rgba(0, 102, 51, 0.08)" if row.name % 2 else ""
+    return [color] * len(row)
 
 
-def _stripe_rows_purple(df: pd.DataFrame) -> pd.DataFrame:
-    """Alternating transparent / faint-purple rows for the history table."""
-    colors = ["", "background-color: rgba(107, 47, 160, 0.08)"]
-    styles = [
-        {col: colors[i % 2] for col in df.columns}
-        for i in range(len(df))
-    ]
-    return pd.DataFrame(styles, index=df.index, columns=df.columns)
+def _stripe_rows_purple(row: pd.Series) -> list[str]:
+    """Faint-purple tint on odd rows; transparent on even rows."""
+    color = "background-color: rgba(107, 47, 160, 0.08)" if row.name % 2 else ""
+    return [color] * len(row)
 
 
 def render_latest(records: list[dict]) -> None:
@@ -276,7 +273,7 @@ def render_latest(records: list[dict]) -> None:
     height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + 4
     st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
     st.dataframe(
-        df.style.apply(_stripe_rows, axis=None),
+        df.style.apply(_stripe_rows, axis=1),
         use_container_width=True,
         hide_index=True,
         height=height,
@@ -347,7 +344,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         unsafe_allow_html=True,
     )
     st.dataframe(
-        df.style.apply(_stripe_rows_purple, axis=None),
+        df.style.apply(_stripe_rows_purple, axis=1),
         use_container_width=True,
         hide_index=True,
         height=500,
