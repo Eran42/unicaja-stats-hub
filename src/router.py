@@ -93,8 +93,8 @@ def _fetch_source(player: "Player", src: "PlayerSource") -> dict | None:
             return None
 
         if result:
-            # Ensure identity fields are always set
-            result.setdefault("player_name", player.name)
+            # Always use registry as the canonical source for identity fields
+            result["player_name"] = player.name
             result.setdefault("team",        player.team)
             result.setdefault("competition", src.competition)
             result["_player_name_registry"] = player.name  # canonical name

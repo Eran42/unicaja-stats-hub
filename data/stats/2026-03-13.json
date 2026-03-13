@@ -1,7 +1,7 @@
 [
   {
     "player_id": "P003842",
-    "player_name": "Lessort, Mathias",
+    "player_name": "Mathias Lessort",
     "source": "euroleague",
     "competition": "EuroLeague",
     "season": "E2025",
@@ -67,7 +67,7 @@
   },
   {
     "player_id": "P010581",
-    "player_name": "Osetkowski, Dylan",
+    "player_name": "Dylan Osetkowski",
     "source": "euroleague",
     "competition": "EuroLeague",
     "season": "E2025",
@@ -133,12 +133,12 @@
   },
   {
     "player_id": "20209919",
-    "player_name": "Darío Brizuela",
+    "player_name": "DarÃ­o Brizuela",
     "source": "acb",
     "competition": "ACB",
     "season": "2025-26",
     "game_date": "2026-02-15",
-    "opponent": "Barça-BAXI Manresa",
+    "opponent": "BarÃ§a-BAXI Manresa",
     "result": "97-60",
     "date": "2026-03-13",
     "min": 21.9,
@@ -199,7 +199,7 @@
   },
   {
     "player_id": "P011217",
-    "player_name": "Taylor, Kameron",
+    "player_name": "Kameron Taylor",
     "source": "euroleague",
     "competition": "EuroLeague",
     "season": "E2025",
@@ -298,7 +298,7 @@
   },
   {
     "player_id": "20210707",
-    "player_name": "Rubén Guerrero",
+    "player_name": "RubÃ©n Guerrero",
     "source": "acb",
     "competition": "ACB",
     "season": "2025-26",
@@ -364,7 +364,7 @@
   },
   {
     "player_id": "P003840",
-    "player_name": "Bouteille, Axel",
+    "player_name": "Axel Bouteille",
     "source": "eurocup",
     "competition": "EuroCup",
     "season": "U2025",
@@ -393,11 +393,11 @@
     "fouls": 2.0,
     "plus_minus": -8.0,
     "val": 6.0,
-    "team": "Budućnost VOLI"
+    "team": "BuduÄ‡nost VOLI"
   },
   {
     "player_id": "5313012",
-    "player_name": "Mario Saint-Supéry",
+    "player_name": "Mario Saint-SupÃ©ry",
     "source": "ncaa_espn",
     "competition": "NCAA",
     "season": "2025-26",
@@ -430,7 +430,7 @@
   },
   {
     "player_id": "20204124",
-    "player_name": "Jaime Fernández",
+    "player_name": "Jaime FernÃ¡ndez",
     "source": "acb",
     "competition": "ACB",
     "season": "2025-26",
@@ -534,7 +534,7 @@
     "competition": "ACB",
     "season": "2025-26",
     "game_date": "2026-03-08",
-    "opponent": "Río Breogán-Barça",
+    "opponent": "RÃ­o BreogÃ¡n-BarÃ§a",
     "result": "78-109",
     "date": "2026-03-13",
     "min": 24.17,
