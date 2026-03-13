@@ -53,11 +53,6 @@ def _inject_css() -> None:
             font-weight: 800 !important;
             letter-spacing: -0.5px;
         }}
-        h2, h3 {{
-            color: {_UNICAJA_GREEN};
-            font-weight: 700 !important;
-        }}
-
         /* ── Divider ── */
         hr {{
             border-color: {_UNICAJA_GREEN_MID} !important;
@@ -250,7 +245,10 @@ def _stripe_rows_purple(row: pd.Series) -> list[str]:
 
 def render_latest(records: list[dict]) -> None:
     cutoff_label = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M")
-    st.subheader(f"Last 24 hours — since {cutoff_label}")
+    st.markdown(
+        f'<h3 style="color:{_UNICAJA_GREEN};font-weight:700;">Last 24 hours — since {cutoff_label}</h3>',
+        unsafe_allow_html=True,
+    )
 
     if not records:
         st.warning("No data yet. Run `python main.py` to fetch stats.")
