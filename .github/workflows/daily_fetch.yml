@@ -36,4 +36,4 @@ jobs:
           git add data/stats/
           git diff --staged --quiet \
             || git commit -m "data: daily stats update $(date -u +%Y-%m-%d)"
-          git push origin main
+          git push origin HEAD
