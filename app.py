@@ -1,8 +1,7 @@
 """
 Unicaja Baloncesto Stats Hub — Streamlit web app.
 
-Main table   : all tracked players — games played in last 24 h shown with stats,
-               everyone else shown as "Did not play".
+Main table   : only players who played a confirmed game in the last 24 h.
 History table: select a player → every game we've ever collected, one row each.
 """
 
@@ -15,7 +14,6 @@ from datetime import datetime, timedelta
 import pandas as pd
 import streamlit as st
 
-from src.players import get_active_players
 from src.storage import get_all_dates, load_stats
 
 # ---------------------------------------------------------------------------
@@ -28,6 +26,105 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# ---------------------------------------------------------------------------
+# Branding
+# ---------------------------------------------------------------------------
+
+_UNICAJA_GREEN      = "#006633"
+_UNICAJA_GREEN_DARK = "#004d26"
+_UNICAJA_GREEN_PALE = "#eef7f1"
+_UNICAJA_GREEN_MID  = "#d4edde"
+
+def _inject_css() -> None:
+    st.markdown(
+        f"""
+        <style>
+        /* ── Top accent bar ── */
+        [data-testid="stHeader"] {{
+            background: {_UNICAJA_GREEN};
+            height: 4px;
+        }}
+
+        /* ── Page background ── */
+        [data-testid="stAppViewContainer"] > .main {{
+            background-color: #f8faf9;
+        }}
+
+        /* ── Title / headings ── */
+        h1 {{
+            color: {_UNICAJA_GREEN_DARK} !important;
+            font-weight: 800 !important;
+            letter-spacing: -0.5px;
+        }}
+        h2, h3 {{
+            color: {_UNICAJA_GREEN} !important;
+            font-weight: 700 !important;
+            border-left: 4px solid {_UNICAJA_GREEN};
+            padding-left: 10px;
+        }}
+
+        /* ── Divider ── */
+        hr {{
+            border-color: {_UNICAJA_GREEN_MID} !important;
+            border-width: 2px !important;
+        }}
+
+        /* ── Selectbox focus ring ── */
+        [data-testid="stSelectbox"] > div:focus-within {{
+            border-color: {_UNICAJA_GREEN} !important;
+            box-shadow: 0 0 0 2px {_UNICAJA_GREEN_MID} !important;
+        }}
+
+        /* ── Caption text ── */
+        [data-testid="stCaptionContainer"] p {{
+            color: #3a5a45 !important;
+        }}
+
+        /* ── Info / warning boxes ── */
+        [data-testid="stNotification"] {{
+            border-left: 4px solid {_UNICAJA_GREEN} !important;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_header() -> None:
+    st.markdown(
+        f"""
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 0 6px 0;
+            border-bottom: 3px solid {_UNICAJA_GREEN};
+            margin-bottom: 8px;
+        ">
+            <div style="
+                background: {_UNICAJA_GREEN};
+                color: white;
+                font-size: 28px;
+                font-weight: 900;
+                letter-spacing: 1px;
+                padding: 6px 16px;
+                border-radius: 4px;
+                font-family: sans-serif;
+                line-height: 1;
+            ">UNICAJA</div>
+            <div>
+                <div style="font-size: 22px; font-weight: 700; color: {_UNICAJA_GREEN_DARK}; font-family: sans-serif;">
+                    Ex-Players Stats
+                </div>
+                <div style="font-size: 13px; color: #4a7a5a; font-family: sans-serif;">
+                    Latest game box scores for former Unicaja Baloncesto players
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -123,13 +220,6 @@ def _build_row(record: dict) -> dict:
     return row
 
 
-def _did_not_play_row(player_name: str, team: str) -> dict:
-    row = {_COL_LABELS.get(f, f): "—" for f in _DISPLAY_COLS}
-    row["Player"]    = player_name
-    row["Team"]      = team
-    row["Game Date"] = "Did not play"
-    return row
-
 
 # ---------------------------------------------------------------------------
 # Data loaders
@@ -153,6 +243,20 @@ def _load_all() -> dict[str, list[dict]]:
 # Main table
 # ---------------------------------------------------------------------------
 
+_ROW_HEIGHT_PX  = 35
+_HEADER_HEIGHT_PX = 38
+
+
+def _stripe_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a Styler with alternating white / pale-green row bands."""
+    colors = ["background-color: #ffffff", f"background-color: {_UNICAJA_GREEN_PALE}"]
+    styles = [
+        {col: colors[i % 2] for col in df.columns}
+        for i in range(len(df))
+    ]
+    return pd.DataFrame(styles, index=df.index, columns=df.columns)
+
+
 def render_latest(records: list[dict]) -> None:
     cutoff_label = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M")
     st.subheader(f"Last 24 hours — since {cutoff_label}")
@@ -161,40 +265,28 @@ def render_latest(records: list[dict]) -> None:
         st.warning("No data yet. Run `python main.py` to fetch stats.")
         return
 
-    # Split records into played (valid date, within 24h) and the rest.
-    # Records with no game_date are excluded from both categories.
-    played_records: list[dict] = []
-    for rec in records:
-        gd = str(rec.get("game_date", ""))
-        if gd and gd not in ("", "—", "N/A") and _game_is_within_24h(gd):
-            played_records.append(rec)
-
-    # Build a set of canonical name tokens for players who played.
-    played_canonical: set[frozenset] = {
-        _canonical_name(r["player_name"])
-        for r in played_records
-        if r.get("player_name")
-    }
+    # Only keep records with a confirmed game_date within the last 24 h.
+    played_records: list[dict] = [
+        rec for rec in records
+        if str(rec.get("game_date", "")) not in ("", "—", "N/A")
+        and _game_is_within_24h(str(rec.get("game_date", "")))
+    ]
 
     played_rows: list[dict] = [_build_row(r) for r in played_records]
 
-    # Add "Did not play" for every active registry player not in played set.
-    did_not_play_rows: list[dict] = []
-    for player in sorted(get_active_players(), key=lambda p: p.name):
-        if _canonical_name(player.name) not in played_canonical:
-            did_not_play_rows.append(_did_not_play_row(player.name, player.team))
-
-    all_rows = played_rows + did_not_play_rows
-    if not all_rows:
-        st.info("No data available.")
+    if not played_rows:
+        st.info("No games in the last 24 hours.")
         return
 
-    df = pd.DataFrame(all_rows)
-    st.caption(
-        f"🟢 **{len(played_rows)}** game(s) in the last 24 h · "
-        f"⚪ **{len(did_not_play_rows)}** player(s) did not play"
+    df = pd.DataFrame(played_rows)
+    height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + 4
+    st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
+    st.dataframe(
+        df.style.apply(_stripe_rows, axis=None),
+        use_container_width=True,
+        hide_index=True,
+        height=height,
     )
-    st.dataframe(df, use_container_width=True, hide_index=True, height=600)
 
 
 # ---------------------------------------------------------------------------
@@ -260,8 +352,8 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 # App layout
 # ---------------------------------------------------------------------------
 
-st.title("🏀 Unicaja Baloncesto — Ex-Players Stats")
-st.caption("Latest game box scores for former Unicaja players.")
+_inject_css()
+_render_header()
 
 dates = get_all_dates()
 if not dates:
