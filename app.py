@@ -240,7 +240,6 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 
 st.title("🏀 Unicaja Baloncesto — Ex-Players Stats")
 st.caption("Latest game box scores for former Unicaja players.")
-st.warning("⚡ v2 — 24h filter active")
 
 dates = get_all_dates()
 if not dates:
