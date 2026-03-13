@@ -35,6 +35,7 @@ _UNICAJA_GREEN      = "#006633"
 _UNICAJA_GREEN_DARK = "#004d26"
 _UNICAJA_GREEN_PALE = "#eef7f1"
 _UNICAJA_GREEN_MID  = "#d4edde"
+_UNICAJA_PURPLE     = "#6B2FA0"
 
 def _inject_css() -> None:
     st.markdown(
@@ -65,8 +66,8 @@ def _inject_css() -> None:
 
         /* ── Selectbox focus ring ── */
         [data-testid="stSelectbox"] > div:focus-within {{
-            border-color: {_UNICAJA_GREEN} !important;
-            box-shadow: 0 0 0 2px {_UNICAJA_GREEN_MID} !important;
+            border-color: {_UNICAJA_PURPLE} !important;
+            box-shadow: 0 0 0 2px rgba(107, 47, 160, 0.18) !important;
         }}
 
         /* ── Info / warning boxes ── */
@@ -238,6 +239,11 @@ _HEADER_HEIGHT_PX = 38
 def _stripe_rows(df: pd.DataFrame) -> pd.DataFrame:
     """Alternating transparent / faint-green rows — works in light and dark mode."""
     colors = ["", "background-color: rgba(0, 102, 51, 0.08)"]
+
+
+def _stripe_rows_purple(df: pd.DataFrame) -> pd.DataFrame:
+    """Alternating transparent / faint-purple rows for the history table."""
+    colors = ["", "background-color: rgba(107, 47, 160, 0.08)"]
     styles = [
         {col: colors[i % 2] for col in df.columns}
         for i in range(len(df))
@@ -282,7 +288,10 @@ def render_latest(records: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 
 def render_history(all_data: dict[str, list[dict]]) -> None:
-    st.subheader("Player game history")
+    st.markdown(
+        f'<h3 style="color:{_UNICAJA_PURPLE};font-weight:700;">Player game history</h3>',
+        unsafe_allow_html=True,
+    )
 
     if not all_data:
         st.info("No historical data yet.")
@@ -332,8 +341,17 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     if "Game Date" in df.columns:
         df = df.sort_values("Game Date", ascending=False)
 
-    st.caption(f"{len(game_rows)} game(s) collected for **{selected}**")
-    st.dataframe(df, use_container_width=True, hide_index=True, height=500)
+    st.markdown(
+        f'<p style="font-size:12px;color:{_UNICAJA_PURPLE};">'
+        f'<strong>{len(game_rows)}</strong> game(s) collected for <strong>{selected}</strong></p>',
+        unsafe_allow_html=True,
+    )
+    st.dataframe(
+        df.style.apply(_stripe_rows_purple, axis=None),
+        use_container_width=True,
+        hide_index=True,
+        height=500,
+    )
 
 
 # ---------------------------------------------------------------------------
