@@ -98,6 +98,9 @@ def _fmt(val: object, decimals: int = 1) -> str:
 
 
 def _print_summary(stats: list[dict]) -> None:
+    # Reconfigure stdout to UTF-8 with replacement so non-cp1252 chars don't crash on Windows
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     """
     Print a full-schema summary table matching the ACB box-score format.
 

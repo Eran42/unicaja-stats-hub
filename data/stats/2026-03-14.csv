@@ -1,0 +1,19 @@
+player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
+P003842,Mathias Lessort,euroleague,EuroLeague,E2025,2026-03-12,Zalgiris Kaunas,V 92-88,2026-03-14,23.22,9.0,4.0,8.0,50.0,0.0,0.0,,1.0,2.0,50.0,2.0,1.0,3.0,1.0,0.0,2.0,1.0,3.0,-1.0,9.0,Panathinaikos
+P000848,Nemanja Nedović,euroleague,EuroLeague,E2025,2026-03-12,Olympiacos Piraeus,V 81-80,2026-03-14,23.02,8.0,0.0,3.0,0.0,2.0,6.0,33.3,2.0,3.0,66.7,1.0,3.0,4.0,3.0,0.0,0.0,0.0,3.0,14.0,4.0,AS Monaco
+P010581,Dylan Osetkowski,euroleague,EuroLeague,E2025,2026-03-11,Virtus Bologna,V 88-82,2026-03-14,25.68,13.0,2.0,2.0,100.0,3.0,7.0,42.9,0.0,0.0,,1.0,3.0,4.0,0.0,1.0,1.0,0.0,3.0,14.0,11.0,Partizan Mozzart Bet
+P009992,Darío Brizuela,euroleague,EuroLeague,E2025,2026-03-13,Hapoel IBI Tel Aviv,D 75-80,2026-03-14,8.62,5.0,1.0,3.0,33.3,1.0,3.0,33.3,0.0,0.0,,1.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,-8.0,0.0,FC Barcelona
+20209919,Darío Brizuela,acb,ACB,2025-26,2026-02-15,Barça-BAXI Manresa,97-60,2026-03-14,21.9,12.0,0.0,2.0,0.0,4.0,7.0,57.0,0.0,0.0,0.0,2.0,2.0,4.0,0.0,0.0,2.0,,3.0,17.0,7.0,FC Barcelona
+P011305,Tyson Carter,euroleague,EuroLeague,E2025,2026-03-13,Fenerbahce Beko Istanbul,V 79-73,2026-03-14,3.42,0.0,0.0,0.0,,0.0,1.0,0.0,0.0,0.0,,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,-1.0,-2.0,Crvena zvezda
+20213230,Yankuba Sima,acb,ACB,2025-26,2026-02-15,MoraBanc And-Valencia Basket,75-107,2026-03-14,7.85,2.0,1.0,3.0,33.0,0.0,1.0,0.0,0.0,1.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,,0.0,10.0,1.0,Valencia Basket
+P011217,Kameron Taylor,euroleague,EuroLeague,E2025,2026-03-05,Zalgiris Kaunas,V 91-87,2026-03-14,22.92,5.0,1.0,1.0,100.0,1.0,3.0,33.3,0.0,0.0,,1.0,1.0,2.0,3.0,0.0,1.0,0.0,2.0,-2.0,10.0,Valencia Basket
+30001981,Kameron Taylor,acb,ACB,2025-26,2026-02-15,MoraBanc And-Valencia Basket,75-107,2026-03-14,15.2,22.0,2.0,3.0,66.0,6.0,8.0,75.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,,,18.0,21.0,Valencia Basket
+20210659,Giorgi Shermadini,acb,ACB,2025-26,2026-03-07,BAXI Manresa-La Laguna TFE,86-80,2026-03-14,23.73,24.0,7.0,9.0,77.0,0.0,0.0,0.0,10.0,11.0,90.0,2.0,2.0,4.0,1.0,0.0,1.0,,0.0,-4.0,29.0,Lenovo Tenerife
+20210707,Rubén Guerrero,acb,ACB,2025-26,2026-03-07,MoraBanc And-Casademont Zgz,113-111,2026-03-14,6.72,4.0,1.0,1.0,100.0,0.0,0.0,0.0,2.0,2.0,100.0,1.0,0.0,1.0,0.0,1.0,0.0,,2.0,2.0,5.0,MoraBanc Andorra
+20200277,Augusto Lima,acb,ACB,2025-26,2026-02-14,UCAM Murcia-Recoletas Salud,101-82,2026-03-14,2.13,1.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,2.0,50.0,1.0,2.0,3.0,0.0,0.0,0.0,,0.0,2.0,3.0,San Pablo Burgos
+P003840,Axel Bouteille,eurocup,EuroCup,U2025,2026-03-11,U-BT Cluj-Napoca,D 82-100,2026-03-14,13.55,8.0,1.0,2.0,50.0,1.0,4.0,25.0,3.0,3.0,100.0,0.0,2.0,2.0,0.0,0.0,0.0,1.0,2.0,-8.0,6.0,Budućnost VOLI
+5313012,Mario Saint-Supéry,ncaa_espn,NCAA,2025-26,2026-03-10,vs SCU,W 79-68,2026-03-14,31.0,21.0,0.0,0.0,,6.0,12.0,50.0,3.0,4.0,75.0,,,5.0,4.0,0.0,3.0,1.0,3.0,,,Gonzaga Bulldogs
+20204124,Jaime Fernández,acb,ACB,2025-26,2026-03-07,BAXI Manresa-La Laguna TFE,86-80,2026-03-14,26.7,8.0,2.0,2.0,100.0,1.0,3.0,33.0,1.0,4.0,25.0,4.0,1.0,5.0,5.0,1.0,1.0,,0.0,-9.0,16.0,Lenovo Tenerife
+20211625,Tim Abromaitis,acb,ACB,2025-26,2026-03-07,BAXI Manresa-La Laguna TFE,86-80,2026-03-14,22.82,4.0,0.0,3.0,0.0,1.0,4.0,25.0,1.0,2.0,50.0,2.0,1.0,3.0,0.0,2.0,1.0,,0.0,8.0,0.0,Lenovo Tenerife
+30000479,Yannick Nzosa,acb,ACB,2025-26,2026-03-07,Recoletas Salud-Surne Bilbao,96-88,2026-03-14,2.52,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0.0,0.0,0.0,San Pablo Burgos
+20210585,Francis Alonso,acb,ACB,2025-26,2026-03-08,Río Breogán-Barça,78-109,2026-03-14,24.17,13.0,4.0,7.0,57.0,1.0,2.0,50.0,2.0,2.0,100.0,0.0,0.0,0.0,1.0,0.0,1.0,,4.0,-9.0,9.0,San Pablo Burgos
