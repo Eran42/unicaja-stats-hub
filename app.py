@@ -194,17 +194,25 @@ def _game_is_within_24h(game_date: str) -> bool:
         return False
 
 
-def _fmt_val(val: object, field: str = "") -> str:
-    """Format a stat cell. Percentages get 1 decimal; all other stats are integers."""
-    if val is None or (isinstance(val, float) and pd.isna(val)):
-        return "N/A"
+_PCT_FIELDS = {"t2_pct", "t3_pct", "ft_pct"}
+
+# Styler format spec per display-label — keeps sorting numeric, display pretty
+_STAT_FORMAT: dict[str, str] = {
+    _COL_LABELS[f]: ("{:.1f}" if f in _PCT_FIELDS else "{:.0f}")
+    for f in _STAT_COLS
+}
+
+
+def _to_num(val: object) -> float | None:
+    """Convert a raw stat value to float, or None if missing/unparseable."""
+    if val is None or val == "":
+        return None
+    if isinstance(val, float) and pd.isna(val):
+        return None
     try:
-        f = float(val)
-        if field in {"t2_pct", "t3_pct", "ft_pct"}:
-            return f"{f:.1f}"
-        return str(int(round(f)))
+        return float(val)
     except (TypeError, ValueError):
-        return str(val) if val != "" else "N/A"
+        return None
 
 
 def _build_row(record: dict) -> dict:
@@ -212,7 +220,7 @@ def _build_row(record: dict) -> dict:
     for field in _DISPLAY_COLS:
         label = _COL_LABELS.get(field, field)
         if field in _STAT_COLS:
-            row[label] = _fmt_val(record.get(field), field)
+            row[label] = _to_num(record.get(field))
         else:
             row[label] = record.get(field) or "N/A"
     return row
@@ -316,7 +324,8 @@ def render_latest(records: list[dict]) -> None:
     height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + 4
     st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
     st.dataframe(
-        df.style.apply(_style_table, stripe="rgba(0,102,51,0.08)", axis=None),
+        df.style.apply(_style_table, stripe="rgba(0,102,51,0.08)", axis=None)
+           .format(_STAT_FORMAT, na_rep="N/A"),
         use_container_width=True,
         hide_index=True,
         height=height,
@@ -422,7 +431,8 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     )
     height = min(_HEADER_HEIGHT_PX + len(game_rows) * _ROW_HEIGHT_PX + 4, 500)
     st.dataframe(
-        df.style.apply(_style_table, stripe="rgba(107,47,160,0.08)", axis=None),
+        df.style.apply(_style_table, stripe="rgba(107,47,160,0.08)", axis=None)
+           .format(_STAT_FORMAT, na_rep="N/A"),
         use_container_width=True,
         hide_index=True,
         height=height,
