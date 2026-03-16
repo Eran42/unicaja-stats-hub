@@ -30,7 +30,9 @@
     "fouls": 0.0,
     "plus_minus": 1.0,
     "val": 5.0,
-    "team": "FC Barcelona"
+    "team": "FC Barcelona",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "20210585",
@@ -63,7 +65,9 @@
     "fouls": null,
     "plus_minus": 6.0,
     "val": 20.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 4.0
   },
   {
     "player_id": "20210659",
@@ -96,7 +100,9 @@
     "fouls": 0.0,
     "plus_minus": 1.0,
     "val": 22.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 1.0,
+    "fouls_received": 4.0
   },
   {
     "player_id": "20204124",
@@ -129,7 +135,9 @@
     "fouls": 0.0,
     "plus_minus": -10.0,
     "val": 10.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 2.0
   },
   {
     "player_id": "20211625",
@@ -162,7 +170,9 @@
     "fouls": 0.0,
     "plus_minus": 2.0,
     "val": 4.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 3.0
   },
   {
     "player_id": "30000479",
@@ -195,6 +205,8 @@
     "fouls": 0.0,
     "plus_minus": -4.0,
     "val": 2.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   }
 ]

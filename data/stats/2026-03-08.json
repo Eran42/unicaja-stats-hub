@@ -30,6 +30,8 @@
     "fouls": 4.0,
     "plus_minus": -9.0,
     "val": 9.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 3.0
   }
 ]

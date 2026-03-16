@@ -30,7 +30,9 @@
     "fouls": 3.0,
     "plus_minus": -1.0,
     "val": 9.0,
-    "team": "Panathinaikos"
+    "team": "Panathinaikos",
+    "blk_against": 0.0,
+    "fouls_received": 5.0
   },
   {
     "player_id": "P000848",
@@ -63,7 +65,9 @@
     "fouls": 3.0,
     "plus_minus": 14.0,
     "val": 4.0,
-    "team": "AS Monaco"
+    "team": "AS Monaco",
+    "blk_against": 1.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "P010581",
@@ -96,7 +100,9 @@
     "fouls": 3.0,
     "plus_minus": 14.0,
     "val": 11.0,
-    "team": "Partizan Mozzart Bet"
+    "team": "Partizan Mozzart Bet",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "P009992",
@@ -129,7 +135,9 @@
     "fouls": 1.0,
     "plus_minus": -8.0,
     "val": 0.0,
-    "team": "FC Barcelona"
+    "team": "FC Barcelona",
+    "blk_against": 1.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20209919",
@@ -162,7 +170,9 @@
     "fouls": 3.0,
     "plus_minus": 17.0,
     "val": 7.0,
-    "team": "FC Barcelona"
+    "team": "FC Barcelona",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "P011305",
@@ -195,7 +205,9 @@
     "fouls": 1.0,
     "plus_minus": -1.0,
     "val": -2.0,
-    "team": "Crvena zvezda"
+    "team": "Crvena zvezda",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20213230",
@@ -228,7 +240,9 @@
     "fouls": 0.0,
     "plus_minus": 10.0,
     "val": 1.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 1.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "P011217",
@@ -261,7 +275,9 @@
     "fouls": 2.0,
     "plus_minus": -2.0,
     "val": 10.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 0.0,
+    "fouls_received": 5.0
   },
   {
     "player_id": "30001981",
@@ -294,7 +310,9 @@
     "fouls": null,
     "plus_minus": 18.0,
     "val": 21.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20210659",
@@ -327,7 +345,9 @@
     "fouls": 0.0,
     "plus_minus": -4.0,
     "val": 29.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 6.0
   },
   {
     "player_id": "20210707",
@@ -360,7 +380,9 @@
     "fouls": 2.0,
     "plus_minus": 2.0,
     "val": 5.0,
-    "team": "MoraBanc Andorra"
+    "team": "MoraBanc Andorra",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "20200277",
@@ -393,7 +415,9 @@
     "fouls": 0.0,
     "plus_minus": 2.0,
     "val": 3.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "P003840",
@@ -426,7 +450,9 @@
     "fouls": 2.0,
     "plus_minus": -8.0,
     "val": 6.0,
-    "team": "Budućnost VOLI"
+    "team": "Budućnost VOLI",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "5313012",
@@ -492,7 +518,9 @@
     "fouls": 0.0,
     "plus_minus": 7.0,
     "val": 11.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 1.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "20211625",
@@ -525,7 +553,9 @@
     "fouls": 0.0,
     "plus_minus": 0.0,
     "val": 9.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 4.0
   },
   {
     "player_id": "30000479",
@@ -558,7 +588,9 @@
     "fouls": 0.0,
     "plus_minus": 0.0,
     "val": 0.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20210585",
@@ -591,6 +623,8 @@
     "fouls": 0.0,
     "plus_minus": -11.0,
     "val": 6.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 3.0
   }
 ]

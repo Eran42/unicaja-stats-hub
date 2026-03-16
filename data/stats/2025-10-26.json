@@ -30,7 +30,9 @@
     "fouls": 5.0,
     "plus_minus": 16.0,
     "val": 22.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 0.0,
+    "fouls_received": 2.0
   },
   {
     "player_id": "20210707",
@@ -63,6 +65,8 @@
     "fouls": 0.0,
     "plus_minus": -10.0,
     "val": 0.0,
-    "team": "MoraBanc Andorra"
+    "team": "MoraBanc Andorra",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   }
 ]

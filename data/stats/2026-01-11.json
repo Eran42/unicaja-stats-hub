@@ -30,7 +30,9 @@
     "fouls": 0.0,
     "plus_minus": 9.0,
     "val": 14.0,
-    "team": "FC Barcelona"
+    "team": "FC Barcelona",
+    "blk_against": 0.0,
+    "fouls_received": 2.0
   },
   {
     "player_id": "20210707",
@@ -63,7 +65,9 @@
     "fouls": 0.0,
     "plus_minus": -4.0,
     "val": 2.0,
-    "team": "MoraBanc Andorra"
+    "team": "MoraBanc Andorra",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "30000479",
@@ -96,6 +100,8 @@
     "fouls": 0.0,
     "plus_minus": -5.0,
     "val": 0.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   }
 ]

@@ -30,7 +30,9 @@
     "fouls": 0.0,
     "plus_minus": 4.0,
     "val": 12.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 3.0
   },
   {
     "player_id": "20210659",
@@ -63,7 +65,9 @@
     "fouls": 0.0,
     "plus_minus": -12.0,
     "val": 22.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 2.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "20204124",
@@ -96,7 +100,9 @@
     "fouls": 0.0,
     "plus_minus": -9.0,
     "val": 3.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "30001981",
@@ -129,7 +135,9 @@
     "fouls": 3.0,
     "plus_minus": -3.0,
     "val": 2.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 2.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "20211625",
@@ -162,7 +170,9 @@
     "fouls": 0.0,
     "plus_minus": 7.0,
     "val": 11.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20213230",
@@ -195,6 +205,8 @@
     "fouls": 0.0,
     "plus_minus": -6.0,
     "val": -6.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 2.0,
+    "fouls_received": 0.0
   }
 ]

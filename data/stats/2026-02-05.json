@@ -30,7 +30,9 @@
     "blk": 0.0,
     "fouls": 2.0,
     "plus_minus": 19.0,
-    "val": 10.0
+    "val": 10.0,
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "P011217",
@@ -63,7 +65,9 @@
     "blk": 2.0,
     "fouls": 3.0,
     "plus_minus": 7.0,
-    "val": 15.0
+    "val": 15.0,
+    "blk_against": 2.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "P000848",
@@ -96,7 +100,9 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": 7.0,
-    "val": 14.0
+    "val": 14.0,
+    "blk_against": 1.0,
+    "fouls_received": 2.0
   },
   {
     "player_id": "P005596",
@@ -129,6 +135,8 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": 1.0,
-    "val": -2.0
+    "val": -2.0,
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   }
 ]

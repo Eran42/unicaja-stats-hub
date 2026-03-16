@@ -30,7 +30,9 @@
     "fouls": 3.0,
     "plus_minus": 14.0,
     "val": 11.0,
-    "team": "FC Barcelona"
+    "team": "FC Barcelona",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20210585",
@@ -63,7 +65,9 @@
     "fouls": 0.0,
     "plus_minus": 11.0,
     "val": 19.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 5.0
   },
   {
     "player_id": "20210659",
@@ -96,7 +100,9 @@
     "fouls": 0.0,
     "plus_minus": -13.0,
     "val": 13.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 4.0
   },
   {
     "player_id": "20204124",
@@ -129,7 +135,9 @@
     "fouls": 0.0,
     "plus_minus": -3.0,
     "val": 3.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 4.0
   },
   {
     "player_id": "30001981",
@@ -162,7 +170,9 @@
     "fouls": 0.0,
     "plus_minus": 12.0,
     "val": 30.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 0.0,
+    "fouls_received": 2.0
   },
   {
     "player_id": "20211625",
@@ -195,7 +205,9 @@
     "fouls": 0.0,
     "plus_minus": -5.0,
     "val": 7.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "20213230",
@@ -228,6 +240,8 @@
     "fouls": 2.0,
     "plus_minus": 8.0,
     "val": 6.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   }
 ]

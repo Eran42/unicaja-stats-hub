@@ -30,7 +30,9 @@
     "fouls": 0.0,
     "plus_minus": 8.0,
     "val": 1.0,
-    "team": "FC Barcelona"
+    "team": "FC Barcelona",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "20210659",
@@ -63,7 +65,9 @@
     "fouls": 0.0,
     "plus_minus": 9.0,
     "val": 18.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 1.0,
+    "fouls_received": 5.0
   },
   {
     "player_id": "20204124",
@@ -96,7 +100,9 @@
     "fouls": 2.0,
     "plus_minus": 7.0,
     "val": 11.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 1.0,
+    "fouls_received": 3.0
   },
   {
     "player_id": "30001981",
@@ -129,7 +135,9 @@
     "fouls": 2.0,
     "plus_minus": 11.0,
     "val": 12.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 2.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20210707",
@@ -162,7 +170,9 @@
     "fouls": 0.0,
     "plus_minus": -2.0,
     "val": 0.0,
-    "team": "MoraBanc Andorra"
+    "team": "MoraBanc Andorra",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20211625",
@@ -195,7 +205,9 @@
     "fouls": 0.0,
     "plus_minus": 0.0,
     "val": 3.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20213230",
@@ -228,6 +240,8 @@
     "fouls": 0.0,
     "plus_minus": -3.0,
     "val": -2.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   }
 ]

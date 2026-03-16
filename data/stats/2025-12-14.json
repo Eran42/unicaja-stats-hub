@@ -30,6 +30,8 @@
     "fouls": 3.0,
     "plus_minus": 23.0,
     "val": 18.0,
-    "team": "FC Barcelona"
+    "team": "FC Barcelona",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   }
 ]

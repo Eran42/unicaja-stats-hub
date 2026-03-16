@@ -30,6 +30,8 @@
     "blk": 1.0,
     "fouls": 1.0,
     "plus_minus": 22.0,
-    "val": 20.0
+    "val": 20.0,
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   }
 ]

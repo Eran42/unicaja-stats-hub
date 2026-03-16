@@ -30,7 +30,9 @@
     "fouls": 0.0,
     "plus_minus": 4.0,
     "val": 6.0,
-    "team": "MoraBanc Andorra"
+    "team": "MoraBanc Andorra",
+    "blk_against": 0.0,
+    "fouls_received": 2.0
   },
   {
     "player_id": "30000479",
@@ -63,6 +65,8 @@
     "fouls": 0.0,
     "plus_minus": 2.0,
     "val": 1.0,
-    "team": "San Pablo Burgos"
+    "team": "San Pablo Burgos",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   }
 ]

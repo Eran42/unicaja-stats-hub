@@ -30,7 +30,9 @@
     "fouls": 3.0,
     "plus_minus": 17.0,
     "val": 7.0,
-    "team": "FC Barcelona"
+    "team": "FC Barcelona",
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "30001981",
@@ -63,7 +65,9 @@
     "fouls": null,
     "plus_minus": 18.0,
     "val": 21.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20210707",
@@ -96,7 +100,9 @@
     "fouls": 0.0,
     "plus_minus": -17.0,
     "val": 1.0,
-    "team": "MoraBanc Andorra"
+    "team": "MoraBanc Andorra",
+    "blk_against": 0.0,
+    "fouls_received": 0.0
   },
   {
     "player_id": "20213230",
@@ -129,6 +135,8 @@
     "fouls": 0.0,
     "plus_minus": 10.0,
     "val": 1.0,
-    "team": "Valencia Basket"
+    "team": "Valencia Basket",
+    "blk_against": 1.0,
+    "fouls_received": 1.0
   }
 ]
