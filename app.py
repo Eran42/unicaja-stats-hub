@@ -245,6 +245,9 @@ _ROW_HEIGHT_PX  = 35
 _HEADER_HEIGHT_PX = 38
 
 
+# Columns that open a new group — get a thick left border separator
+_GROUP_DIVIDERS = {"T2M", "T3M", "FTM", "RO"}
+
 # Column-group tints: (even-row bg, odd-row bg)
 _COL_GROUP_COLORS: dict[str, tuple[str, str]] = {
     "T2M": ("rgba(37,99,235,0.07)",  "rgba(37,99,235,0.15)"),
@@ -276,7 +279,12 @@ def _style_table(df: pd.DataFrame, stripe: str) -> pd.DataFrame:
                 bg = _COL_GROUP_COLORS[col][1] if odd else _COL_GROUP_COLORS[col][0]
             else:
                 bg = stripe if odd else ""
-            out.loc[i, col] = f"background-color: {bg}" if bg else ""
+            parts = []
+            if bg:
+                parts.append(f"background-color: {bg}")
+            if col in _GROUP_DIVIDERS:
+                parts.append("border-left: 2px solid rgba(80,80,80,0.30)")
+            out.loc[i, col] = "; ".join(parts)
     return out
 
 
