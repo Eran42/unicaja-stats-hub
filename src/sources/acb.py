@@ -159,10 +159,12 @@ _HEADER_MAP: dict[str, str] = {
     "a":        "ast",
     "br":       "stl",
     "bp":       "tov",
-    # Fouls: "c" = cometidas (committed); "r" = recibidas (received) — we want committed
-    "c":        "fouls",
-    # Blocks (Tapones): "fav" = en favor (player blocked opponent); "con" = en contra (ignored)
-    "fav":      "blk",
+    # Blocks (Tapones): "f+c" sub-column under TAP. parent header = total blocks (favor+contra)
+    # The standalone "C" at index 12 is NOT fouls — it is cumulative/other (skip it).
+    "f+c":      "blk",
+    # Fouls: "f" sub-column under FALTAS parent header = per-game fouls committed
+    # (index 15; the second "C" at index 16 is fouls received — ignored)
+    "f":        "fouls",
     "+/-":      "plus_minus",  "+/--": "plus_minus",
     "v":        "val",
     # split variants

@@ -159,7 +159,7 @@
     "stl": 0.0,
     "tov": 1.0,
     "blk": 0.0,
-    "fouls": null,
+    "fouls": 2.0,
     "plus_minus": -5.0,
     "val": 7.0,
     "team": "FC Barcelona"
@@ -224,7 +224,7 @@
     "ast": 1.0,
     "stl": 0.0,
     "tov": 0.0,
-    "blk": 0.0,
+    "blk": 1.0,
     "fouls": 0.0,
     "plus_minus": 10.0,
     "val": 1.0,
@@ -290,8 +290,8 @@
     "ast": 1.0,
     "stl": 1.0,
     "tov": 1.0,
-    "blk": 0.0,
-    "fouls": null,
+    "blk": 1.0,
+    "fouls": 1.0,
     "plus_minus": 18.0,
     "val": 21.0,
     "team": "Valencia Basket"
@@ -324,7 +324,7 @@
     "stl": 0.0,
     "tov": 1.0,
     "blk": 0.0,
-    "fouls": 0.0,
+    "fouls": 2.0,
     "plus_minus": -4.0,
     "val": 29.0,
     "team": "Lenovo Tenerife"
@@ -390,7 +390,7 @@
     "stl": 0.0,
     "tov": 0.0,
     "blk": 0.0,
-    "fouls": 0.0,
+    "fouls": 1.0,
     "plus_minus": 2.0,
     "val": 3.0,
     "team": "San Pablo Burgos"
@@ -489,7 +489,7 @@
     "stl": 1.0,
     "tov": 2.0,
     "blk": 0.0,
-    "fouls": 0.0,
+    "fouls": 2.0,
     "plus_minus": 7.0,
     "val": 11.0,
     "team": "Lenovo Tenerife"
@@ -522,7 +522,7 @@
     "stl": 1.0,
     "tov": 0.0,
     "blk": 0.0,
-    "fouls": 0.0,
+    "fouls": 1.0,
     "plus_minus": 0.0,
     "val": 9.0,
     "team": "Lenovo Tenerife"
@@ -588,7 +588,7 @@
     "stl": 0.0,
     "tov": 4.0,
     "blk": 0.0,
-    "fouls": 0.0,
+    "fouls": 3.0,
     "plus_minus": -11.0,
     "val": 6.0,
     "team": "San Pablo Burgos"
