@@ -514,6 +514,10 @@ def fetch_player_stats(player_id: str) -> dict:
             pass
         break
 
+    def _z(v: float | None) -> float:
+        """ACB tracks this field — treat missing/empty cell as genuine zero."""
+        return v if v is not None else 0.0
+
     return {
         "player_id":   player_id,
         "player_name": player_name or player_id,
@@ -524,21 +528,21 @@ def fetch_player_stats(player_id: str) -> dict:
         "opponent":    opponent,
         "result":      game_result,
         "date":        str(date.today()),
-        "min":         stats["min"],
-        "pts":         stats["pts"],
-        "t2m":         stats["t2m"],   "t2a":  stats["t2a"],  "t2_pct":  stats["t2_pct"],
-        "t3m":         stats["t3m"],   "t3a":  stats["t3a"],  "t3_pct":  stats["t3_pct"],
-        "ftm":         stats["ftm"],   "fta":  stats["fta"],  "ft_pct":  stats["ft_pct"],
-        "reb_off":     stats["reb_off"],
-        "reb_def":     stats["reb_def"],
-        "reb":         stats["reb"],
-        "ast":         stats["ast"],
-        "stl":         stats["stl"],
-        "tov":         stats["tov"],
-        "blk":         None,  # not in ACB game log columns
-        "fouls":       stats["fouls"],
-        "plus_minus":  stats["plus_minus"],
-        "val":         stats["val"],
+        "min":         stats["min"],          # keep None — player may not have played
+        "pts":         _z(stats["pts"]),
+        "t2m":         _z(stats["t2m"]),   "t2a":  _z(stats["t2a"]),  "t2_pct":  stats["t2_pct"],
+        "t3m":         _z(stats["t3m"]),   "t3a":  _z(stats["t3a"]),  "t3_pct":  stats["t3_pct"],
+        "ftm":         _z(stats["ftm"]),   "fta":  _z(stats["fta"]),  "ft_pct":  stats["ft_pct"],
+        "reb_off":     _z(stats["reb_off"]),
+        "reb_def":     _z(stats["reb_def"]),
+        "reb":         _z(stats["reb"]),
+        "ast":         _z(stats["ast"]),
+        "stl":         _z(stats["stl"]),
+        "tov":         _z(stats["tov"]),
+        "blk":         None,               # not in ACB game log columns
+        "fouls":       stats["fouls"],     # keep None if value was implausible (>5 cap)
+        "plus_minus":  _z(stats["plus_minus"]),
+        "val":         _z(stats["val"]),
     }
 
 
