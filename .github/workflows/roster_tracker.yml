@@ -1,0 +1,55 @@
+name: Roster Tracker (Weekly)
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"    # Monday 05:00 UTC
+  workflow_dispatch:
+
+jobs:
+  track-roster:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Run roster tracker agent
+        uses: anthropics/claude-code-action@beta
+        with:
+          prompt: |
+            Run the unicaja-roster-tracker agent in MODE 2 (Incremental Update).
+
+            Tasks:
+            1. Check the current Unicaja active roster against data/unicaja_active_roster.json
+               to find players who have departed since the last run.
+            2. Update data/unicaja_players.csv with team/status changes and new entries.
+            3. For any new ex-Unicaja player not already in data/players/registry.json,
+               append them with "id": "TBD" for each source (derived from their tournaments).
+            4. Update data/unicaja_active_roster.json with the current squad.
+            5. Append a run summary to data/unicaja_tracker_log.md.
+
+            Apply CLAUDE.md name canonicalisation rules before writing any name.
+            Never modify existing registry entries — only append.
+          allowed_tools: "WebFetch,WebSearch,Read,Write,Bash"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Commit changes
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add data/unicaja_players.csv \
+                  data/unicaja_active_roster.json \
+                  data/unicaja_tracker_log.md \
+                  data/players/registry.json \
+                  .claude/agent-memory/unicaja-roster-tracker/
+          git diff --staged --quiet \
+            || git commit -m "roster: weekly tracker update $(date -u +%Y-%m-%d)"
+          git push origin HEAD:main

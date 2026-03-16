@@ -1,0 +1,51 @@
+name: Stats Mapper (Weekly)
+
+on:
+  schedule:
+    - cron: "30 5 * * 1"   # Monday 05:30 UTC — 30 min after roster tracker
+  workflow_dispatch:         # also triggerable on-demand for source auditing
+
+jobs:
+  map-sources:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Run stats mapper agent
+        uses: anthropics/claude-code-action@beta
+        with:
+          prompt: |
+            Run the basketball-stats-mapper agent.
+
+            Primary task — resolve TBD source IDs:
+            1. Read data/players/registry.json and find every source with "id": "TBD".
+            2. For each, research and validate the correct player ID for that source type.
+            3. Write resolved IDs back to registry.json (only change "id" fields that
+               were "TBD"; preserve all other fields and ordering exactly).
+            4. Write data/competition_sources.json with resolved/unresolved lists.
+
+            Secondary task — audit broken sources listed in CLAUDE.md Known Issues
+            and update data/competition_sources.json with current status.
+          allowed_tools: "WebFetch,WebSearch,Read,Write,Bash"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Commit changes
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add data/players/registry.json \
+                  data/competition_sources.json \
+                  .claude/agent-memory/basketball-stats-mapper/
+          git diff --staged --quiet \
+            || git commit -m "sources: weekly mapper update $(date -u +%Y-%m-%d)"
+          git push origin HEAD:main

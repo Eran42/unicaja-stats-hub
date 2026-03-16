@@ -284,7 +284,7 @@ def render_latest(records: list[dict]) -> None:
 
 def render_history(all_data: dict[str, list[dict]]) -> None:
     st.markdown(
-        f'<h3 style="color:{_UNICAJA_PURPLE};font-weight:700;">Player game history</h3>',
+        f'<h3 style="color:{_UNICAJA_PURPLE};font-weight:700;">Game history</h3>',
         unsafe_allow_html=True,
     )
 
@@ -292,55 +292,87 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         st.info("No historical data yet.")
         return
 
-    # Collect real player names (exclude IDs stored as names).
+    # Collect real player names and all valid game dates.
     all_names: set[str] = set()
+    all_game_dates: set[str] = set()
     for records in all_data.values():
         for r in records:
             name = r.get("player_name", "")
             if name and _is_real_name(name):
                 all_names.add(name)
+            gd = str(r.get("game_date", ""))
+            if gd and gd not in ("", "—", "N/A"):
+                all_game_dates.add(gd[:10])
 
-    col, _ = st.columns([1, 3])
-    with col:
-        selected = st.selectbox(
-            "Select player",
-            options=sorted(all_names),
+    _ANY_PLAYER = "— All players —"
+    _ANY_DATE   = "— All dates —"
+
+    col_player, col_date, _ = st.columns([1, 1, 2])
+    with col_player:
+        selected_player = st.selectbox(
+            "Filter by player",
+            options=[_ANY_PLAYER] + sorted(all_names),
             key="history_player",
         )
-    if not selected:
+    with col_date:
+        selected_date = st.selectbox(
+            "Filter by date",
+            options=[_ANY_DATE] + sorted(all_game_dates, reverse=True),
+            key="history_date",
+        )
+
+    filter_player = selected_player if selected_player != _ANY_PLAYER else None
+    filter_date   = selected_date   if selected_date   != _ANY_DATE   else None
+
+    if filter_player is None and filter_date is None:
+        st.info("Select a player or a date to browse game records.")
         return
 
-    selected_canonical = _canonical_name(selected)
+    selected_canonical = _canonical_name(filter_player) if filter_player else None
 
     seen: set[tuple] = set()
     game_rows: list[dict] = []
 
     for run_date in sorted(all_data.keys()):
         for rec in all_data[run_date]:
-            name = rec.get("player_name", "")
-            if not name or _canonical_name(name) != selected_canonical:
-                continue
             # Exclude records with no game_date — unverifiable.
             gd = str(rec.get("game_date", ""))
             if not gd or gd in ("", "—", "N/A"):
                 continue
-            key = (rec.get("competition", ""), gd)
+            # Date filter
+            if filter_date and gd[:10] != filter_date:
+                continue
+            # Player filter
+            name = rec.get("player_name", "")
+            if filter_player:
+                if not name or _canonical_name(name) != selected_canonical:
+                    continue
+            elif not name or not _is_real_name(name):
+                continue
+            key = (rec.get("player_name", ""), rec.get("competition", ""), gd[:10])
             if key in seen:
                 continue
             seen.add(key)
             game_rows.append(_build_row(rec))
 
     if not game_rows:
-        st.info(f"No game records found for {selected}.")
+        label = filter_player or filter_date
+        st.info(f"No game records found for {label}.")
         return
 
     df = pd.DataFrame(game_rows)
     if "Game Date" in df.columns:
         df = df.sort_values("Game Date", ascending=False)
 
+    if filter_player and filter_date:
+        caption = f"**{len(game_rows)}** game(s) for **{filter_player}** on **{filter_date}**"
+    elif filter_player:
+        caption = f"**{len(game_rows)}** game(s) collected for **{filter_player}**"
+    else:
+        caption = f"**{len(game_rows)}** game(s) played on **{filter_date}**"
+
     st.markdown(
-        f'<p style="font-size:12px;color:{_UNICAJA_PURPLE};">'
-        f'<strong>{len(game_rows)}</strong> game(s) collected for <strong>{selected}</strong></p>',
+        f'<p style="font-size:12px;color:{_UNICAJA_PURPLE};">{caption}</p>',
         unsafe_allow_html=True,
     )
     height = min(_HEADER_HEIGHT_PX + len(game_rows) * _ROW_HEIGHT_PX + 4, 500)
