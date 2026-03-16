@@ -365,11 +365,11 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         df = df.sort_values("Game Date", ascending=False)
 
     if filter_player and filter_date:
-        caption = f"**{len(game_rows)}** game(s) for **{filter_player}** on **{filter_date}**"
+        caption = f"<strong>{len(game_rows)}</strong> game(s) for <strong>{filter_player}</strong> on <strong>{filter_date}</strong>"
     elif filter_player:
-        caption = f"**{len(game_rows)}** game(s) collected for **{filter_player}**"
+        caption = f"<strong>{len(game_rows)}</strong> game(s) collected for <strong>{filter_player}</strong>"
     else:
-        caption = f"**{len(game_rows)}** game(s) played on **{filter_date}**"
+        caption = f"<strong>{len(game_rows)}</strong> game(s) played on <strong>{filter_date}</strong>"
 
     st.markdown(
         f'<p style="font-size:12px;color:{_UNICAJA_PURPLE};">{caption}</p>',
