@@ -296,6 +296,15 @@ def _style_table(df: pd.DataFrame, stripe: str) -> pd.DataFrame:
     return out
 
 
+def _fill_stat_zeros(df: pd.DataFrame) -> None:
+    """Fill NaN in stat columns with 0 in-place. Percentages stay NaN only if
+    the corresponding attempts column is also 0/NaN (i.e. truly no attempts)."""
+    stat_labels = list(_STAT_FORMAT.keys())
+    for col in stat_labels:
+        if col in df.columns:
+            df[col] = df[col].fillna(0)
+
+
 def render_latest(records: list[dict]) -> None:
     cutoff_label = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M")
     st.markdown(
@@ -321,6 +330,7 @@ def render_latest(records: list[dict]) -> None:
         return
 
     df = pd.DataFrame(played_rows)
+    _fill_stat_zeros(df)
     height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + 4
     st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
     st.dataframe(
@@ -415,6 +425,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         return
 
     df = pd.DataFrame(game_rows)
+    _fill_stat_zeros(df)
     if "Game Date" in df.columns:
         df = df.sort_values("Game Date", ascending=False)
 
