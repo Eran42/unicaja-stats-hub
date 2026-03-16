@@ -245,16 +245,39 @@ _ROW_HEIGHT_PX  = 35
 _HEADER_HEIGHT_PX = 38
 
 
-def _stripe_rows(row: pd.Series) -> list[str]:
-    """Faint-green tint on odd rows; transparent on even rows."""
-    color = "background-color: rgba(0, 102, 51, 0.08)" if row.name % 2 else ""
-    return [color] * len(row)
+# Column-group tints: (even-row bg, odd-row bg)
+_COL_GROUP_COLORS: dict[str, tuple[str, str]] = {
+    "T2M": ("rgba(37,99,235,0.07)",  "rgba(37,99,235,0.15)"),
+    "T2A": ("rgba(37,99,235,0.07)",  "rgba(37,99,235,0.15)"),
+    "T2%": ("rgba(37,99,235,0.07)",  "rgba(37,99,235,0.15)"),
+    "T3M": ("rgba(234,88,12,0.07)",  "rgba(234,88,12,0.15)"),
+    "T3A": ("rgba(234,88,12,0.07)",  "rgba(234,88,12,0.15)"),
+    "T3%": ("rgba(234,88,12,0.07)",  "rgba(234,88,12,0.15)"),
+    "FTM": ("rgba(202,138,4,0.07)",  "rgba(202,138,4,0.15)"),
+    "FTA": ("rgba(202,138,4,0.07)",  "rgba(202,138,4,0.15)"),
+    "FT%": ("rgba(202,138,4,0.07)",  "rgba(202,138,4,0.15)"),
+    "RO":  ("rgba(13,148,136,0.07)", "rgba(13,148,136,0.15)"),
+    "RD":  ("rgba(13,148,136,0.07)", "rgba(13,148,136,0.15)"),
+    "RT":  ("rgba(13,148,136,0.07)", "rgba(13,148,136,0.15)"),
+}
 
 
-def _stripe_rows_purple(row: pd.Series) -> list[str]:
-    """Faint-purple tint on odd rows; transparent on even rows."""
-    color = "background-color: rgba(107, 47, 160, 0.08)" if row.name % 2 else ""
-    return [color] * len(row)
+def _style_table(df: pd.DataFrame, stripe: str) -> pd.DataFrame:
+    """
+    Return a same-shape DataFrame of CSS strings.
+    Grouped columns get a fixed tint (two shades for alternating rows).
+    Ungrouped columns get the standard row stripe on odd rows.
+    """
+    out = pd.DataFrame("", index=df.index, columns=df.columns)
+    for i in df.index:
+        odd = bool(i % 2)
+        for col in df.columns:
+            if col in _COL_GROUP_COLORS:
+                bg = _COL_GROUP_COLORS[col][1] if odd else _COL_GROUP_COLORS[col][0]
+            else:
+                bg = stripe if odd else ""
+            out.loc[i, col] = f"background-color: {bg}" if bg else ""
+    return out
 
 
 def render_latest(records: list[dict]) -> None:
@@ -285,7 +308,7 @@ def render_latest(records: list[dict]) -> None:
     height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + 4
     st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
     st.dataframe(
-        df.style.apply(_stripe_rows, axis=1),
+        df.style.apply(_style_table, stripe="rgba(0,102,51,0.08)", axis=None),
         use_container_width=True,
         hide_index=True,
         height=height,
@@ -391,7 +414,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     )
     height = min(_HEADER_HEIGHT_PX + len(game_rows) * _ROW_HEIGHT_PX + 4, 500)
     st.dataframe(
-        df.style.apply(_stripe_rows_purple, axis=1),
+        df.style.apply(_style_table, stripe="rgba(107,47,160,0.08)", axis=None),
         use_container_width=True,
         hide_index=True,
         height=height,
