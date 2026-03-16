@@ -134,7 +134,7 @@ _STAT_COLS = [
     "t3m", "t3a", "t3_pct",
     "ftm", "fta", "ft_pct",
     "reb_off", "reb_def", "reb",
-    "ast", "stl", "tov", "blk", "fouls", "plus_minus", "val",
+    "ast", "stl", "tov", "blk", "blk_against", "fouls", "fouls_received", "plus_minus", "val",
 ]
 
 _COL_LABELS = {
@@ -151,7 +151,9 @@ _COL_LABELS = {
     "ftm":         "FTM",  "fta":  "FTA",  "ft_pct":  "FT%",
     "reb_off":     "RO",   "reb_def": "RD", "reb":     "RT",
     "ast":         "AST",  "stl":  "STL",  "tov":     "TOV",
-    "blk":         "BLK",  "fouls": "F",   "plus_minus": "+/-",
+    "blk":         "BLK",  "blk_against": "BLK-A",
+    "fouls":       "F",    "fouls_received": "FR",
+    "plus_minus":  "+/-",
     "val":         "VAL",
 }
 
@@ -223,6 +225,14 @@ def _build_row(record: dict) -> dict:
             row[label] = _to_num(record.get(field))
         else:
             row[label] = record.get(field) or "N/A"
+
+    # When attempts = 0, percentage is 0.0 (not N/A — the shot was taken 0 times)
+    for attempts_field, pct_field in (("t2a", "t2_pct"), ("t3a", "t3_pct"), ("fta", "ft_pct")):
+        attempts_label = _COL_LABELS[attempts_field]
+        pct_label      = _COL_LABELS[pct_field]
+        if row.get(attempts_label) == 0.0 and row.get(pct_label) is None:
+            row[pct_label] = 0.0
+
     return row
 
 
@@ -254,22 +264,26 @@ _HEADER_HEIGHT_PX = 38
 
 
 # Columns that open a new group — get a thick left border separator
-_GROUP_DIVIDERS = {"T2M", "T3M", "FTM", "RO"}
+_GROUP_DIVIDERS = {"T2M", "T3M", "FTM", "RO", "BLK", "F"}
 
 # Column-group tints: (even-row bg, odd-row bg)
 _COL_GROUP_COLORS: dict[str, tuple[str, str]] = {
-    "T2M": ("rgba(37,99,235,0.07)",  "rgba(37,99,235,0.15)"),
-    "T2A": ("rgba(37,99,235,0.07)",  "rgba(37,99,235,0.15)"),
-    "T2%": ("rgba(37,99,235,0.07)",  "rgba(37,99,235,0.15)"),
-    "T3M": ("rgba(234,88,12,0.07)",  "rgba(234,88,12,0.15)"),
-    "T3A": ("rgba(234,88,12,0.07)",  "rgba(234,88,12,0.15)"),
-    "T3%": ("rgba(234,88,12,0.07)",  "rgba(234,88,12,0.15)"),
-    "FTM": ("rgba(202,138,4,0.07)",  "rgba(202,138,4,0.15)"),
-    "FTA": ("rgba(202,138,4,0.07)",  "rgba(202,138,4,0.15)"),
-    "FT%": ("rgba(202,138,4,0.07)",  "rgba(202,138,4,0.15)"),
-    "RO":  ("rgba(13,148,136,0.07)", "rgba(13,148,136,0.15)"),
-    "RD":  ("rgba(13,148,136,0.07)", "rgba(13,148,136,0.15)"),
-    "RT":  ("rgba(13,148,136,0.07)", "rgba(13,148,136,0.15)"),
+    "T2M":   ("rgba(37,99,235,0.07)",   "rgba(37,99,235,0.15)"),
+    "T2A":   ("rgba(37,99,235,0.07)",   "rgba(37,99,235,0.15)"),
+    "T2%":   ("rgba(37,99,235,0.07)",   "rgba(37,99,235,0.15)"),
+    "T3M":   ("rgba(234,88,12,0.07)",   "rgba(234,88,12,0.15)"),
+    "T3A":   ("rgba(234,88,12,0.07)",   "rgba(234,88,12,0.15)"),
+    "T3%":   ("rgba(234,88,12,0.07)",   "rgba(234,88,12,0.15)"),
+    "FTM":   ("rgba(202,138,4,0.07)",   "rgba(202,138,4,0.15)"),
+    "FTA":   ("rgba(202,138,4,0.07)",   "rgba(202,138,4,0.15)"),
+    "FT%":   ("rgba(202,138,4,0.07)",   "rgba(202,138,4,0.15)"),
+    "RO":    ("rgba(13,148,136,0.07)",  "rgba(13,148,136,0.15)"),
+    "RD":    ("rgba(13,148,136,0.07)",  "rgba(13,148,136,0.15)"),
+    "RT":    ("rgba(13,148,136,0.07)",  "rgba(13,148,136,0.15)"),
+    "BLK":   ("rgba(99,102,241,0.07)",  "rgba(99,102,241,0.15)"),
+    "BLK-A": ("rgba(99,102,241,0.07)",  "rgba(99,102,241,0.15)"),
+    "F":     ("rgba(239,68,68,0.07)",   "rgba(239,68,68,0.15)"),
+    "FR":    ("rgba(239,68,68,0.07)",   "rgba(239,68,68,0.15)"),
 }
 
 

@@ -284,10 +284,12 @@ def fetch_player_stats(
             "ast":         _safe_float(stats.get("assistances")),
             "stl":         _safe_float(stats.get("steals")),
             "tov":         _safe_float(stats.get("turnovers")),
-            "blk":         _safe_float(stats.get("blocksFavour")),
-            "fouls":       _safe_float(stats.get("foulsCommited")),
-            "plus_minus":  _safe_float(stats.get("plusMinus")),
-            "val":         _safe_float(stats.get("valuation")),
+            "blk":            _safe_float(stats.get("blocksFavour")),
+            "blk_against":    _safe_float(stats.get("blocksAgainst")),
+            "fouls":          _safe_float(stats.get("foulsCommited")),
+            "fouls_received": _safe_float(stats.get("foulsReceived")),
+            "plus_minus":     _safe_float(stats.get("plusMinus")),
+            "val":            _safe_float(stats.get("valuation")),
         }
 
     logger.warning("EL/EC: player %s not found in last 20 played games", player_code)

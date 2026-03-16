@@ -10,8 +10,11 @@ Column layout (game log):
   J (game#), PARTIDOS (opponent), Res. (result), Min.,
   PT (pts), T2 (combined M/A/%), T3 (combined M/A/%), T1 (FT combined M/A/%),
   T(D+O) (reb def/off/total), A (ast), BR (stl), BP (tov),
-  Tap > Fav (blk in favor) / Con (blk against — ignored),
-  F > C (fouls committed) / R (fouls received — ignored), +/-, V (val)
+  Tap > F+C (total blocks as 'N+M' string), +/-, V (val)
+
+Blocks (F=favor, C=contra) and fouls (F=committed, C=received) are extracted from
+the linked game stats page (/partido/ver/id/XXXXX) which has separate TAP.F, TAP.C,
+FP.F, FP.C sub-columns in the box score table.
 """
 
 from __future__ import annotations
@@ -274,8 +277,111 @@ def _parse_game_row(cells: list[Tag], col_map: dict[str, int]) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Game-page result extractor
+# Game-page helpers
 # ---------------------------------------------------------------------------
+
+def _expand_header_row(row: Tag) -> list[str]:
+    """Expand colspan attributes → flat list of column labels (uppercase)."""
+    flat: list[str] = []
+    for cell in row.find_all(["th", "td"]):
+        span = int(cell.get("colspan", 1))
+        flat.extend([cell.get_text(strip=True).upper()] * span)
+    return flat
+
+
+def _extract_player_boxscore(
+    html: str, player_name: str
+) -> dict[str, float | None]:
+    """
+    Parse an ACB game stats page (/partido/ver/id/XXXXX) to find the player's
+    row and return blocks favor/against and fouls committed/received.
+
+    The box score tables have a two-row header structure:
+      Parent row (after colspan expansion):
+        ... TAP TAP ... FP FP ...
+      Sub-header row:
+        ... F   C  ... F  C  ...
+
+    We expand the parent row to find the flat column indices of TAP and FP,
+    then use those indices to extract the data values for the matched player.
+
+    Returns dict with keys: blk, blk_against, fouls, fouls_received.
+    All values are float | None.
+    """
+    empty: dict[str, float | None] = {
+        "blk": None,
+        "blk_against": None,
+        "fouls": None,
+        "fouls_received": None,
+    }
+    soup = BeautifulSoup(html, "lxml")
+
+    # Build token set from player name for fuzzy row matching
+    pname_tokens = {
+        t
+        for t in re.sub(r"[^\w\s]", " ", player_name.lower()).split()
+        if len(t) >= 3
+    }
+    if not pname_tokens:
+        return empty
+
+    for tbl in soup.find_all("table"):
+        rows = tbl.find_all("tr")
+        if len(rows) < 3:
+            continue
+
+        # Find the parent header row that contains TAP and/or FP labels
+        tap_start: int | None = None
+        fp_start: int | None = None
+
+        for hrow in rows[:4]:
+            flat = _expand_header_row(hrow)
+            for i, label in enumerate(flat):
+                if label in ("TAP", "TAP.") and tap_start is None:
+                    tap_start = i
+                if label == "FP" and fp_start is None:
+                    fp_start = i
+            if tap_start is not None or fp_start is not None:
+                break
+
+        if tap_start is None and fp_start is None:
+            continue
+
+        # Find the player's data row (td cells) and extract by flat-index
+        for row in rows:
+            cells = row.find_all("td")
+            if len(cells) < 10:
+                continue
+
+            # Player name is typically in the second cell (index 1 = "Nombre")
+            name_raw = cells[1].get_text(strip=True).lower() if len(cells) > 1 else ""
+            if not name_raw:
+                continue
+            name_tokens = {
+                t
+                for t in re.sub(r"[^\w\s]", " ", name_raw).split()
+                if len(t) >= 3
+            }
+            if not pname_tokens.intersection(name_tokens):
+                continue
+
+            # Matched — extract values
+            n = len(cells)
+
+            def _gcell(idx: int | None) -> float | None:
+                if idx is None or idx >= n:
+                    return None
+                return _safe_float(cells[idx].get_text(strip=True))
+
+            return {
+                "blk":           _gcell(tap_start),
+                "blk_against":   _gcell(tap_start + 1) if tap_start is not None else None,
+                "fouls":         _gcell(fp_start),
+                "fouls_received": _gcell(fp_start + 1) if fp_start is not None else None,
+            }
+
+    return empty
+
 
 def _extract_result_from_game_page(html: str, opponent_name: str) -> str:
     """
@@ -476,12 +582,14 @@ def fetch_player_stats(player_id: str) -> dict:
         logger.warning("ACB: no played game rows found for id=%s", player_id)
         return {}
 
-    # Extract game date AND result from the linked game page in the PARTIDOS cell.
+    # Extract game date, result, and per-player blocks/fouls from the linked game page.
     # The game log row gives us V/D from the "Res." column (often empty); the game
-    # stats page (/partido/ver/id/XXXXX) always has the full score.
+    # stats page (/partido/ver/id/XXXXX) always has the full score and separate
+    # TAP.F/TAP.C and FP.F/FP.C sub-columns for blocks and fouls.
     game_date   = ""
     game_result = stats.get("result", "").strip()  # V or D from game log, may be empty
     opponent    = stats.get("opponent", "")
+    detail_stats: dict[str, float | None] = {}
 
     for cell in last_cells:  # type: ignore[union-attr]
         link = cell.find("a", href=re.compile(r"/partido/ver/id/\d+"))
@@ -516,6 +624,10 @@ def fetch_player_stats(player_id: str) -> dict:
                 else:
                     game_result = extracted
 
+            # Blocks and fouls — separate F/C columns in the box score table
+            detail_stats = _extract_player_boxscore(page_text, player_name or player_id)
+            logger.debug("ACB game detail stats for %s: %s", player_name, detail_stats)
+
         except requests.RequestException:
             pass
         break
@@ -524,31 +636,45 @@ def fetch_player_stats(player_id: str) -> dict:
         """ACB tracks this field — treat missing/empty cell as genuine zero."""
         return v if v is not None else 0.0
 
+    # Prefer detail-page blocks/fouls (separate F/C columns); fall back to game-log values
+    blk           = detail_stats.get("blk")
+    blk_against   = detail_stats.get("blk_against")
+    fouls         = detail_stats.get("fouls")
+    fouls_received = detail_stats.get("fouls_received")
+
+    # If detail page didn't yield blocks, fall back to game-log combined column
+    if blk is None:
+        blk = _z(stats["blk"])
+
     return {
-        "player_id":   player_id,
-        "player_name": player_name or player_id,
-        "source":      "acb",
-        "competition": "ACB",
-        "season":      "2025-26",
-        "game_date":   game_date,
-        "opponent":    opponent,
-        "result":      game_result,
-        "date":        str(date.today()),
-        "min":         stats["min"],          # keep None — player may not have played
-        "pts":         _z(stats["pts"]),
-        "t2m":         _z(stats["t2m"]),   "t2a":  _z(stats["t2a"]),  "t2_pct":  stats["t2_pct"],
-        "t3m":         _z(stats["t3m"]),   "t3a":  _z(stats["t3a"]),  "t3_pct":  stats["t3_pct"],
-        "ftm":         _z(stats["ftm"]),   "fta":  _z(stats["fta"]),  "ft_pct":  stats["ft_pct"],
-        "reb_off":     _z(stats["reb_off"]),
-        "reb_def":     _z(stats["reb_def"]),
-        "reb":         _z(stats["reb"]),
-        "ast":         _z(stats["ast"]),
-        "stl":         _z(stats["stl"]),
-        "tov":         _z(stats["tov"]),
-        "blk":         _z(stats["blk"]),    # Tapones Fav sub-column
-        "fouls":       stats["fouls"],     # keep None if value was implausible (>5 cap)
-        "plus_minus":  _z(stats["plus_minus"]),
-        "val":         _z(stats["val"]),
+        "player_id":      player_id,
+        "player_name":    player_name or player_id,
+        "source":         "acb",
+        "competition":    "ACB",
+        "season":         "2025-26",
+        "game_date":      game_date,
+        "opponent":       opponent,
+        "result":         game_result,
+        "date":           str(date.today()),
+        "min":            stats["min"],          # keep None — player may not have played
+        "pts":            _z(stats["pts"]),
+        "t2m":            _z(stats["t2m"]),   "t2a":  _z(stats["t2a"]),  "t2_pct":  stats["t2_pct"],
+        "t3m":            _z(stats["t3m"]),   "t3a":  _z(stats["t3a"]),  "t3_pct":  stats["t3_pct"],
+        "ftm":            _z(stats["ftm"]),   "fta":  _z(stats["fta"]),  "ft_pct":  stats["ft_pct"],
+        "reb_off":        _z(stats["reb_off"]),
+        "reb_def":        _z(stats["reb_def"]),
+        "reb":            _z(stats["reb"]),
+        "ast":            _z(stats["ast"]),
+        "stl":            _z(stats["stl"]),
+        "tov":            _z(stats["tov"]),
+        "blk":            blk,
+        "blk_against":    blk_against,
+        "fouls":          fouls if fouls is not None else (
+                              stats["fouls"]  # keep None if >5 cap triggered
+                          ),
+        "fouls_received": fouls_received,
+        "plus_minus":     _z(stats["plus_minus"]),
+        "val":            _z(stats["val"]),
     }
 
 
