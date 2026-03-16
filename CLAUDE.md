@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project goal
+
+Track the most reliable, up-to-date stats for as many ex-Unicaja players as possible. **Quality matters**: every data source and daily output must be reviewed for accuracy and completeness. After any pipeline run or data change, always verify the result visually in the production dashboard at https://ex-unicaja-stats.streamlit.app/ before considering the work done.
+
+**Dashboard verification is mandatory and must be done by Claude directly** — do not ask the user to check. Use WebFetch to load https://ex-unicaja-stats.streamlit.app/ and confirm the data shown matches what was just written. Never skip this step.
+
 ## Commands
 
 ```bash
