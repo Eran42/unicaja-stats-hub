@@ -59,10 +59,24 @@ def _inject_css() -> None:
             border-width: 2px !important;
         }}
 
-        /* ── Selectbox focus ring ── */
+        /* ── Selectbox labels ── */
+        [data-testid="stSelectbox"] label,
+        [data-testid="stSelectbox"] [data-testid="stWidgetLabel"] p {{
+            color: {_UNICAJA_PURPLE} !important;
+            font-weight: 600 !important;
+        }}
+
+        /* ── Selectbox focus ring + border ── */
         [data-testid="stSelectbox"] > div:focus-within {{
             border-color: {_UNICAJA_PURPLE} !important;
             box-shadow: 0 0 0 2px rgba(107, 47, 160, 0.18) !important;
+        }}
+
+        /* ── Selectbox dropdown highlight (hovered / selected option) ── */
+        [data-baseweb="select"] [aria-selected="true"],
+        [data-baseweb="menu"] [role="option"]:hover {{
+            background-color: rgba(107, 47, 160, 0.12) !important;
+            color: {_UNICAJA_PURPLE} !important;
         }}
 
         /* ── Info / warning boxes ── */
