@@ -10,7 +10,8 @@ Column layout (game log):
   J (game#), PARTIDOS (opponent), Res. (result), Min.,
   PT (pts), T2 (combined M/A/%), T3 (combined M/A/%), T1 (FT combined M/A/%),
   T(D+O) (reb def/off/total), A (ast), BR (stl), BP (tov),
-  C (fouls committed), F+C / M / F (foul details), +/-, V (val)
+  Tap > Fav (blk in favor) / Con (blk against — ignored),
+  F > C (fouls committed) / R (fouls received — ignored), +/-, V (val)
 """
 
 from __future__ import annotations
@@ -158,7 +159,10 @@ _HEADER_MAP: dict[str, str] = {
     "a":        "ast",
     "br":       "stl",
     "bp":       "tov",
+    # Fouls: "c" = cometidas (committed); "r" = recibidas (received) — we want committed
     "c":        "fouls",
+    # Blocks (Tapones): "fav" = en favor (player blocked opponent); "con" = en contra (ignored)
+    "fav":      "blk",
     "+/-":      "plus_minus",  "+/--": "plus_minus",
     "v":        "val",
     # split variants
@@ -258,9 +262,9 @@ def _parse_game_row(cells: list[Tag], col_map: dict[str, int]) -> dict:
         "ast":        _safe_float(_at("ast")),
         "stl":        _safe_float(_at("stl")),
         "tov":        _safe_float(_at("tov")),
-        # Fouls committed: capped at 5 (ACB foul-out limit). The 'C' column can
-        # occasionally contain a season-cumulative value (> 5) rather than per-game;
-        # treating those as invalid keeps downstream data clean.
+        "blk":        _safe_float(_at("blk")),   # "Fav" sub-column of Tapones
+        # Fouls committed ("C" sub-column): capped at 5 (ACB foul-out limit).
+        # Values > 5 indicate a season-cumulative cell, not per-game.
         "fouls":      _f if (_f := _safe_float(_at("fouls"))) is None or _f <= 5 else None,
         "plus_minus": _safe_float(_at("plus_minus")),
         "val":        _safe_float(_at("val")),
@@ -539,7 +543,7 @@ def fetch_player_stats(player_id: str) -> dict:
         "ast":         _z(stats["ast"]),
         "stl":         _z(stats["stl"]),
         "tov":         _z(stats["tov"]),
-        "blk":         None,               # not in ACB game log columns
+        "blk":         _z(stats["blk"]),    # Tapones Fav sub-column
         "fouls":       stats["fouls"],     # keep None if value was implausible (>5 cap)
         "plus_minus":  _z(stats["plus_minus"]),
         "val":         _z(stats["val"]),
