@@ -262,6 +262,41 @@ def _load_all() -> dict[str, list[dict]]:
 _ROW_HEIGHT_PX  = 35
 _HEADER_HEIGHT_PX = 38
 
+# ---------------------------------------------------------------------------
+# Column config — controls display width in st.dataframe
+# ---------------------------------------------------------------------------
+
+_TEXT_WIDTHS: dict[str, int] = {
+    "Player":      150,
+    "Team":         95,
+    "Competition":  90,
+    "Game Date":    88,
+    "Opponent":    140,
+    "Result":       72,
+}
+
+# Stat columns: widths in pixels. Percentages need room for "100.0".
+_STAT_WIDTHS: dict[str, int] = {
+    "MIN": 52, "PTS": 42,
+    "T2M": 42, "T2A": 42, "T2%": 52,
+    "T3M": 42, "T3A": 42, "T3%": 52,
+    "FTM": 42, "FTA": 42, "FT%": 52,
+    "RO":  42, "RD":  42, "RT":  42,
+    "AST": 42, "STL": 42, "TOV": 42,
+    "BLK": 42, "BLK-A": 52,
+    "F":   42, "FR":   42,
+    "+/-": 52, "VAL":  48,
+}
+
+
+def _col_config() -> dict:
+    cfg = {}
+    for label, w in _TEXT_WIDTHS.items():
+        cfg[label] = st.column_config.TextColumn(label, width=w)
+    for label, w in _STAT_WIDTHS.items():
+        cfg[label] = st.column_config.NumberColumn(label, width=w)
+    return cfg
+
 
 # Columns that open a new group — get a thick left border separator
 _GROUP_DIVIDERS = {"T2M", "T3M", "FTM", "RO", "BLK", "F"}
@@ -344,6 +379,7 @@ def render_latest(records: list[dict]) -> None:
         use_container_width=True,
         hide_index=True,
         height=height,
+        column_config=_col_config(),
     )
 
 
@@ -451,6 +487,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         use_container_width=True,
         hide_index=True,
         height=height,
+        column_config=_col_config(),
     )
 
 
