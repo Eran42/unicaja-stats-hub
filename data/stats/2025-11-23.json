@@ -96,11 +96,13 @@
     "ast": 1.0,
     "stl": 2.0,
     "tov": 2.0,
-    "blk": null,
+    "blk": 0.0,
     "fouls": 2.0,
     "plus_minus": -4.0,
     "val": 19.0,
-    "team": "Lenovo Tenerife"
+    "team": "Lenovo Tenerife",
+    "blk_against": 0.0,
+    "fouls_received": 6.0
   },
   {
     "player_id": "20210707",

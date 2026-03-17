@@ -62,7 +62,7 @@
     "stl": 1.0,
     "tov": 1.0,
     "blk": 1.0,
-    "fouls": null,
+    "fouls": 1.0,
     "plus_minus": 18.0,
     "val": 21.0,
     "team": "Valencia Basket",

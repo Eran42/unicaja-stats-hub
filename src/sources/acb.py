@@ -316,12 +316,21 @@ def _extract_player_boxscore(
     }
     soup = BeautifulSoup(html, "lxml")
 
-    # Build token set from player name for fuzzy row matching
-    pname_tokens = {
-        t
-        for t in re.sub(r"[^\w\s]", " ", player_name.lower()).split()
-        if len(t) >= 3
-    }
+    def _ascii_tokens(text: str) -> frozenset[str]:
+        """Normalise to ASCII, lowercase, split — for accent-insensitive matching."""
+        import unicodedata as _ud
+        ascii_text = (
+            _ud.normalize("NFKD", text)
+            .encode("ascii", "ignore")
+            .decode()
+        )
+        return frozenset(
+            t for t in re.sub(r"[^\w\s]", " ", ascii_text.lower()).split()
+            if len(t) >= 3
+        )
+
+    # Build token set from player name for fuzzy row matching (ASCII-normalised)
+    pname_tokens = _ascii_tokens(player_name)
     if not pname_tokens:
         return empty
 
@@ -354,14 +363,11 @@ def _extract_player_boxscore(
                 continue
 
             # Player name is typically in the second cell (index 1 = "Nombre")
-            name_raw = cells[1].get_text(strip=True).lower() if len(cells) > 1 else ""
+            name_raw = cells[1].get_text(strip=True) if len(cells) > 1 else ""
             if not name_raw:
                 continue
-            name_tokens = {
-                t
-                for t in re.sub(r"[^\w\s]", " ", name_raw).split()
-                if len(t) >= 3
-            }
+            # Use ASCII-normalised tokens to avoid encoding mismatches
+            name_tokens = _ascii_tokens(name_raw)
             if not pname_tokens.intersection(name_tokens):
                 continue
 
@@ -373,12 +379,15 @@ def _extract_player_boxscore(
                     return None
                 return _safe_float(cells[idx].get_text(strip=True))
 
-            return {
+            candidate = {
                 "blk":           _gcell(tap_start),
                 "blk_against":   _gcell(tap_start + 1) if tap_start is not None else None,
                 "fouls":         _gcell(fp_start),
                 "fouls_received": _gcell(fp_start + 1) if fp_start is not None else None,
             }
+            # Skip rows where ALL target values are empty (wrong team, same name)
+            if any(v is not None for v in candidate.values()):
+                return candidate
 
     return empty
 
