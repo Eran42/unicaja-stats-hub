@@ -30,7 +30,9 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": 1.0,
-    "val": 6.0
+    "val": 6.0,
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "P011217",
@@ -63,7 +65,9 @@
     "blk": 0.0,
     "fouls": 2.0,
     "plus_minus": 12.0,
-    "val": 10.0
+    "val": 10.0,
+    "blk_against": 0.0,
+    "fouls_received": 1.0
   },
   {
     "player_id": "5313012",

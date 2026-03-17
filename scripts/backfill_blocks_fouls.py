@@ -74,6 +74,9 @@ def _needs_fix(rec: dict) -> bool:
     src = rec.get("source", "")
     if src not in ("acb", "euroleague", "eurocup"):
         return False
+    if src == "acb":
+        return (rec.get("blk") is None or rec.get("blk_against") is None
+                or rec.get("fouls_received") is None)
     return rec.get("blk_against") is None or rec.get("fouls_received") is None
 
 
@@ -92,7 +95,7 @@ def _fetch_el_all_stats(
     """
     bare_code = player_code[1:] if player_code.startswith("P") else player_code
     url  = f"{_EL_BASE}/{competition}/seasons/{season}/games"
-    data = _get_json(url, {"limit": 200})
+    data = _get_json(url, {"limit": 1000})
     if not data or not isinstance(data, dict):
         return {}
 
@@ -161,9 +164,12 @@ def backfill_euroleague(all_files: dict[str, list[dict]]) -> int:
     updated = 0
     for records in all_files.values():
         for rec in records:
-            if not _needs_fix(rec) or rec.get("source") not in ("euroleague", "eurocup"):
+            src = rec.get("source", "")
+            if src not in ("euroleague", "eurocup"):
                 continue
-            key = (rec.get("player_id", ""), rec.get("source", ""))
+            if rec.get("blk_against") is not None and rec.get("fouls_received") is not None:
+                continue
+            key = (rec.get("player_id", ""), src)
             game_date = rec.get("game_date", "")
             patch = cache.get(key, {}).get(game_date)
             if patch:
@@ -303,10 +309,16 @@ def backfill_acb(all_files: dict[str, list[dict]]) -> int:
     updated = 0
     for records in all_files.values():
         for rec in records:
-            if not _needs_fix(rec) or rec.get("source") != "acb":
+            if rec.get("source") != "acb":
+                continue
+            if (rec.get("blk") is not None and rec.get("blk_against") is not None
+                    and rec.get("fouls_received") is not None):
                 continue
             key = (rec.get("player_id", ""), rec.get("opponent", ""))
             patch = detail_cache.get(key, {})
+            if rec.get("blk") is None and patch.get("blk") is not None:
+                rec["blk"] = patch["blk"]
+                updated += 1
             if rec.get("blk_against") is None and patch.get("blk_against") is not None:
                 rec["blk_against"] = patch["blk_against"]
                 updated += 1
