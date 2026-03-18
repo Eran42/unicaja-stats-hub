@@ -352,13 +352,12 @@
   {
     "player_id": "la-laguna-tenerife/151899-giorgi-shermadini",
     "player_name": "Giorgi Shermadini",
-    "team": "",
     "source": "bcl",
     "competition": "BCL",
     "season": "2025-26",
     "date": "2026-03-18",
     "game_date": "2026-03-11",
-    "opponent": "DGC",
+    "opponent": "Gran Canaria",
     "result": "",
     "min": 11.0,
     "pts": 0.0,
@@ -382,7 +381,8 @@
     "fouls": 0.0,
     "fouls_received": null,
     "plus_minus": -11.0,
-    "val": 1.0
+    "val": 1.0,
+    "team": "Lenovo Tenerife"
   },
   {
     "player_id": "20210707",
@@ -490,6 +490,41 @@
     "team": "Budućnost VOLI"
   },
   {
+    "player_id": "aek-bc/161021-mindaugas-kuzminskas",
+    "player_name": "Mindaugas Kuzminskas",
+    "source": "bcl",
+    "competition": "BCL",
+    "season": "2025-26",
+    "date": "2026-03-18",
+    "game_date": "2026-03-11",
+    "opponent": "Tofas Bursa",
+    "result": "",
+    "min": 3.0,
+    "pts": 0.0,
+    "t2m": 0.0,
+    "t2a": 0.0,
+    "t2_pct": 0.0,
+    "t3m": 0.0,
+    "t3a": 1.0,
+    "t3_pct": 0.0,
+    "ftm": 0.0,
+    "fta": 0.0,
+    "ft_pct": 0.0,
+    "reb_off": 1.0,
+    "reb_def": 1.0,
+    "reb": 2.0,
+    "ast": 2.0,
+    "stl": 0.0,
+    "tov": 1.0,
+    "blk": 0.0,
+    "blk_against": null,
+    "fouls": 1.0,
+    "fouls_received": null,
+    "plus_minus": 5.0,
+    "val": 2.0,
+    "team": "AEK BC"
+  },
+  {
     "player_id": "5313012",
     "player_name": "Mario Saint-Supéry",
     "source": "ncaa_espn",
@@ -560,13 +595,12 @@
   {
     "player_id": "la-laguna-tenerife/175433-jaime-fernandez",
     "player_name": "Jaime Fernández",
-    "team": "",
     "source": "bcl",
     "competition": "BCL",
     "season": "2025-26",
     "date": "2026-03-18",
     "game_date": "2026-03-17",
-    "opponent": "TS",
+    "opponent": "Pallacanestro Trieste",
     "result": "",
     "min": 20.0,
     "pts": 7.0,
@@ -590,7 +624,8 @@
     "fouls": 3.0,
     "fouls_received": null,
     "plus_minus": 5.0,
-    "val": 4.0
+    "val": 4.0,
+    "team": "Lenovo Tenerife"
   },
   {
     "player_id": "20211625",
@@ -630,13 +665,12 @@
   {
     "player_id": "la-laguna-tenerife/201675-tim-abromaitis",
     "player_name": "Tim Abromaitis",
-    "team": "",
     "source": "bcl",
     "competition": "BCL",
     "season": "2025-26",
     "date": "2026-03-18",
     "game_date": "2026-03-17",
-    "opponent": "TS",
+    "opponent": "Pallacanestro Trieste",
     "result": "",
     "min": 20.0,
     "pts": 9.0,
@@ -660,7 +694,8 @@
     "fouls": 2.0,
     "fouls_received": null,
     "plus_minus": -9.0,
-    "val": 8.0
+    "val": 8.0,
+    "team": "Lenovo Tenerife"
   },
   {
     "player_id": "30000479",

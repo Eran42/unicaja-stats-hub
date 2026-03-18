@@ -26,6 +26,42 @@ _TEAM_URL  = "https://www.championsleague.basketball/en/teams"
 _STATS_URL = "https://www.championsleague.basketball/en/stats/players/all/"
 _TIMEOUT   = 20
 
+# BCL team abbreviation → full team name (sourced from /en/teams listing)
+_TEAM_NAMES: dict[str, str] = {
+    "AEK":  "AEK BC",
+    "ALBA": "ALBA Berlin",
+    "CJB":  "Asisa Joventut",
+    "SAB":  "BC Sabah",
+    "HERZ": "Bnei Herzliya",
+    "BUR":  "Bursaspor",
+    "CHOL": "Cholet Basket",
+    "DGC":  "Gran Canaria",
+    "ELAN": "Elan Chalon",
+    "NYMB": "ERA Nymburk",
+    "OOST": "Filou Oostende",
+    "WUE":  "Wurzburg Baskets",
+    "GSM":  "Galatasaray",
+    "HOLO": "Hapoel Holon",
+    "IGO":  "Igokea",
+    "KARD": "Karditsa",
+    "SPAR": "Spartak",
+    "LLTF": "La Laguna Tenerife",
+    "MSB":  "Le Mans",
+    "WARS": "Legia Warszawa",
+    "MSK":  "Mersin",
+    "HDB":  "Academics Heidelberg",
+    "OLAJ": "Szolnoki Olajbanyasz",
+    "TS":   "Pallacanestro Trieste",
+    "LEV":  "Patrioti Levice",
+    "PROM": "Promitheas Patras",
+    "VILN": "Rytas Vilnius",
+    "SLB":  "SL Benfica",
+    "TOF":  "Tofas Bursa",
+    "TPS":  "Trapani Shark",
+    "UNI":  "Unicaja",
+    "VEF":  "VEF Riga",
+}
+
 _HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -101,20 +137,22 @@ def _parse_game_cell(cell: Tag) -> tuple[str, str]:
     """
     Parse BCL game-info cell.
     Cell text with separator='|' looks like: 'vs|TS|,|17/03/2026|Round of 16'
-    Returns (game_date as 'YYYY-MM-DD', opponent_abbrev).
+    Returns (game_date as 'YYYY-MM-DD', opponent full name).
     """
     parts = [p.strip() for p in cell.get_text(separator="|", strip=True).split("|") if p.strip() and p.strip() != ","]
     # parts: ['vs', 'OPP', 'DD/MM/YYYY', 'phase']
-    opponent = ""
+    opp_abbrev = ""
     game_date = ""
 
     for part in parts:
         if re.match(r"^\d{2}/\d{2}/\d{4}$", part):
             day, month, year = part.split("/")
             game_date = f"{year}-{month}-{day}"
-        elif part not in ("vs", ) and not re.search(r"round|phase|group|final|quarter|semi", part, re.IGNORECASE):
-            if not opponent and part != "vs":
-                opponent = part
+        elif part not in ("vs",) and not re.search(r"round|phase|group|final|quarter|semi", part, re.IGNORECASE):
+            if not opp_abbrev:
+                opp_abbrev = part
+
+    opponent = _TEAM_NAMES.get(opp_abbrev, opp_abbrev)
     return game_date, opponent
 
 
@@ -258,7 +296,6 @@ def _fetch_from_team_page(slug: str, player_name: str) -> dict:
     return {
         "player_id":    slug,
         "player_name":  player_name or slug,
-        "team":         "",  # filled by router
         "source":       "bcl",
         "competition":  "BCL",
         "season":       "2025-26",
@@ -333,7 +370,6 @@ def _fetch_from_stats_page(player_id: str | int, player_name: str) -> dict:
             return {
                 "player_id":    id_str,
                 "player_name":  player_name or id_str,
-                "team":         "",
                 "source":       "bcl",
                 "competition":  "BCL",
                 "season":       "2025-26",

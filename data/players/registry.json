@@ -118,10 +118,11 @@
   },
   {
     "name": "Mindaugas Kuzminskas",
-    "team": "AEK Athens",
+    "team": "AEK BC",
     "country": "Lithuania",
     "active": true,
     "sources": [
+      { "competition": "BCL",          "type": "bcl",        "id": "aek-bc/161021-mindaugas-kuzminskas" },
       { "competition": "Greek League", "type": "eurobasket", "id": "26892"  }
     ]
   },
