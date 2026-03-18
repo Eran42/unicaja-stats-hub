@@ -84,7 +84,8 @@
     "country": "Georgia",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20210659" }
+      { "competition": "ACB", "type": "acb", "id": "20210659" },
+      { "competition": "BCL", "type": "bcl", "id": "la-laguna-tenerife/151899-giorgi-shermadini" }
     ]
   },
   {
@@ -121,8 +122,7 @@
     "country": "Lithuania",
     "active": true,
     "sources": [
-      { "competition": "Greek League", "type": "eurobasket", "id": "26892"  },
-      { "competition": "BCL",          "type": "bcl",        "id": "161021" }
+      { "competition": "Greek League", "type": "eurobasket", "id": "26892"  }
     ]
   },
   {
@@ -183,7 +183,8 @@
     "country": "Spain",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20204124" }
+      { "competition": "ACB", "type": "acb", "id": "20204124" },
+      { "competition": "BCL", "type": "bcl", "id": "la-laguna-tenerife/175433-jaime-fernandez" }
     ]
   },
   {
@@ -192,7 +193,8 @@
     "country": "United States",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20211625" }
+      { "competition": "ACB", "type": "acb", "id": "20211625" },
+      { "competition": "BCL", "type": "bcl", "id": "la-laguna-tenerife/201675-tim-abromaitis" }
     ]
   },
   {
