@@ -186,7 +186,7 @@ def _is_real_name(name: str) -> bool:
 
 def _game_is_within_24h(game_date: str) -> bool:
     """True if game_date (YYYY-MM-DD) falls on or after yesterday's calendar date."""
-    if not game_date or game_date in ("—", "N/A", "not available"):
+    if not game_date or game_date in ("—", "N/A"):
         return False
     try:
         gd = datetime.strptime(game_date[:10], "%Y-%m-%d").date()
@@ -224,7 +224,7 @@ def _build_row(record: dict) -> dict:
         if field in _STAT_COLS:
             row[label] = _to_num(record.get(field))
         else:
-            row[label] = record.get(field) or "not available"
+            row[label] = record.get(field) or "N/A"
 
     # When attempts = 0, percentage is 0.0 (not N/A — the shot was taken 0 times)
     for attempts_field, pct_field in (("t2a", "t2_pct"), ("t3a", "t3_pct"), ("fta", "ft_pct")):
@@ -360,7 +360,7 @@ def render_latest(records: list[dict]) -> None:
     # Only keep records with a confirmed game_date within the last 24 h.
     played_records: list[dict] = [
         rec for rec in records
-        if str(rec.get("game_date", "")) not in ("", "—", "N/A", "not available")
+        if str(rec.get("game_date", "")) not in ("", "—", "N/A")
         and _game_is_within_24h(str(rec.get("game_date", "")))
     ]
 
@@ -375,7 +375,7 @@ def render_latest(records: list[dict]) -> None:
     st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
     st.dataframe(
         df.style.apply(_style_table, stripe="rgba(0,102,51,0.08)", axis=None)
-           .format(_STAT_FORMAT, na_rep="not available"),
+           .format(_STAT_FORMAT, na_rep="N/A"),
         use_container_width=True,
         hide_index=True,
         height=height,
@@ -406,7 +406,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
             if name and _is_real_name(name):
                 all_names.add(name)
             gd = str(r.get("game_date", ""))
-            if gd and gd not in ("", "—", "N/A", "not available"):
+            if gd and gd not in ("", "—", "N/A"):
                 all_game_dates.add(gd[:10])
 
     _ANY_PLAYER = "— All players —"
@@ -442,7 +442,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         for rec in all_data[run_date]:
             # Exclude records with no game_date — unverifiable.
             gd = str(rec.get("game_date", ""))
-            if not gd or gd in ("", "—", "N/A", "not available"):
+            if not gd or gd in ("", "—", "N/A"):
                 continue
             # Date filter
             if filter_date and gd[:10] != filter_date:
@@ -483,7 +483,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     height = min(_HEADER_HEIGHT_PX + len(game_rows) * _ROW_HEIGHT_PX + 4, 500)
     st.dataframe(
         df.style.apply(_style_table, stripe="rgba(107,47,160,0.08)", axis=None)
-           .format(_STAT_FORMAT, na_rep="not available"),
+           .format(_STAT_FORMAT, na_rep="N/A"),
         use_container_width=True,
         hide_index=True,
         height=height,
