@@ -107,6 +107,11 @@ def _fetch_all_games(slug: str, player_name: str, team: str) -> list[dict]:
         if t3a == 0.0:  t3_pct = 0.0
         if fta == 0.0:  ft_pct = 0.0
 
+        # Skip DNP rows (no minutes logged)
+        minutes = _parse_minutes(_gcell("MIN"))
+        if minutes is None:
+            continue
+
         records.append({
             "player_id":      slug,
             "player_name":    player_name,
@@ -118,7 +123,7 @@ def _fetch_all_games(slug: str, player_name: str, team: str) -> list[dict]:
             "game_date":      game_date,
             "opponent":       opponent,
             "result":         "",
-            "min":            _parse_minutes(_gcell("MIN")),
+            "min":            minutes,
             "pts":            _safe_float(_gcell("PTS")),
             "t2m":  t2m,     "t2a":  t2a,   "t2_pct":  t2_pct,
             "t3m":  t3m,     "t3a":  t3a,   "t3_pct":  t3_pct,
