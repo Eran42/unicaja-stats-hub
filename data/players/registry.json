@@ -208,6 +208,15 @@
     ]
   },
   {
+    "name": "Melvin Ejim",
+    "team": "Hiopos Lleida",
+    "country": "Canada",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "30000049" }
+    ]
+  },
+  {
     "name": "Francis Alonso",
     "team": "San Pablo Burgos",
     "country": "Spain",
