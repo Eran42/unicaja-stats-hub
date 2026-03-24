@@ -1,6 +1,6 @@
 player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
-20210585,Francis Alonso,San Pablo Burgos,acb,ACB,2025-26,2025-11-01,Río Breogán-Coviran Granada,95-74,2026-03-13,19.75,18.0,2.0,2.0,100.0,4.0,5.0,80.0,2.0,2.0,100.0,1.0,0.0,1.0,1.0,1.0,2.0,0.0,2.0,15.0,18.0
-20210707,Rubén Guerrero,MoraBanc Andorra,acb,ACB,2025-26,2025-11-01,Dreamland GC-MoraBanc And,102-85,2026-03-13,14.45,4.0,2.0,3.0,66.0,0.0,0.0,0.0,0.0,0.0,0.0,3.0,2.0,5.0,0.0,0.0,0.0,0.0,0.0,2.0,6.0
+20210585,Francis Alonso,San Pablo Burgos,acb,ACB,2025-26,2025-11-01,Coviran Granada,95-74,2026-03-13,19.75,18.0,2.0,2.0,100.0,4.0,5.0,80.0,2.0,2.0,100.0,1.0,0.0,1.0,1.0,1.0,2.0,0.0,2.0,15.0,18.0
+20210707,Rubén Guerrero,MoraBanc Andorra,acb,ACB,2025-26,2025-11-01,Dreamland GC,102-85,2026-03-13,14.45,4.0,2.0,3.0,66.0,0.0,0.0,0.0,0.0,0.0,0.0,3.0,2.0,5.0,0.0,0.0,0.0,0.0,0.0,2.0,6.0
 26892,Mindaugas Kuzminskas,AEK BC,eurobasket,Greek League,2025-26,2025-11-01,Peristeri,66-79,2026-03-24,23.0,11.0,2.0,3.0,66.7,1.0,4.0,25.0,4.0,4.0,100.0,0.0,5.0,5.0,1.0,0.0,3.0,0.0,3.0,,11.0
-5073,Axel Bouteille,Budućnost VOLI,aba,ABA League,2025-26,2025-11-01,Budućnost-Zadar,V 98-87,2026-03-24,27.07,10.0,1.0,4.0,25.0,2.0,4.0,50.0,2.0,2.0,100.0,0.0,2.0,2.0,4.0,0.0,1.0,0.0,3.0,4.0,9.0
-1076,Dragan Milosavljević,Igokea m:tel,aba,ABA League,2025-26,2025-11-01,Cluj-Igokea m:tel,D 84-106,2026-03-24,21.43,7.0,0.0,2.0,0.0,0.0,1.0,0.0,7.0,8.0,87.5,2.0,1.0,3.0,3.0,0.0,2.0,0.0,3.0,-22.0,8.0
+5073,Axel Bouteille,Budućnost VOLI,aba,ABA League,2025-26,2025-11-01,Zadar,V 98-87,2026-03-24,27.07,10.0,1.0,4.0,25.0,2.0,4.0,50.0,2.0,2.0,100.0,0.0,2.0,2.0,4.0,0.0,1.0,0.0,3.0,4.0,9.0
+1076,Dragan Milosavljević,Igokea m:tel,aba,ABA League,2025-26,2025-11-01,Cluj,D 84-106,2026-03-24,21.43,7.0,0.0,2.0,0.0,0.0,1.0,0.0,7.0,8.0,87.5,2.0,1.0,3.0,3.0,0.0,2.0,0.0,3.0,-22.0,8.0

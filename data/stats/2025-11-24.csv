@@ -1,3 +1,3 @@
 player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
 5313012,Mario Saint-Supéry,Gonzaga Bulldogs,ncaa_espn,NCAA,2025-26,2025-11-24,vs 8 ALA,W 95-85,2026-03-13,32.0,10.0,0.0,1.0,0.0,0.0,1.0,0.0,10.0,11.0,90.9,,,5.0,6.0,1.0,3.0,0.0,0.0,,
-1076,Dragan Milosavljević,Igokea m:tel,aba,ABA League,2025-26,2025-11-24,Borac-Igokea m:tel,D 75-97,2026-03-24,19.52,10.0,4.0,4.0,100.0,0.0,1.0,0.0,2.0,2.0,100.0,1.0,4.0,5.0,0.0,1.0,5.0,0.0,3.0,-9.0,12.0
+1076,Dragan Milosavljević,Igokea m:tel,aba,ABA League,2025-26,2025-11-24,Borac,D 75-97,2026-03-24,19.52,10.0,4.0,4.0,100.0,0.0,1.0,0.0,2.0,2.0,100.0,1.0,4.0,5.0,0.0,1.0,5.0,0.0,3.0,-9.0,12.0

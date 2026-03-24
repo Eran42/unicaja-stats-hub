@@ -490,6 +490,39 @@ def _extract_result_from_game_page(html: str, opponent_name: str) -> str:
     return score_str
 
 
+def _find_player_team_abbr(game_rows: list, col_map: dict) -> str:
+    """Find the player's team abbreviation from PARTIDOS matchup strings.
+
+    The player's team appears in every game row (as home or away), so it is
+    the most-frequent token when all matchup strings are split on '-'.
+    """
+    from collections import Counter
+    opp_idx = col_map.get("opponent")
+    if opp_idx is None:
+        return ""
+    tokens: list[str] = []
+    for cells in game_rows:
+        raw = cells[opp_idx].get_text(strip=True) if opp_idx < len(cells) else ""
+        if "-" in raw:
+            left, _, right = raw.partition("-")
+            tokens.extend([left.strip(), right.strip()])
+    if not tokens:
+        return ""
+    return Counter(tokens).most_common(1)[0][0]
+
+
+def _strip_matchup(matchup: str, player_team_abbr: str) -> str:
+    """Given 'TeamA-TeamB', return whichever side is NOT the player's team."""
+    if not player_team_abbr or "-" not in matchup:
+        return matchup
+    left, _, right = matchup.partition("-")
+    if left.strip() == player_team_abbr:
+        return right.strip()
+    if right.strip() == player_team_abbr:
+        return left.strip()
+    return matchup
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -576,6 +609,10 @@ def fetch_player_stats(player_id: str) -> dict:
         logger.warning("ACB: no game rows found for id=%s", player_id)
         return {}
 
+    # Determine player's team abbreviation from all matchup strings so we can
+    # return just the opponent (not the full "TeamA-TeamB" matchup).
+    player_team_abbr = _find_player_team_abbr(game_rows, col_map)
+
     # Most recent *played* game = last row that has actual stats
     # Future scheduled games appear at the bottom with no stats (only a time in opponent column)
     last_cells: list[Tag] | None = None
@@ -597,7 +634,7 @@ def fetch_player_stats(player_id: str) -> dict:
     # TAP.F/TAP.C and FP.F/FP.C sub-columns for blocks and fouls.
     game_date   = ""
     game_result = stats.get("result", "").strip()  # V or D from game log, may be empty
-    opponent    = stats.get("opponent", "")
+    opponent    = _strip_matchup(stats.get("opponent", ""), player_team_abbr)
     detail_stats: dict[str, float | None] = {}
 
     for cell in last_cells:  # type: ignore[union-attr]

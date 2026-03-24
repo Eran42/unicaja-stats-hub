@@ -141,11 +141,17 @@ def _parse_result(text: str) -> str:
     return score_str or wl
 
 
-def _fetch_match_info(href: str, player_team_slug: str = "") -> tuple[str, str]:
-    """Fetch an ABA match page and return (game_date_iso, result_str).
+def _slug_to_name(slug: str) -> str:
+    """Convert a URL slug like 'crvena-zvezda-meridianbet' to 'Crvena Zvezda Meridianbet'."""
+    return " ".join(w.capitalize() for w in slug.split("-"))
+
+
+def _fetch_match_info(href: str, player_team_slug: str = "") -> tuple[str, str, str]:
+    """Fetch an ABA match page and return (game_date_iso, result_str, opponent_name).
 
     result_str: "V 85-76" / "D 76-85" (player's team score first) when
     W/L can be determined; plain "85-76" (home-away) otherwise.
+    opponent_name: human-readable opponent name derived from the URL slug.
     player_team_slug: output of _make_slug(team_name), used to identify
     which score belongs to the player's team.
     """
@@ -155,11 +161,24 @@ def _fetch_match_info(href: str, player_team_slug: str = "") -> tuple[str, str]:
         resp = requests.get(href, headers=_HEADERS, timeout=_TIMEOUT)
         resp.raise_for_status()
     except requests.RequestException:
-        return "", ""
+        return "", "", ""
 
     # Date from "DD.MM.YYYY" pattern
     m = re.search(r"\b(\d{1,2}\.\d{1,2}\.\d{4})\b", resp.text)
     game_date = _parse_aba_date(m.group(1)) if m else ""
+
+    # URL ends with /home-slug-away-slug/; extract opponent slug from URL.
+    path_seg = href.rstrip("/").split("/")[-1]
+    opponent = ""
+    if player_team_slug and path_seg:
+        if path_seg.startswith(player_team_slug + "-"):
+            # Player is home; opponent slug is everything after the team slug + "-"
+            opp_slug = path_seg[len(player_team_slug) + 1:]
+            opponent = _slug_to_name(opp_slug)
+        elif path_seg.endswith("-" + player_team_slug):
+            # Player is away; opponent slug is everything before the "-" + team slug
+            opp_slug = path_seg[: -(len(player_team_slug) + 1)]
+            opponent = _slug_to_name(opp_slug)
 
     # Score from <td class="gameScore">93 : 97</td>
     # Numbers are always listed home-away.
@@ -172,14 +191,11 @@ def _fetch_match_info(href: str, player_team_slug: str = "") -> tuple[str, str]:
         if len(nums) >= 2:
             home_sc, away_sc = int(nums[0]), int(nums[1])
             if player_team_slug:
-                # URL ends with /home-slug-away-slug/; home team's slug is a
-                # prefix of the combined slug segment.
-                path_seg = href.rstrip("/").split("/")[-1]
-                if path_seg.startswith(player_team_slug):
+                if path_seg.startswith(player_team_slug + "-"):
                     # Player's team is home
                     wl = "V" if home_sc > away_sc else "D"
                     result = f"{wl} {home_sc}-{away_sc}"
-                elif path_seg.endswith(player_team_slug):
+                elif path_seg.endswith("-" + player_team_slug):
                     # Player's team is away
                     wl = "V" if away_sc > home_sc else "D"
                     result = f"{wl} {away_sc}-{home_sc}"
@@ -188,7 +204,7 @@ def _fetch_match_info(href: str, player_team_slug: str = "") -> tuple[str, str]:
             else:
                 result = f"{home_sc}-{away_sc}"
 
-    return game_date, result
+    return game_date, result, opponent
 
 
 def _is_game_row(cells) -> bool:
@@ -272,11 +288,12 @@ def fetch_player_stats(
         logger.warning("ABA: no game rows found for player_id=%s", player_id)
         return {}
 
-    # For game-number rows, fetch the match page to get the date and result.
-    last_game_result = ""
+    # For game-number rows, fetch the match page to get the date, result, and opponent.
+    last_game_result   = ""
+    last_game_opponent = ""
     if last_is_gamenumber and last_match_href:
         team_slug = _make_slug(player_team) if player_team else ""
-        last_game_date, last_game_result = _fetch_match_info(last_match_href, team_slug)
+        last_game_date, last_game_result, last_game_opponent = _fetch_match_info(last_match_href, team_slug)
 
     c = last_game_cells
 
@@ -296,8 +313,7 @@ def fetch_player_stats(
 
     # Extract opponent and result from the leading context cells.
     if last_is_gamenumber:
-        # Matchup cell contains both teams; use the full text as opponent context.
-        opponent = _get(1) or ""
+        opponent = last_game_opponent or _get(1) or ""
         result   = last_game_result
     elif offset == 3:
         opponent   = _get(1) or ""
@@ -365,11 +381,13 @@ def _cells_to_record(
     player_name: str,
     today: str,
     game_result: str = "",
+    game_opponent: str = "",
 ) -> dict | None:
     """Convert an ABA game row (cells list) into a canonical stats record.
 
     Returns None if the row lacks a parseable game date.
     game_result: pre-fetched result string (e.g. "V 85-76") from _fetch_match_info.
+    game_opponent: clean opponent name from _fetch_match_info (URL slug-derived).
     """
     game_date = _parse_aba_date(game_date_str) if game_date_str else ""
     if not game_date or not re.match(r"\d{4}-\d{2}-\d{2}", game_date):
@@ -380,7 +398,7 @@ def _cells_to_record(
 
     if is_gamenumber:
         offset   = 2
-        opponent = _get(1) or ""
+        opponent = game_opponent or _get(1) or ""
         result   = game_result
     elif len(cells) >= 26:
         offset     = 3
@@ -483,22 +501,23 @@ def fetch_season_stats(
         logger.warning("ABA: no game rows found for player_id=%s", player_id)
         return []
 
-    # Pass 2: fetch dates+results for game-number rows (one request per game).
+    # Pass 2: fetch dates+results+opponents for game-number rows (one request per game).
     team_slug = _make_slug(player_team) if player_team else ""
-    resolved: list[tuple] = []  # (cells, is_gn, date_str, result_str)
+    resolved: list[tuple] = []  # (cells, is_gn, date_str, result_str, opponent_str)
     for cells, is_gn, href, date_str in rows_info:
         if is_gn and href:
-            fetched_date, fetched_result = _fetch_match_info(href, team_slug)
-            resolved.append((cells, is_gn, fetched_date, fetched_result))
+            fetched_date, fetched_result, fetched_opp = _fetch_match_info(href, team_slug)
+            resolved.append((cells, is_gn, fetched_date, fetched_result, fetched_opp))
             time.sleep(0.35)
         else:
-            resolved.append((cells, is_gn, date_str, ""))
+            resolved.append((cells, is_gn, date_str, "", ""))
 
     # Pass 3: build records, skip rows without valid dates.
     today   = str(date.today())
     records = []
-    for cells, is_gn, date_str, result_str in resolved:
-        rec = _cells_to_record(cells, is_gn, date_str, player_id, player_name, today, game_result=result_str)
+    for cells, is_gn, date_str, result_str, opp_str in resolved:
+        rec = _cells_to_record(cells, is_gn, date_str, player_id, player_name, today,
+                               game_result=result_str, game_opponent=opp_str)
         if rec:
             records.append(rec)
 

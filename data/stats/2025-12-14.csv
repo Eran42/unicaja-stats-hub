@@ -1,4 +1,4 @@
 player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
-20209919,Darío Brizuela,FC Barcelona,acb,ACB,2025-26,2025-12-14,BAXI Manresa-Barça,62-89,2026-03-13,25.18,22.0,5.0,7.0,71.0,4.0,9.0,44.0,0.0,0.0,0.0,1.0,1.0,2.0,4.0,0.0,1.0,0.0,3.0,23.0,18.0
-30000049,Melvin Ejim,Hiopos Lleida,acb,ACB,2025-26,2025-12-14,Surne Bilbao-Hiopos Lleida,93-75,2026-03-23,22.5,15.0,3.0,6.0,50.0,2.0,4.0,50.0,3.0,3.0,100.0,2.0,1.0,3.0,0.0,2.0,1.0,1.0,5.0,-12.0,12.0
-5100,Dylan Osetkowski,Partizan Mozzart Bet,aba,ABA League,2025-26,2025-12-14,FMP-Partizan,V 91-79,2026-03-24,22.63,9.0,2.0,4.0,50.0,1.0,4.0,25.0,2.0,2.0,100.0,1.0,4.0,5.0,1.0,1.0,0.0,2.0,2.0,16.0,12.0
+20209919,Darío Brizuela,FC Barcelona,acb,ACB,2025-26,2025-12-14,BAXI Manresa,62-89,2026-03-13,25.18,22.0,5.0,7.0,71.0,4.0,9.0,44.0,0.0,0.0,0.0,1.0,1.0,2.0,4.0,0.0,1.0,0.0,3.0,23.0,18.0
+30000049,Melvin Ejim,Hiopos Lleida,acb,ACB,2025-26,2025-12-14,Surne Bilbao,93-75,2026-03-23,22.5,15.0,3.0,6.0,50.0,2.0,4.0,50.0,3.0,3.0,100.0,2.0,1.0,3.0,0.0,2.0,1.0,1.0,5.0,-12.0,12.0
+5100,Dylan Osetkowski,Partizan Mozzart Bet,aba,ABA League,2025-26,2025-12-14,FMP,V 91-79,2026-03-24,22.63,9.0,2.0,4.0,50.0,1.0,4.0,25.0,2.0,2.0,100.0,1.0,4.0,5.0,1.0,1.0,0.0,2.0,2.0,16.0,12.0
