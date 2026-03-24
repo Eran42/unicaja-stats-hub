@@ -1,3 +1,6 @@
-player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
-20209919,Darío Brizuela,acb,ACB,2025-26,2025-11-09,Bàsquet Girona-Barça,96-78,2026-03-13,9.22,10.0,1.0,1.0,100.0,2.0,4.0,50.0,2.0,2.0,100.0,1.0,0.0,1.0,0.0,0.0,0.0,,0.0,10.0,10.0,FC Barcelona
-20213230,Yankuba Sima,acb,ACB,2025-26,2025-11-09,Coviran Granada-Valencia Basket,85-79,2026-03-13,8.02,0.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,0.0,2.0,0.0,0.0,0.0,,0.0,-2.0,-1.0,Valencia Basket
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+20209919,Darío Brizuela,FC Barcelona,acb,ACB,2025-26,2025-11-09,Bàsquet Girona-Barça,96-78,2026-03-13,9.22,10.0,1.0,1.0,100.0,2.0,4.0,50.0,2.0,2.0,100.0,1.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,10.0,10.0
+20213230,Yankuba Sima,Valencia Basket,acb,ACB,2025-26,2025-11-09,Coviran Granada-Valencia Basket,85-79,2026-03-13,8.02,0.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,-2.0,-1.0
+30000049,Melvin Ejim,Hiopos Lleida,acb,ACB,2025-26,2025-11-09,Hiopos Lleida-Baskonia,86-80,2026-03-23,30.87,17.0,7.0,7.0,100.0,1.0,2.0,50.0,0.0,1.0,0.0,7.0,0.0,7.0,0.0,1.0,1.0,2.0,0.0,12.0,28.0
+26892,Mindaugas Kuzminskas,,eurobasket,Greek League,2025-26,2025-11-09,PAOK,76-78,2026-03-24,15.0,7.0,1.0,3.0,33.3,1.0,2.0,50.0,2.0,2.0,100.0,0.0,2.0,2.0,0.0,0.0,1.0,1.0,2.0,,5.0
+130801,Nemanja Nedović,,eurobasket,LNB Pro A,2025-26,2025-11-09,Saint Quentin,92-84,2026-03-24,19.0,9.0,0.0,1.0,0.0,3.0,6.0,50.0,0.0,0.0,,1.0,5.0,6.0,5.0,0.0,1.0,0.0,1.0,,14.0

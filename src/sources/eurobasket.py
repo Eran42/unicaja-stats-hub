@@ -256,119 +256,55 @@ def _is_game_row(cells: list[Tag], col_map: dict[str, int]) -> bool:
 # Public API
 # ---------------------------------------------------------------------------
 
-def fetch_player_stats(
+def _extract_record(
+    row_data: list[str],
+    col_map: dict[str, int],
     player_id: str | int,
-    player_name: str = "player",
-    competition: str = "Greek League",
-) -> dict:
-    """Fetch the most recent game box score for a player on basketball.eurobasket.com."""
-    slug = _make_slug(player_name)
-    url  = f"{_BASE_URL}/{slug}/{player_id}"
-    logger.debug("Eurobasket fetch: %s", url)
+    player_name: str,
+    competition: str,
+    today: str,
+) -> dict | None:
+    """Convert a single game row into a canonical stats record.
 
-    try:
-        resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
-        resp.raise_for_status()
-    except requests.HTTPError as exc:
-        logger.warning("Eurobasket HTTP error player_id=%s: %s", player_id, exc)
-        return {}
-    except requests.RequestException as exc:
-        logger.warning("Eurobasket request failed player_id=%s: %s", player_id, exc)
-        return {}
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    # Look for any table with a date/game column and stat columns
-    last_row:   list[str] | None = None
-    last_cells: list[Tag]  | None = None
-    col_map:    dict[str, int]    = {}
-    game_date = ""
-
-    for table in soup.find_all("table"):
-        rows = table.find_all("tr")
-        if len(rows) < 3:
-            continue
-
-        # Eurobasket game-log tables have a single-cell "Details" title in rows[0]
-        # and column headers in rows[1].  Career-summary / history tables look
-        # similar but are NOT "Details" — skip them to avoid bad matches.
-        title_cells = rows[0].find_all(["th", "td"], recursive=False)
-        if len(title_cells) == 1 and title_cells[0].get_text(strip=True).lower() == "details":
-            hcells     = rows[1].find_all(["th", "td"], recursive=False)
-            data_start = 2
-        else:
-            # Fallback: try rows[0] directly as a header row (other table styles)
-            hcells     = rows[0].find_all(["th", "td"], recursive=False)
-            data_start = 1
-
-        cmap = _build_col_map(hcells)
-        if len(cmap) < 5:
-            continue
-
-        # Filter by competition: each Details section is preceded by an <h4>
-        # like "Season: 2025-2026 (Greece-GBL)".  Skip tables whose heading
-        # does not match the requested competition.
-        if competition and data_start == 2:   # only filter proper "Details" tables
-            h4 = table.find_previous("h4")
-            heading_text = h4.get_text(strip=True) if h4 else ""
-            if heading_text and not _heading_matches(heading_text, competition):
-                continue
-
-        for row in rows[data_start:]:
-            cells = row.find_all(["td", "th"], recursive=False)
-            if _is_game_row(cells, cmap):
-                last_row   = [_cell_text(c) for c in cells]
-                last_cells = cells
-                col_map    = cmap
-                game_date  = _cell_text(cells[0])
-
-    if last_row is None or last_cells is None or not col_map:
-        logger.warning(
-            "Eurobasket: no game rows found for player_id=%s", player_id
-        )
-        return {}
+    Returns None if the row lacks a parseable game date.
+    """
+    game_date_raw = row_data[0]
+    game_date = _parse_date_flexible(game_date_raw)
+    if not game_date or not re.match(r"\d{4}-\d{2}-\d{2}", game_date):
+        return None
 
     def _get(field: str) -> float | None:
         idx = col_map.get(field)
-        if idx is not None and idx < len(last_row):
-            return _safe_float(last_row[idx])
-        return None
+        return _safe_float(row_data[idx]) if idx is not None and idx < len(row_data) else None
 
     def _raw(field: str) -> str | None:
         idx = col_map.get(field)
-        if idx is not None and idx < len(last_row):
-            return last_row[idx]
-        return None
+        return row_data[idx] if idx is not None and idx < len(row_data) else None
 
-    # Identify where stat columns begin (exclude pseudo-fields like "_opponent").
     stat_indices = [col_map[k] for k in col_map if not k.startswith("_")]
     first_stat_col = min(stat_indices) if stat_indices else 0
 
-    # Opponent: use named "_opponent" column if present, otherwise fall back to position.
     if "_opponent" in col_map:
         idx = col_map["_opponent"]
-        opponent = last_row[idx] if idx < len(last_row) else ""
-    elif first_stat_col > 1 and len(last_row) > 1:
-        opponent = last_row[1]
+        opponent = row_data[idx] if idx < len(row_data) else ""
+    elif first_stat_col > 1 and len(row_data) > 1:
+        opponent = row_data[1]
     else:
         opponent = ""
 
-    # Result: use named "_result_col" column if present, otherwise fall back to position.
     if "_result_col" in col_map:
         idx = col_map["_result_col"]
-        result_raw = last_row[idx] if idx < len(last_row) else ""
-    elif first_stat_col > 2 and len(last_row) > 2:
-        result_raw = last_row[2]
+        result_raw = row_data[idx] if idx < len(row_data) else ""
+    elif first_stat_col > 2 and len(row_data) > 2:
+        result_raw = row_data[2]
         if result_raw and re.match(r"^\d+(\.\d+)?$", result_raw):
             result_raw = ""
     else:
         result_raw = ""
     result = _parse_result(result_raw)
 
-    # Shooting: handle both separate columns and compound "M-A" format.
-    # _parse_ma_cell returns (made, attempts) when the cell is "M-A"; (None, None) otherwise.
-    def _shoot(ma_field: str, m_field: str, a_field: str, pct_field: str):
-        raw = _raw(ma_field) or _raw(m_field)
+    def _shoot(field: str, a_field: str, pct_field: str):
+        raw = _raw(field)
         made, att = _parse_ma_cell(raw) if raw else (None, None)
         if made is None:
             made = _safe_float(raw)
@@ -378,9 +314,9 @@ def fetch_player_stats(
             pct = round(made / att * 100, 1)
         return made, att, pct
 
-    t2m, t2a, t2_pct = _shoot("t2m", "t2m", "t2a", "t2_pct")
-    t3m, t3a, t3_pct = _shoot("t3m", "t3m", "t3a", "t3_pct")
-    ftm, fta, ft_pct = _shoot("ftm", "ftm", "fta", "ft_pct")
+    t2m, t2a, t2_pct = _shoot("t2m", "t2a", "t2_pct")
+    t3m, t3a, t3_pct = _shoot("t3m", "t3a", "t3_pct")
+    ftm, fta, ft_pct = _shoot("ftm", "fta", "ft_pct")
 
     return {
         "player_id":   str(player_id),
@@ -388,23 +324,124 @@ def fetch_player_stats(
         "source":      "eurobasket",
         "competition": competition,
         "season":      "2025-26",
-        "game_date":   _parse_date_flexible(game_date),
+        "game_date":   game_date,
         "opponent":    opponent,
         "result":      result,
-        "date":        str(date.today()),
+        "date":        today,
         "min":         _parse_minutes(_raw("min")),
         "pts":         _get("pts"),
-        "t2m":         t2m,   "t2a": t2a,   "t2_pct": t2_pct,
-        "t3m":         t3m,   "t3a": t3a,   "t3_pct": t3_pct,
-        "ftm":         ftm,   "fta": fta,   "ft_pct": ft_pct,
-        "reb_off":     _get("reb_off"),
-        "reb_def":     _get("reb_def"),
-        "reb":         _get("reb"),
-        "ast":         _get("ast"),
-        "stl":         _get("stl"),
-        "tov":         _get("tov"),
-        "blk":         _get("blk"),
-        "fouls":       _get("fouls"),
-        "plus_minus":  _get("plus_minus"),
-        "val":         _get("val"),
+        "t2m":  t2m,  "t2a": t2a,  "t2_pct": t2_pct,
+        "t3m":  t3m,  "t3a": t3a,  "t3_pct": t3_pct,
+        "ftm":  ftm,  "fta": fta,  "ft_pct": ft_pct,
+        "reb_off":    _get("reb_off"),
+        "reb_def":    _get("reb_def"),
+        "reb":        _get("reb"),
+        "ast":        _get("ast"),
+        "stl":        _get("stl"),
+        "tov":        _get("tov"),
+        "blk":        _get("blk"),
+        "fouls":      _get("fouls"),
+        "plus_minus": _get("plus_minus"),
+        "val":        _get("val"),
     }
+
+
+def _fetch_and_parse(
+    player_id: str | int,
+    player_name: str,
+    competition: str,
+) -> tuple[BeautifulSoup | None, str]:
+    """Fetch the player page and return (soup, url). Returns (None, url) on error."""
+    slug = _make_slug(player_name)
+    url  = f"{_BASE_URL}/{slug}/{player_id}"
+    try:
+        resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
+        resp.raise_for_status()
+        return BeautifulSoup(resp.text, "html.parser"), url
+    except requests.HTTPError as exc:
+        logger.warning("Eurobasket HTTP error player_id=%s: %s", player_id, exc)
+    except requests.RequestException as exc:
+        logger.warning("Eurobasket request failed player_id=%s: %s", player_id, exc)
+    return None, url
+
+
+def _iter_game_rows(
+    soup: BeautifulSoup,
+    competition: str,
+):
+    """Yield (row_data, col_map) for every valid game row matching *competition*."""
+    for table in soup.find_all("table"):
+        rows = table.find_all("tr")
+        if len(rows) < 3:
+            continue
+
+        title_cells = rows[0].find_all(["th", "td"], recursive=False)
+        if len(title_cells) == 1 and title_cells[0].get_text(strip=True).lower() == "details":
+            hcells     = rows[1].find_all(["th", "td"], recursive=False)
+            data_start = 2
+        else:
+            hcells     = rows[0].find_all(["th", "td"], recursive=False)
+            data_start = 1
+
+        cmap = _build_col_map(hcells)
+        if len(cmap) < 5:
+            continue
+
+        if competition and data_start == 2:
+            h4 = table.find_previous("h4")
+            heading_text = h4.get_text(strip=True) if h4 else ""
+            if heading_text and not _heading_matches(heading_text, competition):
+                continue
+
+        for row in rows[data_start:]:
+            cells = row.find_all(["td", "th"], recursive=False)
+            if _is_game_row(cells, cmap):
+                yield [_cell_text(c) for c in cells], cmap
+
+
+def fetch_season_stats(
+    player_id: str | int,
+    player_name: str = "player",
+    competition: str = "Greek League",
+) -> list[dict]:
+    """Return all game box scores for the current season from basketball.eurobasket.com."""
+    soup, _ = _fetch_and_parse(player_id, player_name, competition)
+    if soup is None:
+        return []
+
+    today   = str(date.today())
+    records = []
+    for row_data, cmap in _iter_game_rows(soup, competition):
+        rec = _extract_record(row_data, cmap, player_id, player_name, competition, today)
+        if rec:
+            records.append(rec)
+
+    logger.info(
+        "Eurobasket season fetch: %d games for player_id=%s (%s)",
+        len(records), player_id, competition,
+    )
+    return records
+
+
+def fetch_player_stats(
+    player_id: str | int,
+    player_name: str = "player",
+    competition: str = "Greek League",
+) -> dict:
+    """Fetch the most recent game box score for a player on basketball.eurobasket.com."""
+    soup, _ = _fetch_and_parse(player_id, player_name, competition)
+    if soup is None:
+        return {}
+
+    today    = str(date.today())
+    last_rec = None
+    for row_data, cmap in _iter_game_rows(soup, competition):
+        rec = _extract_record(row_data, cmap, player_id, player_name, competition, today)
+        if rec:
+            last_rec = rec
+
+    if last_rec is None:
+        logger.warning("Eurobasket: no game rows found for player_id=%s", player_id)
+        return {}
+
+    return last_rec

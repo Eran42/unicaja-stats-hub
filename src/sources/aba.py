@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 import unicodedata
 from datetime import date
 from typing import Any
@@ -315,3 +316,150 @@ def fetch_player_stats(
         "plus_minus":  _safe_float(_s(22)),
         "val":         _safe_float(_s(23)),
     }
+
+
+def _cells_to_record(
+    cells,
+    is_gamenumber: bool,
+    game_date_str: str,
+    player_id: str | int,
+    player_name: str,
+    today: str,
+) -> dict | None:
+    """Convert an ABA game row (cells list) into a canonical stats record.
+
+    Returns None if the row lacks a parseable game date.
+    """
+    game_date = _parse_aba_date(game_date_str) if game_date_str else ""
+    if not game_date or not re.match(r"\d{4}-\d{2}-\d{2}", game_date):
+        return None
+
+    def _get(idx: int) -> str | None:
+        return _cell_text(cells[idx]) if idx < len(cells) else None
+
+    if is_gamenumber:
+        offset   = 2
+        opponent = _get(1) or ""
+        result   = ""
+    elif len(cells) >= 26:
+        offset     = 3
+        opponent   = _get(1) or ""
+        result_raw = _get(2) or ""
+        result     = _parse_result(result_raw)
+    else:
+        offset   = 2
+        combined = _get(1) or ""
+        score_m  = re.search(r"(\d{2,3})[:\-](\d{2,3})", combined)
+        if score_m:
+            opponent = combined[:score_m.start()].strip()
+            result   = _parse_result(combined)
+        else:
+            opponent = combined
+            result   = ""
+
+    def _s(rel: int) -> str | None:
+        return _get(offset + rel)
+
+    return {
+        "player_id":   str(player_id),
+        "player_name": player_name,
+        "source":      "aba",
+        "competition": "ABA League",
+        "season":      "2025-26",
+        "game_date":   game_date,
+        "opponent":    opponent,
+        "result":      result,
+        "date":        today,
+        "min":         _parse_minutes(_s(0)),
+        "pts":         _safe_float(_s(1)),
+        "t2m":         _safe_float(_s(3)),
+        "t2a":         _safe_float(_s(4)),
+        "t2_pct":      _safe_float(_s(5)),
+        "t3m":         _safe_float(_s(6)),
+        "t3a":         _safe_float(_s(7)),
+        "t3_pct":      _safe_float(_s(8)),
+        "ftm":         _safe_float(_s(9)),
+        "fta":         _safe_float(_s(10)),
+        "ft_pct":      _safe_float(_s(11)),
+        "reb_def":     _safe_float(_s(12)),
+        "reb_off":     _safe_float(_s(13)),
+        "reb":         _safe_float(_s(14)),
+        "ast":         _safe_float(_s(15)),
+        "stl":         _safe_float(_s(16)),
+        "tov":         _safe_float(_s(17)),
+        "blk":         _safe_float(_s(18)),
+        "fouls":       _safe_float(_s(20)),
+        "plus_minus":  _safe_float(_s(22)),
+        "val":         _safe_float(_s(23)),
+    }
+
+
+def fetch_season_stats(
+    player_id: str | int,
+    player_name: str = "player",
+    season: str = _CURRENT_SEASON,
+    league: str = _LEAGUE,
+) -> list[dict]:
+    """Return all game box scores for the current season from aba-liga.com.
+
+    For the current game-number table format, each game requires a separate
+    request to the match page to retrieve the date.  Requests are spaced
+    0.35 s apart to avoid hammering the server.
+    """
+    slug = _make_slug(player_name)
+    url  = f"{_BASE_URL}/{player_id}/{season}/{league}/{slug}/"
+    logger.debug("ABA season fetch: %s", url)
+
+    try:
+        resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
+        resp.raise_for_status()
+    except requests.HTTPError as exc:
+        logger.warning("ABA HTTP error player_id=%s: %s", player_id, exc)
+        return []
+    except requests.RequestException as exc:
+        logger.warning("ABA request failed player_id=%s: %s", player_id, exc)
+        return []
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    # Pass 1: collect all game rows and their match-page hrefs.
+    rows_info: list[tuple] = []  # (cells, is_gamenumber, href, date_str)
+    for table in soup.find_all("table"):
+        for row in table.find_all("tr"):
+            cells = row.find_all(["td", "th"])
+            if not _is_game_row(cells):
+                continue
+            first_text = _cell_text(cells[0])
+            if re.match(r"^\d{1,3}$", first_text):
+                a_tag = cells[1].find("a") if len(cells) > 1 else None
+                href  = a_tag["href"] if a_tag and a_tag.get("href") else ""
+                rows_info.append((cells, True, href, ""))
+            else:
+                rows_info.append((cells, False, "", first_text))
+
+    if not rows_info:
+        logger.warning("ABA: no game rows found for player_id=%s", player_id)
+        return []
+
+    # Pass 2: fetch dates for game-number rows (one request per game).
+    resolved: list[tuple] = []
+    for cells, is_gn, href, date_str in rows_info:
+        if is_gn and href:
+            fetched = _fetch_match_date(href)
+            resolved.append((cells, is_gn, href, fetched))
+            time.sleep(0.35)
+        else:
+            resolved.append((cells, is_gn, href, date_str))
+
+    # Pass 3: build records, skip rows without valid dates.
+    today   = str(date.today())
+    records = []
+    for cells, is_gn, _, date_str in resolved:
+        rec = _cells_to_record(cells, is_gn, date_str, player_id, player_name, today)
+        if rec:
+            records.append(rec)
+
+    logger.info(
+        "ABA season fetch: %d games for player_id=%s", len(records), player_id
+    )
+    return records
