@@ -112,7 +112,7 @@ Before committing or publishing any stats output, go through each of these steps
 3. Correct or remove any rows that cannot be verified.
 4. Only publish after the data has been reviewed and validated.
 
-### Known source issues (updated 2026-03-13)
+### Known source issues (updated 2026-03-24)
 
 #### ACB (`acb.py`)
 - **Rebounds order**: The game-log column `T(D+O)` uses reversed labeling — the first sub-value is offensive, the second defensive (confirmed by `live.acb.com` legend: `DR=Offensive, OR=Defensive`). Fixed in `_parse_reb_cell` (swap on paren format).
@@ -121,10 +121,14 @@ Before committing or publishing any stats output, go through each of these steps
 - **FEB source (500 errors)**: `baloncestoenvivo.feb.es` returns HTTP 500 for all requests as of 2026-03-13. The API may have changed or the site is down. Need to find an alternative endpoint or scrape a different FEB URL.
 
 #### EuroBasket (`eurobasket.py`)
-- Returning no game rows for Lessort (Greek League, id=252481), Nedović (LNB Pro A, id=130801), and Kuzminskas (Greek League, id=26892). Player IDs or season path may have changed. Verify correct IDs on `basketball.eurobasket.com` before next run.
+- **FIXED 2026-03-24**: Three-part fix: (1) "Details" tables have a two-row header (title in rows[0], headers in rows[1]) — now correctly detected. (2) Competition filtering via nearest `<h4>` heading prevents EuroLeague games bleeding into national league sources. (3) Compound "M-A" shooting columns (2FGP, 3FGP, FT) now parsed into separate made/attempt fields.
+- **Lessort Greek League (id=252481)**: Still returns no data because Lessort has played no 2025-26 Greek League games yet (fractured fibula Dec 2024, returned to EuroLeague only on March 12 2026). Will populate automatically once she plays a GBL game.
+- **ABA League result field**: When fetching ABA League games for Carter (id=402220), the result field is populated from the score only (no W/L prefix) because the result column is on the eurobasket.com "Against Team" format.
 
 #### ABA League (`aba.py`)
-- No game rows for Osetkowski (id=5100, suspended for anti-doping), Bouteille (id=5073), Carter (id=5075), and Milosavljević (id=1076). Check whether these IDs are still valid for the current season slug, or if players changed teams.
+- **FIXED 2026-03-24**: Table format changed from date-first to game-number-first rows. `_is_game_row` now accepts both formats. Date retrieved by following the match page link (one extra HTTP request). Offset corrected to 2 for game-number rows.
+- **Carter direct ABA source (id=5075)**: aba-liga.com shows "Player is currently not a member of ABA Liga j.t.d. club" — no data. Covered by new eurobasket source (id=402220) instead.
+- **Opponent field for ABA rows**: Shows full matchup text (e.g., "Buducnost-Dubai") rather than just the opposing team, because the player's own team name isn't available in the scraper context.
 
 #### EuroLeague player availability
 - **Tyson Carter** (P011305, Crvena Zvezda): hospitalized with pulmonary embolism in Oct–Nov 2025; missed most of the season. ID is correct but he hasn't appeared in the last 20 played EuroLeague games. Monitor and re-enable when he resumes regular play.
