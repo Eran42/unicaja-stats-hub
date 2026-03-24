@@ -169,6 +169,7 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": null,
-    "val": 10.0
+    "val": 10.0,
+    "team": "AS Monaco"
   }
 ]

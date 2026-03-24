@@ -692,7 +692,8 @@
     "blk": 0.0,
     "fouls": 0.0,
     "plus_minus": null,
-    "val": 1.0
+    "val": 1.0,
+    "team": "AEK BC"
   },
   {
     "player_id": "402220",
@@ -724,7 +725,8 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": null,
-    "val": 5.0
+    "val": 5.0,
+    "team": "Crvena zvezda"
   },
   {
     "player_id": "5100",
@@ -734,7 +736,7 @@
     "season": "2025-26",
     "game_date": "2026-03-15",
     "opponent": "Partizan-C. Olimpija",
-    "result": "",
+    "result": "V 86-70",
     "date": "2026-03-24",
     "min": 19.65,
     "pts": 0.0,
@@ -756,6 +758,7 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": -7.0,
-    "val": 0.0
+    "val": 0.0,
+    "team": "Partizan Mozzart Bet"
   }
 ]

@@ -272,7 +272,8 @@
     "blk": 0.0,
     "fouls": 3.0,
     "plus_minus": null,
-    "val": 4.0
+    "val": 4.0,
+    "team": "AEK BC"
   },
   {
     "player_id": "130801",
@@ -304,7 +305,8 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": null,
-    "val": 6.0
+    "val": 6.0,
+    "team": "AS Monaco"
   },
   {
     "player_id": "5073",
@@ -314,7 +316,7 @@
     "season": "2025-26",
     "game_date": "2026-01-17",
     "opponent": "C. Olimpija-Budućnost",
-    "result": "",
+    "result": "V 83-72",
     "date": "2026-03-24",
     "min": 16.33,
     "pts": 6.0,
@@ -336,6 +338,7 @@
     "blk": 0.0,
     "fouls": 2.0,
     "plus_minus": -1.0,
-    "val": 3.0
+    "val": 3.0,
+    "team": "Budućnost VOLI"
   }
 ]

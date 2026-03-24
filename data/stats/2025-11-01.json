@@ -99,7 +99,8 @@
     "blk": 0.0,
     "fouls": 3.0,
     "plus_minus": null,
-    "val": 11.0
+    "val": 11.0,
+    "team": "AEK BC"
   },
   {
     "player_id": "5073",
@@ -109,7 +110,7 @@
     "season": "2025-26",
     "game_date": "2025-11-01",
     "opponent": "Budućnost-Zadar",
-    "result": "",
+    "result": "V 98-87",
     "date": "2026-03-24",
     "min": 27.07,
     "pts": 10.0,
@@ -131,7 +132,8 @@
     "blk": 0.0,
     "fouls": 3.0,
     "plus_minus": 4.0,
-    "val": 9.0
+    "val": 9.0,
+    "team": "Budućnost VOLI"
   },
   {
     "player_id": "1076",
@@ -141,7 +143,7 @@
     "season": "2025-26",
     "game_date": "2025-11-01",
     "opponent": "Cluj-Igokea m:tel",
-    "result": "",
+    "result": "D 84-106",
     "date": "2026-03-24",
     "min": 21.43,
     "pts": 7.0,
@@ -163,6 +165,7 @@
     "blk": 0.0,
     "fouls": 3.0,
     "plus_minus": -22.0,
-    "val": 8.0
+    "val": 8.0,
+    "team": "Igokea m:tel"
   }
 ]

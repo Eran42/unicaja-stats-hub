@@ -99,7 +99,8 @@
     "blk": 0.0,
     "fouls": 2.0,
     "plus_minus": null,
-    "val": 8.0
+    "val": 8.0,
+    "team": "AS Monaco"
   },
   {
     "player_id": "5073",
@@ -109,7 +110,7 @@
     "season": "2025-26",
     "game_date": "2025-10-26",
     "opponent": "Vienna-Budućnost",
-    "result": "",
+    "result": "V 83-78",
     "date": "2026-03-24",
     "min": 28.25,
     "pts": 13.0,
@@ -131,7 +132,8 @@
     "blk": 1.0,
     "fouls": 0.0,
     "plus_minus": 3.0,
-    "val": 14.0
+    "val": 14.0,
+    "team": "Budućnost VOLI"
   },
   {
     "player_id": "5100",
@@ -141,7 +143,7 @@
     "season": "2025-26",
     "game_date": "2025-10-26",
     "opponent": "Partizan-Borac",
-    "result": "",
+    "result": "V 85-74",
     "date": "2026-03-24",
     "min": 23.1,
     "pts": 13.0,
@@ -163,7 +165,8 @@
     "blk": 1.0,
     "fouls": 4.0,
     "plus_minus": -5.0,
-    "val": 22.0
+    "val": 22.0,
+    "team": "Partizan Mozzart Bet"
   },
   {
     "player_id": "1076",
@@ -173,7 +176,7 @@
     "season": "2025-26",
     "game_date": "2025-10-26",
     "opponent": "SC Derby-Igokea m:tel",
-    "result": "",
+    "result": "V 90-84",
     "date": "2026-03-24",
     "min": 29.17,
     "pts": 14.0,
@@ -195,6 +198,7 @@
     "blk": 0.0,
     "fouls": 4.0,
     "plus_minus": 10.0,
-    "val": 17.0
+    "val": 17.0,
+    "team": "Igokea m:tel"
   }
 ]

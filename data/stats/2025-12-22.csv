@@ -1,3 +1,3 @@
 player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
-5073,Axel Bouteille,,aba,ABA League,2025-26,2025-12-22,Budućnost-Vienna,,2026-03-24,20.42,9.0,2.0,4.0,50.0,1.0,4.0,25.0,2.0,3.0,66.7,1.0,1.0,2.0,3.0,0.0,0.0,0.0,1.0,8.0,10.0
-5100,Dylan Osetkowski,,aba,ABA League,2025-26,2025-12-22,Krka-Partizan,,2026-03-24,10.68,2.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,4.0,5.0,-1.0
+5073,Axel Bouteille,Budućnost VOLI,aba,ABA League,2025-26,2025-12-22,Budućnost-Vienna,V 102-91,2026-03-24,20.42,9.0,2.0,4.0,50.0,1.0,4.0,25.0,2.0,3.0,66.7,1.0,1.0,2.0,3.0,0.0,0.0,0.0,1.0,8.0,10.0
+5100,Dylan Osetkowski,Partizan Mozzart Bet,aba,ABA League,2025-26,2025-12-22,Krka-Partizan,V 99-92,2026-03-24,10.68,2.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,100.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,4.0,5.0,-1.0

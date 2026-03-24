@@ -7,6 +7,9 @@ log and distributes each game into the matching data/stats/{YYYY-MM-DD}.json
 (and .csv) file, honouring the canonical de-duplication key
 (player_name, source, competition, game_date).
 
+Existing records are *upserted*: if a matching record already exists with a
+missing team or empty result, it is updated in place with the fresh values.
+
 Usage:
     python backfill_national_leagues.py
 """
@@ -16,7 +19,6 @@ from __future__ import annotations
 import csv
 import json
 import logging
-import os
 import unicodedata
 from pathlib import Path
 
@@ -42,7 +44,8 @@ PLAYERS: list[tuple[str, str, str, str]] = [
     ("Dragan Milosavljević",  "aba", "1076", "ABA League"),
 ]
 
-STATS_DIR = Path(__file__).parent / "data" / "stats"
+STATS_DIR   = Path(__file__).parent / "data" / "stats"
+REGISTRY    = Path(__file__).parent / "data" / "players" / "registry.json"
 
 FIELDS = [
     "player_id", "player_name", "team", "source", "competition", "season",
@@ -60,6 +63,16 @@ FIELDS = [
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _load_team_map() -> dict[str, str]:
+    """Return {canonical_player_name: team} from the registry."""
+    with open(REGISTRY, encoding="utf-8") as f:
+        entries = json.load(f)
+    return {
+        unicodedata.normalize("NFC", e["name"]): e.get("team", "")
+        for e in entries
+    }
+
+
 def _dedup_key(r: dict) -> tuple:
     return (
         unicodedata.normalize("NFC", r.get("player_name", "")),
@@ -75,15 +88,24 @@ def _norm_name(r: dict) -> dict:
     return r2
 
 
-def load_day(day: str) -> tuple[list[dict], set]:
-    """Return (records, seen_keys) for a given YYYY-MM-DD."""
+def _needs_update(existing: dict, fresh: dict) -> bool:
+    """True if the existing record is missing team or result that fresh provides."""
+    if not existing.get("team") and fresh.get("team"):
+        return True
+    if not existing.get("result") and fresh.get("result"):
+        return True
+    return False
+
+
+def load_day(day: str) -> tuple[list[dict], dict]:
+    """Return (records, key_to_index) for a given YYYY-MM-DD."""
     path = STATS_DIR / f"{day}.json"
     if not path.exists():
-        return [], set()
+        return [], {}
     with open(path, encoding="utf-8") as f:
         records = [_norm_name(r) for r in json.load(f)]
-    seen = {_dedup_key(r) for r in records}
-    return records, seen
+    key_to_idx = {_dedup_key(r): i for i, r in enumerate(records)}
+    return records, key_to_idx
 
 
 def save_day(day: str, records: list[dict]) -> None:
@@ -102,18 +124,21 @@ def save_day(day: str, records: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    team_map = _load_team_map()
+
     # Group all new records by game_date so we only open each file once.
     new_records: dict[str, list[dict]] = {}  # game_date -> list of new records
 
     for player_name, scraper_type, player_id, competition in PLAYERS:
         logger.info("Fetching %s | %s | id=%s", player_name, competition, player_id)
+        player_team = team_map.get(unicodedata.normalize("NFC", player_name), "")
 
         if scraper_type == "eurobasket":
             from src.sources.eurobasket import fetch_season_stats
             records = fetch_season_stats(player_id, player_name=player_name, competition=competition)
         elif scraper_type == "aba":
             from src.sources.aba import fetch_season_stats  # type: ignore[assignment]
-            records = fetch_season_stats(player_id, player_name=player_name)
+            records = fetch_season_stats(player_id, player_name=player_name, player_team=player_team)
         else:
             logger.warning("Unknown scraper type: %s", scraper_type)
             continue
@@ -121,33 +146,49 @@ def main() -> None:
         logger.info("  -> %d game(s) returned", len(records))
         for rec in records:
             rec = _norm_name(rec)
+            # Inject team from registry (router normally does this via setdefault)
+            if player_team and not rec.get("team"):
+                rec["team"] = player_team
             gd = rec.get("game_date", "")
             if not gd:
                 continue
             new_records.setdefault(gd, []).append(rec)
 
-    # Merge into daily files.
-    total_added = 0
+    # Merge / upsert into daily files.
+    total_added   = 0
+    total_updated = 0
     for game_date in sorted(new_records):
-        existing, seen = load_day(game_date)
-        added = 0
+        existing, key_to_idx = load_day(game_date)
+        added   = 0
+        updated = 0
         for rec in new_records[game_date]:
             k = _dedup_key(rec)
-            if k not in seen:
+            if k in key_to_idx:
+                # Upsert: update missing team/result in the existing record
+                idx = key_to_idx[k]
+                if _needs_update(existing[idx], rec):
+                    if not existing[idx].get("team") and rec.get("team"):
+                        existing[idx]["team"] = rec["team"]
+                    if not existing[idx].get("result") and rec.get("result"):
+                        existing[idx]["result"] = rec["result"]
+                    updated += 1
+            else:
                 existing.append(rec)
-                seen.add(k)
+                key_to_idx[k] = len(existing) - 1
                 added += 1
-        if added:
+        if added or updated:
             save_day(game_date, existing)
-            logger.info("  %s: added %d record(s) (%d total)", game_date, added, len(existing))
-            total_added += added
+            logger.info("  %s: added %d, updated %d (%d total)",
+                        game_date, added, updated, len(existing))
+            total_added   += added
+            total_updated += updated
         else:
             logger.info("  %s: nothing new", game_date)
 
-    logger.info("Backfill complete — %d new record(s) written across %d day(s).",
-                total_added, len([gd for gd in new_records if any(
-                    _dedup_key(r) not in set() for r in new_records[gd]
-                )]))
+    logger.info(
+        "Backfill complete — %d new record(s) added, %d updated across %d day file(s).",
+        total_added, total_updated, len(new_records),
+    )
 
 
 if __name__ == "__main__":

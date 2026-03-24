@@ -99,7 +99,8 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": null,
-    "val": -2.0
+    "val": -2.0,
+    "team": "Crvena zvezda"
   },
   {
     "player_id": "5073",
@@ -109,7 +110,7 @@
     "season": "2025-26",
     "game_date": "2026-03-08",
     "opponent": "Budućnost-Igokea m:tel",
-    "result": "",
+    "result": "V 99-67",
     "date": "2026-03-24",
     "min": 24.08,
     "pts": 11.0,
@@ -131,7 +132,8 @@
     "blk": 1.0,
     "fouls": 2.0,
     "plus_minus": 10.0,
-    "val": 10.0
+    "val": 10.0,
+    "team": "Budućnost VOLI"
   },
   {
     "player_id": "5100",
@@ -141,7 +143,7 @@
     "season": "2025-26",
     "game_date": "2026-03-08",
     "opponent": "Bosna-Partizan",
-    "result": "",
+    "result": "V 96-56",
     "date": "2026-03-24",
     "min": 19.42,
     "pts": 18.0,
@@ -163,7 +165,8 @@
     "blk": 0.0,
     "fouls": 3.0,
     "plus_minus": 17.0,
-    "val": 18.0
+    "val": 18.0,
+    "team": "Partizan Mozzart Bet"
   },
   {
     "player_id": "1076",
@@ -173,7 +176,7 @@
     "season": "2025-26",
     "game_date": "2026-03-08",
     "opponent": "Budućnost-Igokea m:tel",
-    "result": "",
+    "result": "D 67-99",
     "date": "2026-03-24",
     "min": 29.97,
     "pts": 11.0,
@@ -195,6 +198,7 @@
     "blk": 0.0,
     "fouls": 3.0,
     "plus_minus": -13.0,
-    "val": 18.0
+    "val": 18.0,
+    "team": "Igokea m:tel"
   }
 ]

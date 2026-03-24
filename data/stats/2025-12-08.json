@@ -7,7 +7,7 @@
     "season": "2025-26",
     "game_date": "2025-12-08",
     "opponent": "Igokea m:tel-Dubai",
-    "result": "",
+    "result": "D 74-88",
     "date": "2026-03-24",
     "min": 24.67,
     "pts": 6.0,
@@ -29,6 +29,7 @@
     "blk": 0.0,
     "fouls": 2.0,
     "plus_minus": -15.0,
-    "val": 1.0
+    "val": 1.0,
+    "team": "Igokea m:tel"
   }
 ]

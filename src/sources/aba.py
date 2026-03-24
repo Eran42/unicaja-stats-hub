@@ -141,18 +141,54 @@ def _parse_result(text: str) -> str:
     return score_str or wl
 
 
-def _fetch_match_date(href: str) -> str:
-    """Fetch an ABA match page and return the game date as YYYY-MM-DD."""
+def _fetch_match_info(href: str, player_team_slug: str = "") -> tuple[str, str]:
+    """Fetch an ABA match page and return (game_date_iso, result_str).
+
+    result_str: "V 85-76" / "D 76-85" (player's team score first) when
+    W/L can be determined; plain "85-76" (home-away) otherwise.
+    player_team_slug: output of _make_slug(team_name), used to identify
+    which score belongs to the player's team.
+    """
     if not href.startswith("http"):
         href = _BASE_URL.replace("/player", "") + "/" + href.lstrip("/")
     try:
         resp = requests.get(href, headers=_HEADERS, timeout=_TIMEOUT)
         resp.raise_for_status()
     except requests.RequestException:
-        return ""
-    # Date appears as e.g. "Sunday, 05.10.2025 19:30 CET"
+        return "", ""
+
+    # Date from "DD.MM.YYYY" pattern
     m = re.search(r"\b(\d{1,2}\.\d{1,2}\.\d{4})\b", resp.text)
-    return _parse_aba_date(m.group(1)) if m else ""
+    game_date = _parse_aba_date(m.group(1)) if m else ""
+
+    # Score from <td class="gameScore">93 : 97</td>
+    # Numbers are always listed home-away.
+    result = ""
+    from bs4 import BeautifulSoup as _BS
+    soup = _BS(resp.text, "html.parser")
+    score_td = soup.find("td", class_="gameScore")
+    if score_td:
+        nums = re.findall(r"\d{2,3}", score_td.get_text())
+        if len(nums) >= 2:
+            home_sc, away_sc = int(nums[0]), int(nums[1])
+            if player_team_slug:
+                # URL ends with /home-slug-away-slug/; home team's slug is a
+                # prefix of the combined slug segment.
+                path_seg = href.rstrip("/").split("/")[-1]
+                if path_seg.startswith(player_team_slug):
+                    # Player's team is home
+                    wl = "V" if home_sc > away_sc else "D"
+                    result = f"{wl} {home_sc}-{away_sc}"
+                elif path_seg.endswith(player_team_slug):
+                    # Player's team is away
+                    wl = "V" if away_sc > home_sc else "D"
+                    result = f"{wl} {away_sc}-{home_sc}"
+                else:
+                    result = f"{home_sc}-{away_sc}"
+            else:
+                result = f"{home_sc}-{away_sc}"
+
+    return game_date, result
 
 
 def _is_game_row(cells) -> bool:
@@ -186,6 +222,7 @@ def fetch_player_stats(
     player_name: str = "player",
     season: str = _CURRENT_SEASON,
     league: str = _LEAGUE,
+    player_team: str = "",
 ) -> dict:
     """Fetch the most recent game box score for an ABA Liga player."""
     slug = _make_slug(player_name)
@@ -235,9 +272,11 @@ def fetch_player_stats(
         logger.warning("ABA: no game rows found for player_id=%s", player_id)
         return {}
 
-    # For game-number rows, fetch the match page to get the date.
+    # For game-number rows, fetch the match page to get the date and result.
+    last_game_result = ""
     if last_is_gamenumber and last_match_href:
-        last_game_date = _fetch_match_date(last_match_href)
+        team_slug = _make_slug(player_team) if player_team else ""
+        last_game_date, last_game_result = _fetch_match_info(last_match_href, team_slug)
 
     c = last_game_cells
 
@@ -259,7 +298,7 @@ def fetch_player_stats(
     if last_is_gamenumber:
         # Matchup cell contains both teams; use the full text as opponent context.
         opponent = _get(1) or ""
-        result   = ""
+        result   = last_game_result
     elif offset == 3:
         opponent   = _get(1) or ""
         result_raw = _get(2) or ""
@@ -325,10 +364,12 @@ def _cells_to_record(
     player_id: str | int,
     player_name: str,
     today: str,
+    game_result: str = "",
 ) -> dict | None:
     """Convert an ABA game row (cells list) into a canonical stats record.
 
     Returns None if the row lacks a parseable game date.
+    game_result: pre-fetched result string (e.g. "V 85-76") from _fetch_match_info.
     """
     game_date = _parse_aba_date(game_date_str) if game_date_str else ""
     if not game_date or not re.match(r"\d{4}-\d{2}-\d{2}", game_date):
@@ -340,7 +381,7 @@ def _cells_to_record(
     if is_gamenumber:
         offset   = 2
         opponent = _get(1) or ""
-        result   = ""
+        result   = game_result
     elif len(cells) >= 26:
         offset     = 3
         opponent   = _get(1) or ""
@@ -399,6 +440,7 @@ def fetch_season_stats(
     player_name: str = "player",
     season: str = _CURRENT_SEASON,
     league: str = _LEAGUE,
+    player_team: str = "",
 ) -> list[dict]:
     """Return all game box scores for the current season from aba-liga.com.
 
@@ -441,21 +483,22 @@ def fetch_season_stats(
         logger.warning("ABA: no game rows found for player_id=%s", player_id)
         return []
 
-    # Pass 2: fetch dates for game-number rows (one request per game).
-    resolved: list[tuple] = []
+    # Pass 2: fetch dates+results for game-number rows (one request per game).
+    team_slug = _make_slug(player_team) if player_team else ""
+    resolved: list[tuple] = []  # (cells, is_gn, date_str, result_str)
     for cells, is_gn, href, date_str in rows_info:
         if is_gn and href:
-            fetched = _fetch_match_date(href)
-            resolved.append((cells, is_gn, href, fetched))
+            fetched_date, fetched_result = _fetch_match_info(href, team_slug)
+            resolved.append((cells, is_gn, fetched_date, fetched_result))
             time.sleep(0.35)
         else:
-            resolved.append((cells, is_gn, href, date_str))
+            resolved.append((cells, is_gn, date_str, ""))
 
     # Pass 3: build records, skip rows without valid dates.
     today   = str(date.today())
     records = []
-    for cells, is_gn, _, date_str in resolved:
-        rec = _cells_to_record(cells, is_gn, date_str, player_id, player_name, today)
+    for cells, is_gn, date_str, result_str in resolved:
+        rec = _cells_to_record(cells, is_gn, date_str, player_id, player_name, today, game_result=result_str)
         if rec:
             records.append(rec)
 

@@ -274,7 +274,8 @@
     "blk": 0.0,
     "fouls": 2.0,
     "plus_minus": null,
-    "val": 15.0
+    "val": 15.0,
+    "team": "AS Monaco"
   },
   {
     "player_id": "5100",
@@ -284,7 +285,7 @@
     "season": "2025-26",
     "game_date": "2026-01-25",
     "opponent": "Partizan-Igokea m:tel",
-    "result": "",
+    "result": "V 90-84",
     "date": "2026-03-24",
     "min": 25.55,
     "pts": 14.0,
@@ -306,7 +307,8 @@
     "blk": 1.0,
     "fouls": 2.0,
     "plus_minus": 8.0,
-    "val": 12.0
+    "val": 12.0,
+    "team": "Partizan Mozzart Bet"
   },
   {
     "player_id": "1076",
@@ -316,7 +318,7 @@
     "season": "2025-26",
     "game_date": "2026-01-25",
     "opponent": "Partizan-Igokea m:tel",
-    "result": "",
+    "result": "D 84-90",
     "date": "2026-03-24",
     "min": 25.77,
     "pts": 11.0,
@@ -338,6 +340,7 @@
     "blk": 0.0,
     "fouls": 4.0,
     "plus_minus": -1.0,
-    "val": 10.0
+    "val": 10.0,
+    "team": "Igokea m:tel"
   }
 ]

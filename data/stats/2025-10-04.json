@@ -239,6 +239,7 @@
     "blk": 1.0,
     "fouls": 2.0,
     "plus_minus": null,
-    "val": 20.0
+    "val": 20.0,
+    "team": "AEK BC"
   }
 ]

@@ -112,7 +112,7 @@
     "season": "2025-26",
     "game_date": "2025-10-03",
     "opponent": "Igokea m:tel-FMP",
-    "result": "",
+    "result": "V 92-88",
     "date": "2026-03-24",
     "min": 22.85,
     "pts": 13.0,
@@ -134,6 +134,7 @@
     "blk": 0.0,
     "fouls": 3.0,
     "plus_minus": 0.0,
-    "val": 15.0
+    "val": 15.0,
+    "team": "Igokea m:tel"
   }
 ]

@@ -180,7 +180,7 @@
     "season": "2025-26",
     "game_date": "2026-01-31",
     "opponent": "Spartak-Budućnost",
-    "result": "",
+    "result": "V 75-66",
     "date": "2026-03-24",
     "min": 13.43,
     "pts": 4.0,
@@ -202,7 +202,8 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": -7.0,
-    "val": 3.0
+    "val": 3.0,
+    "team": "Budućnost VOLI"
   },
   {
     "player_id": "5100",
@@ -212,7 +213,7 @@
     "season": "2025-26",
     "game_date": "2026-01-31",
     "opponent": "Partizan-Cluj",
-    "result": "",
+    "result": "V 90-79",
     "date": "2026-03-24",
     "min": 25.52,
     "pts": 20.0,
@@ -234,6 +235,7 @@
     "blk": 0.0,
     "fouls": 1.0,
     "plus_minus": 4.0,
-    "val": 20.0
+    "val": 20.0,
+    "team": "Partizan Mozzart Bet"
   }
 ]

@@ -61,7 +61,7 @@ def _fetch_source(player: "Player", src: "PlayerSource") -> dict | None:
 
         elif stype == "aba":
             from src.sources import aba
-            result = aba.fetch_player_stats(sid, player_name=player.name)
+            result = aba.fetch_player_stats(sid, player_name=player.name, player_team=player.team)
 
         elif stype == "feb":
             from src.sources import feb
