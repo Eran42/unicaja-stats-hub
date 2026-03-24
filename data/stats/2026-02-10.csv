@@ -1,2 +1,6 @@
-player_id,player_name,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val,team
-5313012,Mario Saint-Supéry,ncaa_espn,NCAA,2025-26,2026-02-10,vs WSU,W 83-53,2026-03-13,19.0,11.0,4.0,4.0,100.0,1.0,1.0,100.0,0.0,0.0,,,,2.0,1.0,2.0,1.0,0.0,2.0,,,Gonzaga Bulldogs
+player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
+5313012,Mario Saint-Supéry,Gonzaga Bulldogs,ncaa_espn,NCAA,2025-26,2026-02-10,vs WSU,W 83-53,2026-03-13,19.0,11.0,4.0,4.0,100.0,1.0,1.0,100.0,0.0,0.0,,,,2.0,1.0,2.0,1.0,0.0,2.0,,
+la-laguna-tenerife/151899-giorgi-shermadini,Giorgi Shermadini,Lenovo Tenerife,bcl,BCL,2025-26,2026-02-10,ERA Nymburk,V 69-55,2026-03-18,16.0,2.0,1.0,3.0,33.3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,0.0,2.0,3.0,0.0,4.0,-3.0,1.0
+la-laguna-tenerife/175433-jaime-fernandez,Jaime Fernández,Lenovo Tenerife,bcl,BCL,2025-26,2026-02-10,ERA Nymburk,V 69-55,2026-03-18,11.0,3.0,1.0,2.0,50.0,0.0,2.0,0.0,1.0,3.0,33.3,0.0,1.0,1.0,2.0,0.0,2.0,0.0,0.0,-3.0,-1.0
+la-laguna-tenerife/201675-tim-abromaitis,Tim Abromaitis,Lenovo Tenerife,bcl,BCL,2025-26,2026-02-10,ERA Nymburk,V 69-55,2026-03-18,20.0,5.0,1.0,1.0,100.0,1.0,3.0,33.3,0.0,0.0,0.0,0.0,3.0,3.0,0.0,0.0,0.0,0.0,3.0,5.0,6.0
+aek-bc/161021-mindaugas-kuzminskas,Mindaugas Kuzminskas,AEK BC,bcl,BCL,2025-26,2026-02-10,Karditsa,V 90-62,2026-03-18,19.0,8.0,1.0,3.0,33.3,2.0,3.0,66.7,0.0,0.0,0.0,0.0,3.0,3.0,2.0,0.0,0.0,0.0,2.0,9.0,10.0

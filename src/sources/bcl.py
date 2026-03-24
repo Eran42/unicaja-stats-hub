@@ -133,14 +133,15 @@ def _parse_shot_cell(cell: Tag) -> tuple[float | None, float | None, float | Non
     return made, att, pct
 
 
-def _parse_game_cell(cell: Tag) -> tuple[str, str]:
+def _parse_game_cell(cell: Tag) -> tuple[str, str, str, str]:
     """
     Parse BCL game-info cell.
     Cell text with separator='|' looks like: 'vs|TS|,|17/03/2026|Round of 16'
-    Returns (game_date as 'YYYY-MM-DD', opponent full name).
+    The cell contains an <a href="/en/games/ID-TEAMA-TEAMB"> link.
+
+    Returns (game_date as 'YYYY-MM-DD', opponent full name, game_href, opp_abbrev).
     """
     parts = [p.strip() for p in cell.get_text(separator="|", strip=True).split("|") if p.strip() and p.strip() != ","]
-    # parts: ['vs', 'OPP', 'DD/MM/YYYY', 'phase']
     opp_abbrev = ""
     game_date = ""
 
@@ -153,7 +154,75 @@ def _parse_game_cell(cell: Tag) -> tuple[str, str]:
                 opp_abbrev = part
 
     opponent = _TEAM_NAMES.get(opp_abbrev, opp_abbrev)
-    return game_date, opponent
+    a_tag = cell.find("a", href=re.compile(r"/en/games/"))
+    game_href = a_tag["href"] if a_tag and a_tag.get("href") else ""
+    return game_date, opponent, game_href, opp_abbrev
+
+
+_BCL_BASE = "https://www.championsleague.basketball"
+
+
+def _fetch_bcl_result(game_href: str, player_team_abbr: str) -> str:
+    """Fetch a BCL game page and return 'V score-score' / 'D score-score'.
+
+    The game page embeds play-by-play JSON with cumulative quarter scores.
+    The URL format is /en/games/ID-TEAMA-TEAMB where TEAMA is the home team.
+    player_team_abbr: e.g. 'AEK' — matched against TEAMA/TEAMB in the URL.
+    """
+    if not game_href:
+        return ""
+    url = _BCL_BASE + game_href if not game_href.startswith("http") else game_href
+    try:
+        resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
+        resp.raise_for_status()
+    except requests.RequestException:
+        return ""
+
+    # URL: /en/games/ID-TEAMA-TEAMB — last two hyphen-separated tokens are teams.
+    # Some game IDs contain hyphens, so split from the right.
+    path = game_href.rstrip("/").split("/")[-1]  # e.g. "129309-VEF-AEK"
+    parts = path.split("-")
+    # The ID is numeric; team abbrevs follow after it
+    team_a, team_b = "", ""
+    for i, p in enumerate(parts):
+        if p.isdigit():
+            remaining = parts[i + 1:]
+            if len(remaining) >= 2:
+                team_a = remaining[0]
+                team_b = "-".join(remaining[1:])  # handles multi-part abbrevs
+            break
+
+    # Parse cumulative scores: last quarter's scoreA/scoreB are the final totals.
+    # The page embeds JSON as a JS-escaped string, so quotes appear as \" in resp.text.
+    # Unescape first so we can use a clean regex.
+    text = resp.text.replace('\\"', '"')
+    final_a: int | None = None
+    final_b: int | None = None
+    for m in re.finditer(r'"Q\d+":\{"name":"[^"]+","scoreA":(\d+),"scoreB":(\d+)', text):
+        final_a = int(m.group(1))
+        final_b = int(m.group(2))
+    # Also check overtime
+    for m in re.finditer(r'"OT\d*":\{"name":"[^"]+","scoreA":(\d+),"scoreB":(\d+)', text):
+        final_a = int(m.group(1))
+        final_b = int(m.group(2))
+
+    if final_a is None or final_b is None:
+        return ""
+
+    abbr_upper = player_team_abbr.upper()
+    if team_a.upper() == abbr_upper:
+        # Player is team A (home); scoreA is theirs
+        player_sc, opp_sc = final_a, final_b
+    elif team_b.upper() == abbr_upper:
+        # Player is team B (away); scoreB is theirs
+        player_sc, opp_sc = final_b, final_a
+    else:
+        # Can't identify — return plain score (home-away order)
+        wl = "V" if final_a > final_b else "D"
+        return f"{final_a}-{final_b}"
+
+    wl = "V" if player_sc > opp_sc else "D"
+    return f"{wl} {player_sc}-{opp_sc}"
 
 
 # BCL stats column labels → canonical field names (for averages page fallback)
@@ -275,7 +344,19 @@ def _fetch_from_team_page(slug: str, player_name: str) -> dict:
             return ""
         return last_cells[idx].get_text(strip=True)
 
-    game_date, opponent = _parse_game_cell(last_cells[0])
+    game_date, opponent, game_href, opp_abbrev = _parse_game_cell(last_cells[0])
+
+    # Determine player's team abbreviation from slug (e.g. "aek-bc/..." → "AEK").
+    # Build a reverse lookup: slugified team name → abbreviation.
+    _slug_to_abbr = {
+        re.sub(r"[^a-z0-9]+", "-", v.lower()).strip("-"): k
+        for k, v in _TEAM_NAMES.items()
+    }
+    team_slug = slug.split("/")[0]  # e.g. "aek-bc"
+    player_team_abbr = _slug_to_abbr.get(team_slug, team_slug.upper().replace("-", ""))
+
+    # Fetch game page for result (one extra request per daily run).
+    result = _fetch_bcl_result(game_href, player_team_abbr)
 
     # Shooting stats — use separator-aware parser
     def _shot(label: str) -> tuple[float | None, float | None, float | None]:
@@ -308,7 +389,7 @@ def _fetch_from_team_page(slug: str, player_name: str) -> dict:
         "date":         str(date.today()),
         "game_date":    game_date,
         "opponent":     opponent,
-        "result":       "",
+        "result":       result,
         "min":          minutes,
         "pts":          _safe_float(_gcell("PTS")),
         "t2m":  t2m,   "t2a":  t2a,  "t2_pct":  t2_pct,

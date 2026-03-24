@@ -1,2 +1,5 @@
 player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
 P003840,Axel Bouteille,Budućnost VOLI,eurocup,EuroCup,U2025,2025-12-10,London Lions,V 94-63,2026-03-13,20.15,14.0,4.0,4.0,100.0,0.0,1.0,0.0,6.0,7.0,85.7,1.0,1.0,2.0,1.0,0.0,0.0,0.0,2.0,24.0,17.0
+la-laguna-tenerife/151899-giorgi-shermadini,Giorgi Shermadini,Lenovo Tenerife,bcl,BCL,2025-26,2025-12-10,Trapani Shark,D 80-83,2026-03-18,23.0,13.0,6.0,8.0,75.0,0.0,0.0,0.0,1.0,1.0,100.0,4.0,5.0,9.0,1.0,0.0,1.0,0.0,2.0,9.0,20.0
+la-laguna-tenerife/175433-jaime-fernandez,Jaime Fernández,Lenovo Tenerife,bcl,BCL,2025-26,2025-12-10,Trapani Shark,D 80-83,2026-03-18,30.0,16.0,5.0,7.0,71.4,1.0,3.0,33.3,3.0,4.0,75.0,0.0,2.0,2.0,3.0,0.0,2.0,0.0,3.0,4.0,14.0
+la-laguna-tenerife/201675-tim-abromaitis,Tim Abromaitis,Lenovo Tenerife,bcl,BCL,2025-26,2025-12-10,Trapani Shark,D 80-83,2026-03-18,19.0,10.0,1.0,3.0,33.3,2.0,6.0,33.3,2.0,2.0,100.0,1.0,6.0,7.0,1.0,1.0,1.0,0.0,2.0,1.0,12.0

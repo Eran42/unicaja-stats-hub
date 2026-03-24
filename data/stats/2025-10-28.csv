@@ -1,3 +1,7 @@
 player_id,player_name,team,source,competition,season,game_date,opponent,result,date,min,pts,t2m,t2a,t2_pct,t3m,t3a,t3_pct,ftm,fta,ft_pct,reb_off,reb_def,reb,ast,stl,tov,blk,fouls,plus_minus,val
 P009992,Darío Brizuela,FC Barcelona,euroleague,EuroLeague,E2025,2025-10-28,EA7 Emporio Armani Milan,V 74-72,2026-03-13,12.43,0.0,0.0,1.0,0.0,0.0,2.0,0.0,0.0,0.0,,0.0,1.0,1.0,1.0,0.0,2.0,0.0,0.0,-4.0,-2.0
 P011217,Kameron Taylor,Valencia Basket,euroleague,EuroLeague,E2025,2025-10-28,Fenerbahce Beko Istanbul,V 94-79,2026-03-13,23.62,17.0,5.0,9.0,55.6,2.0,4.0,50.0,1.0,1.0,100.0,1.0,5.0,6.0,2.0,0.0,0.0,0.0,1.0,6.0,20.0
+la-laguna-tenerife/151899-giorgi-shermadini,Giorgi Shermadini,Lenovo Tenerife,bcl,BCL,2025-26,2025-10-28,Tofas Bursa,V 81-64,2026-03-18,23.0,10.0,5.0,7.0,71.4,0.0,0.0,0.0,0.0,0.0,0.0,3.0,8.0,11.0,2.0,0.0,1.0,0.0,2.0,10.0,20.0
+la-laguna-tenerife/175433-jaime-fernandez,Jaime Fernández,Lenovo Tenerife,bcl,BCL,2025-26,2025-10-28,Tofas Bursa,V 81-64,2026-03-18,15.0,6.0,3.0,6.0,50.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,3.0,3.0,0.0,1.0,1.0,0.0,0.0,-8.0,5.0
+la-laguna-tenerife/201675-tim-abromaitis,Tim Abromaitis,Lenovo Tenerife,bcl,BCL,2025-26,2025-10-28,Tofas Bursa,V 81-64,2026-03-18,16.0,2.0,0.0,2.0,0.0,0.0,1.0,0.0,2.0,2.0,100.0,1.0,1.0,2.0,1.0,0.0,0.0,0.0,2.0,-5.0,2.0
+aek-bc/161021-mindaugas-kuzminskas,Mindaugas Kuzminskas,AEK BC,bcl,BCL,2025-26,2025-10-28,Patrioti Levice,V 71-69,2026-03-18,10.0,0.0,0.0,1.0,0.0,0.0,3.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,-11.0,-2.0

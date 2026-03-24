@@ -146,6 +146,10 @@ def _parse_result(text: str) -> str:
         wl = "V"
     elif re.search(r"\b(loss|lost|defeat|derrota|l)\b", text, re.I):
         wl = "D"
+    elif score_m:
+        # eurobasket.com result column: first number = player's team, second = opponent
+        a, b = int(score_m.group(1)), int(score_m.group(2))
+        wl = "V" if a > b else ("D" if b > a else "")
     else:
         wl = ""
 
