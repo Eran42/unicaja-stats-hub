@@ -54,8 +54,9 @@
     "country": "United States",
     "active": true,
     "sources": [
-      { "competition": "EuroLeague", "type": "euroleague", "id": "P011305" },
-      { "competition": "ABA League", "type": "aba",        "id": "5075"    }
+      { "competition": "EuroLeague", "type": "euroleague",  "id": "P011305" },
+      { "competition": "ABA League", "type": "aba",         "id": "5075"    },
+      { "competition": "ABA League", "type": "eurobasket",  "id": "402220"  }
     ]
   },
   {

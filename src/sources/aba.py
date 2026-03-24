@@ -140,12 +140,40 @@ def _parse_result(text: str) -> str:
     return score_str or wl
 
 
+def _fetch_match_date(href: str) -> str:
+    """Fetch an ABA match page and return the game date as YYYY-MM-DD."""
+    if not href.startswith("http"):
+        href = _BASE_URL.replace("/player", "") + "/" + href.lstrip("/")
+    try:
+        resp = requests.get(href, headers=_HEADERS, timeout=_TIMEOUT)
+        resp.raise_for_status()
+    except requests.RequestException:
+        return ""
+    # Date appears as e.g. "Sunday, 05.10.2025 19:30 CET"
+    m = re.search(r"\b(\d{1,2}\.\d{1,2}\.\d{4})\b", resp.text)
+    return _parse_aba_date(m.group(1)) if m else ""
+
+
 def _is_game_row(cells) -> bool:
-    """True if the row looks like a game row (date in first cell)."""
-    if not cells:
+    """True if the row looks like a game row.
+
+    Accepts:
+    - Date-first rows: 'DD.MM.' or 'DD.MM.YYYY' in first cell (legacy format).
+    - Game-number-first rows: pure integer in first cell (current ABA format).
+    """
+    if len(cells) < 5:
         return False
     first = _cell_text(cells[0])
-    return bool(re.match(r"\d{1,2}\.\d{1,2}\.", first))
+    if re.match(r"\d{1,2}\.\d{1,2}\.", first):
+        return True
+    if re.match(r"^\d{1,3}$", first):
+        # Also reject summary rows whose second cell reads "Total" / "Average" etc.
+        if len(cells) > 1:
+            second = _cell_text(cells[1]).lower()
+            if any(kw in second for kw in ("total", "average", "avg", "media")):
+                return False
+        return True
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -175,35 +203,63 @@ def fetch_player_stats(
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # Find all game rows across tables
-    last_game_cells = None
-    last_game_date  = ""
+    # Find the last game row across all tables.
+    # Two row formats are supported:
+    #   Legacy: col0=date (DD.MM.), col1=opponent, col2=result (optional), then stats
+    #   Current: col0=game_number, col1=matchup link, then stats
+    last_game_cells  = None
+    last_game_date   = ""
+    last_match_href  = ""
+    last_is_gamenumber = False
 
     for table in soup.find_all("table"):
         for row in table.find_all("tr"):
             cells = row.find_all(["td", "th"])
-            if _is_game_row(cells):
-                last_game_cells = cells
-                last_game_date  = _cell_text(cells[0])
+            if not _is_game_row(cells):
+                continue
+            last_game_cells = cells
+            first_text = _cell_text(cells[0])
+            if re.match(r"^\d{1,3}$", first_text):
+                # Current game-number format — date must be fetched from match page
+                last_is_gamenumber = True
+                last_game_date     = ""
+                a_tag = cells[1].find("a") if len(cells) > 1 else None
+                last_match_href    = (a_tag["href"] if a_tag and a_tag.get("href") else "")
+            else:
+                last_is_gamenumber = False
+                last_game_date     = first_text
+                last_match_href    = ""
 
     if last_game_cells is None:
         logger.warning("ABA: no game rows found for player_id=%s", player_id)
         return {}
+
+    # For game-number rows, fetch the match page to get the date.
+    if last_is_gamenumber and last_match_href:
+        last_game_date = _fetch_match_date(last_match_href)
 
     c = last_game_cells
 
     def _get(idx: int) -> str | None:
         return _cell_text(c[idx]) if idx < len(c) else None
 
-    # Determine column offset (skip date + leading context cells)
-    # Short rows (< 26 cols): col0=date, col1=opponent+result combined, stats from col2
-    # Long rows (>= 26 cols): col0=date, col1=opponent, col2=result, stats from col3
-    offset = 2
-    if len(c) >= 26:
+    # Determine column offset (leading context columns before stats begin).
+    #   Current format:  col0=game#, col1=matchup → offset=2
+    #   Legacy long:     col0=date,  col1=opponent, col2=result → offset=3
+    #   Legacy short:    col0=date,  col1=opponent+result combined → offset=2
+    if last_is_gamenumber:
+        offset = 2
+    elif len(c) >= 26:
         offset = 3
+    else:
+        offset = 2
 
-    # Extract opponent and result from the leading context cells
-    if offset == 3:
+    # Extract opponent and result from the leading context cells.
+    if last_is_gamenumber:
+        # Matchup cell contains both teams; use the full text as opponent context.
+        opponent = _get(1) or ""
+        result   = ""
+    elif offset == 3:
         opponent   = _get(1) or ""
         result_raw = _get(2) or ""
         result     = _parse_result(result_raw)

@@ -96,11 +96,14 @@ def _parse_date_flexible(raw: str) -> str:
     if re.match(r"^\d{4}-\d{2}-\d{2}$", raw):
         return raw
 
+    # Eurobasket.com uses M/D/YYYY — try that before D/M/YYYY.
+    # For unambiguous cases (day > 12 or month > 12) strptime will reject the
+    # wrong format automatically; for ambiguous ones (e.g. 3/11) M/D wins.
     candidates = [
         ("%d %b %Y", True),
         ("%b %d, %Y", True),
-        ("%d/%m/%Y", True),
         ("%m/%d/%Y", True),
+        ("%d/%m/%Y", True),
         ("%d.%m.%Y", True),
         ("%b %d", False),     # no year
         ("%d %b", False),     # no year
@@ -115,6 +118,18 @@ def _parse_date_flexible(raw: str) -> str:
         except ValueError:
             continue
     return raw
+
+
+def _parse_ma_cell(text: str) -> tuple[float | None, float | None]:
+    """Parse 'M-A' compound format (e.g. '3-7') into (made, attempts).
+
+    Returns (None, None) for plain numbers or empty strings.
+    """
+    text = str(text).strip()
+    m = re.match(r"^(\d+)[/\-](\d+)$", text)
+    if m:
+        return float(m.group(1)), float(m.group(2))
+    return None, None
 
 
 def _parse_result(text: str) -> str:
@@ -139,18 +154,59 @@ def _parse_result(text: str) -> str:
     return score_str or wl
 
 
+# Competition keyword matching — used to filter "Details" tables by the nearest
+# <h4> heading ("Season: 2025-2026 (Greece-GBL)" etc.).
+# Keys are lower-case canonical competition names (partial match OK).
+# Values are substrings expected in the heading, any one of which counts as a match.
+_COMP_KEYWORDS: dict[str, list[str]] = {
+    "greek league":  ["greece", "gbl"],
+    "lnb pro a":     ["france", "betclic", "pro a", "elite"],
+    "aba league":    ["aba"],
+    "euroleague":    ["euroleague"],
+    "eurocup":       ["eurocup", "7days"],
+    "bcl":           ["champions league", "bcl"],
+    "acb":           ["acb"],
+}
+
+
+def _heading_matches(heading: str, competition: str) -> bool:
+    """Return True if *heading* is consistent with the requested *competition*.
+
+    Both arguments are compared case-insensitively.  If no keyword entry
+    matches the competition, we default to True (no filtering).
+    """
+    h = heading.lower()
+    c = competition.lower()
+    keywords = None
+    for key, kws in _COMP_KEYWORDS.items():
+        if key in c or any(kw in c for kw in kws):
+            keywords = kws
+            break
+    if not keywords:
+        return True   # unknown competition → don't filter
+    return any(kw in h for kw in keywords)
+
+
 # Column header → stat field
 _HEADER_MAP: dict[str, str] = {
     "min": "min", "pts": "pts",
+    # Separate made/attempt/pct columns
     "2fgm": "t2m", "2fg": "t2m", "2m": "t2m",
     "2fga": "t2a", "2a": "t2a",
     "2fg%": "t2_pct", "2%": "t2_pct",
     "3fgm": "t3m", "3fg": "t3m", "3m": "t3m",
     "3fga": "t3a", "3a": "t3a",
     "3fg%": "t3_pct", "3%": "t3_pct",
-    "ftm": "ftm", "ft": "ftm",
-    "fta": "fta",
+    "ftm": "ftm", "fta": "fta",
     "ft%": "ft_pct",
+    # Compound M-A columns (eurobasket.com "Details" tables)
+    "2fgp": "t2m",   # value is "M-A"; t2a derived in extraction
+    "3fgp": "t3m",   # value is "M-A"; t3a derived in extraction
+    "ft":   "ftm",   # value is "M-A"; fta derived in extraction
+    # Context columns used to extract opponent/result by name rather than position
+    "against team": "_opponent",
+    "result":       "_result_col",
+    # Remaining stats
     "ro": "reb_off", "or": "reb_off",
     "rd": "reb_def", "dr": "reb_def",
     "rt": "reb", "tr": "reb", "reb": "reb",
@@ -230,15 +286,36 @@ def fetch_player_stats(
 
     for table in soup.find_all("table"):
         rows = table.find_all("tr")
-        if not rows:
+        if len(rows) < 3:
             continue
-        hcells = rows[0].find_all(["th", "td"])
-        cmap   = _build_col_map(hcells)
+
+        # Eurobasket game-log tables have a single-cell "Details" title in rows[0]
+        # and column headers in rows[1].  Career-summary / history tables look
+        # similar but are NOT "Details" — skip them to avoid bad matches.
+        title_cells = rows[0].find_all(["th", "td"], recursive=False)
+        if len(title_cells) == 1 and title_cells[0].get_text(strip=True).lower() == "details":
+            hcells     = rows[1].find_all(["th", "td"], recursive=False)
+            data_start = 2
+        else:
+            # Fallback: try rows[0] directly as a header row (other table styles)
+            hcells     = rows[0].find_all(["th", "td"], recursive=False)
+            data_start = 1
+
+        cmap = _build_col_map(hcells)
         if len(cmap) < 5:
             continue
 
-        for row in rows[1:]:
-            cells = row.find_all(["td", "th"])
+        # Filter by competition: each Details section is preceded by an <h4>
+        # like "Season: 2025-2026 (Greece-GBL)".  Skip tables whose heading
+        # does not match the requested competition.
+        if competition and data_start == 2:   # only filter proper "Details" tables
+            h4 = table.find_previous("h4")
+            heading_text = h4.get_text(strip=True) if h4 else ""
+            if heading_text and not _heading_matches(heading_text, competition):
+                continue
+
+        for row in rows[data_start:]:
+            cells = row.find_all(["td", "th"], recursive=False)
             if _is_game_row(cells, cmap):
                 last_row   = [_cell_text(c) for c in cells]
                 last_cells = cells
@@ -251,23 +328,59 @@ def fetch_player_stats(
         )
         return {}
 
-    # Identify how many leading context columns (date, opponent, result) precede stats.
-    # The minimum stat-column index in col_map tells us where stats begin.
-    first_stat_col = min(col_map.values())  # e.g. if "min" is col 3, context fills cols 0-2
-
-    # Extract context cells by position
-    opponent   = last_row[1] if first_stat_col > 1 and len(last_row) > 1 else ""
-    result_raw = last_row[2] if first_stat_col > 2 and len(last_row) > 2 else ""
-    # Only treat cells[2] as result if it doesn't look like a pure stat number
-    if result_raw and re.match(r"^\d+(\.\d+)?$", result_raw):
-        result_raw = ""
-    result = _parse_result(result_raw)
-
     def _get(field: str) -> float | None:
         idx = col_map.get(field)
         if idx is not None and idx < len(last_row):
             return _safe_float(last_row[idx])
         return None
+
+    def _raw(field: str) -> str | None:
+        idx = col_map.get(field)
+        if idx is not None and idx < len(last_row):
+            return last_row[idx]
+        return None
+
+    # Identify where stat columns begin (exclude pseudo-fields like "_opponent").
+    stat_indices = [col_map[k] for k in col_map if not k.startswith("_")]
+    first_stat_col = min(stat_indices) if stat_indices else 0
+
+    # Opponent: use named "_opponent" column if present, otherwise fall back to position.
+    if "_opponent" in col_map:
+        idx = col_map["_opponent"]
+        opponent = last_row[idx] if idx < len(last_row) else ""
+    elif first_stat_col > 1 and len(last_row) > 1:
+        opponent = last_row[1]
+    else:
+        opponent = ""
+
+    # Result: use named "_result_col" column if present, otherwise fall back to position.
+    if "_result_col" in col_map:
+        idx = col_map["_result_col"]
+        result_raw = last_row[idx] if idx < len(last_row) else ""
+    elif first_stat_col > 2 and len(last_row) > 2:
+        result_raw = last_row[2]
+        if result_raw and re.match(r"^\d+(\.\d+)?$", result_raw):
+            result_raw = ""
+    else:
+        result_raw = ""
+    result = _parse_result(result_raw)
+
+    # Shooting: handle both separate columns and compound "M-A" format.
+    # _parse_ma_cell returns (made, attempts) when the cell is "M-A"; (None, None) otherwise.
+    def _shoot(ma_field: str, m_field: str, a_field: str, pct_field: str):
+        raw = _raw(ma_field) or _raw(m_field)
+        made, att = _parse_ma_cell(raw) if raw else (None, None)
+        if made is None:
+            made = _safe_float(raw)
+            att  = _get(a_field)
+        pct = _get(pct_field)
+        if pct is None and made is not None and att:
+            pct = round(made / att * 100, 1)
+        return made, att, pct
+
+    t2m, t2a, t2_pct = _shoot("t2m", "t2m", "t2a", "t2_pct")
+    t3m, t3a, t3_pct = _shoot("t3m", "t3m", "t3a", "t3_pct")
+    ftm, fta, ft_pct = _shoot("ftm", "ftm", "fta", "ft_pct")
 
     return {
         "player_id":   str(player_id),
@@ -279,11 +392,11 @@ def fetch_player_stats(
         "opponent":    opponent,
         "result":      result,
         "date":        str(date.today()),
-        "min":         _parse_minutes(_get("min")) if _get("min") else None,
+        "min":         _parse_minutes(_raw("min")),
         "pts":         _get("pts"),
-        "t2m":         _get("t2m"),    "t2a":  _get("t2a"),  "t2_pct":  _get("t2_pct"),
-        "t3m":         _get("t3m"),    "t3a":  _get("t3a"),  "t3_pct":  _get("t3_pct"),
-        "ftm":         _get("ftm"),    "fta":  _get("fta"),  "ft_pct":  _get("ft_pct"),
+        "t2m":         t2m,   "t2a": t2a,   "t2_pct": t2_pct,
+        "t3m":         t3m,   "t3a": t3a,   "t3_pct": t3_pct,
+        "ftm":         ftm,   "fta": fta,   "ft_pct": ft_pct,
         "reb_off":     _get("reb_off"),
         "reb_def":     _get("reb_def"),
         "reb":         _get("reb"),
