@@ -345,14 +345,26 @@ _COL_GROUP_COLORS: dict[str, tuple[str, str]] = {
 }
 
 
-def _style_table(df: pd.DataFrame, stripe: str) -> pd.DataFrame:
+def _style_table(df: pd.DataFrame, stripe: str, avg_index: int | None = None) -> pd.DataFrame:
     """
     Return a same-shape DataFrame of CSS strings.
     Grouped columns get a fixed tint (two shades for alternating rows).
     Ungrouped columns get the standard row stripe on odd rows.
+    The avg_index row (if given) gets a bold summary style.
     """
     out = pd.DataFrame("", index=df.index, columns=df.columns)
     for i in df.index:
+        if i == avg_index:
+            for col in df.columns:
+                parts = [
+                    "background-color: rgba(80,80,80,0.12)",
+                    "font-weight: 700",
+                    "border-top: 2px solid rgba(80,80,80,0.40)",
+                ]
+                if col in _GROUP_DIVIDERS:
+                    parts.append("border-left: 2px solid rgba(80,80,80,0.30)")
+                out.loc[i, col] = "; ".join(parts)
+            continue
         odd = bool(i % 2)
         for col in df.columns:
             if col in _COL_GROUP_COLORS:
@@ -366,6 +378,42 @@ def _style_table(df: pd.DataFrame, stripe: str) -> pd.DataFrame:
                 parts.append("border-left: 2px solid rgba(80,80,80,0.30)")
             out.loc[i, col] = "; ".join(parts)
     return out
+
+
+# Pairs: (made_label, attempts_label, pct_label) for true-shooting-% computation
+_PCT_TRIPLES = [
+    (_COL_LABELS["t2m"], _COL_LABELS["t2a"], _COL_LABELS["t2_pct"]),
+    (_COL_LABELS["t3m"], _COL_LABELS["t3a"], _COL_LABELS["t3_pct"]),
+    (_COL_LABELS["ftm"], _COL_LABELS["fta"], _COL_LABELS["ft_pct"]),
+]
+
+
+def _build_avg_row(df: pd.DataFrame, n_games: int) -> dict:
+    """Return a summary row: means for numeric stats, true % for shooting columns."""
+    row: dict = {}
+    stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
+    pct_labels  = {triple[2] for triple in _PCT_TRIPLES}
+
+    for col in df.columns:
+        if col not in stat_labels:
+            row[col] = ""
+        elif col in pct_labels:
+            row[col] = None  # filled below from made/attempts
+        else:
+            series = pd.to_numeric(df[col], errors="coerce").dropna()
+            row[col] = round(series.mean(), 1) if len(series) else None
+
+    # True shooting percentages: sum(made) / sum(attempts) * 100
+    for made_lbl, att_lbl, pct_lbl in _PCT_TRIPLES:
+        made_s = pd.to_numeric(df[made_lbl], errors="coerce").dropna()
+        att_s  = pd.to_numeric(df[att_lbl],  errors="coerce").dropna()
+        total_made = made_s.sum()
+        total_att  = att_s.sum()
+        row[pct_lbl] = round(total_made / total_att * 100, 1) if total_att > 0 else None
+
+    # Label the row
+    row[_COL_LABELS["player_name"]] = f"Average ({n_games} games)"
+    return row
 
 
 
@@ -490,7 +538,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 
     df = pd.DataFrame(game_rows)
     if "Game Date" in df.columns:
-        df = df.sort_values("Game Date", ascending=False)
+        df = df.sort_values("Game Date", ascending=False).reset_index(drop=True)
 
     if filter_player and filter_date:
         caption = f"<strong>{len(game_rows)}</strong> game(s) for <strong>{filter_player}</strong> on <strong>{filter_date}</strong>"
@@ -503,9 +551,15 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         f'<p style="font-size:12px;color:{_UNICAJA_PURPLE};">{caption}</p>',
         unsafe_allow_html=True,
     )
-    height = min(_HEADER_HEIGHT_PX + len(game_rows) * _ROW_HEIGHT_PX + 4, 500)
+
+    # Append fixed average row at the bottom
+    avg_row = _build_avg_row(df, len(game_rows))
+    avg_idx = len(df)
+    df = pd.concat([df, pd.DataFrame([avg_row])], ignore_index=True)
+
+    height = min(_HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + 4, 500 + _ROW_HEIGHT_PX)
     st.dataframe(
-        df.style.apply(_style_table, stripe="rgba(107,47,160,0.08)", axis=None)
+        df.style.apply(_style_table, stripe="rgba(107,47,160,0.08)", avg_index=avg_idx, axis=None)
            .format(_STAT_FORMAT, na_rep="N/A"),
         use_container_width=True,
         hide_index=True,
