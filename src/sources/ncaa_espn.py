@@ -203,7 +203,7 @@ def fetch_player_stats(
         "season":      "2025-26",
         "game_date":   last_game_date,
         "opponent":    last_opponent,
-        "result":      _get(cells, "result"),
+        "result":      re.sub(r"^W\b", "V", re.sub(r"^L\b", "D", _get(cells, "result"))),
         "date":        str(date.today()),
         "min":         _safe_float(_get(cells, "min")),
         "pts":         _safe_float(_get(cells, "pts")),

@@ -637,36 +637,56 @@ def fetch_player_stats(player_id: str) -> dict:
     opponent    = _strip_matchup(stats.get("opponent", ""), player_team_abbr)
     detail_stats: dict[str, float | None] = {}
 
+    _ES_MONTHS = {
+        "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6,
+        "jul": 7, "ago": 8, "sep": 9, "oct": 10, "nov": 11, "dic": 12,
+    }
+
     for cell in last_cells:  # type: ignore[union-attr]
-        link = cell.find("a", href=re.compile(r"/partido/ver/id/\d+"))
-        if not link:
+        # ACB game log now links to live.acb.com; extract game ID and use
+        # acb.com/partido/ver/id/{id} for the stats page (still works).
+        live_link = cell.find("a", href=re.compile(r"live\.acb\.com"))
+        old_link  = cell.find("a", href=re.compile(r"/partido/ver/id/\d+"))
+        if live_link:
+            m_id = re.search(r"-(\d+)/", live_link["href"])
+            game_url = f"https://www.acb.com/partido/ver/id/{m_id.group(1)}" if m_id else ""
+        elif old_link:
+            game_url = "https://www.acb.com" + old_link["href"]
+        else:
             continue
-        game_url = "https://www.acb.com" + link["href"]
+        if not game_url:
+            continue
         try:
             time.sleep(0.5)
             gr = requests.get(game_url, headers=_HEADERS, timeout=_TIMEOUT)
             gr.raise_for_status()
             page_text = gr.text
 
-            # Date
-            for dm in re.finditer(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", page_text):
-                day, month, year = dm.group(1), dm.group(2), dm.group(3)
-                if not (2020 <= int(year) <= 2035):
-                    continue
-                if not (1 <= int(month) <= 12 and 1 <= int(day) <= 31):
-                    continue
-                try:
-                    game_date = f"{year}-{int(month):02d}-{int(day):02d}"
-                except ValueError:
-                    pass
-                break
+            # Date — ACB game pages now use "5 oct 2025" format in the title
+            dm = re.search(r"(\d{1,2})\s+([a-záéíóú]{3})\s+(20\d{2})", page_text, re.I)
+            if dm:
+                mon = _ES_MONTHS.get(dm.group(2).lower()[:3], 0)
+                if mon:
+                    game_date = f"{dm.group(3)}-{mon:02d}-{int(dm.group(1)):02d}"
+            # Fallback to numeric date format
+            if not game_date:
+                for dm2 in re.finditer(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", page_text):
+                    d, mo, yr = dm2.group(1), dm2.group(2), dm2.group(3)
+                    if 2020 <= int(yr) <= 2035 and 1 <= int(mo) <= 12 and 1 <= int(d) <= 31:
+                        game_date = f"{yr}-{int(mo):02d}-{int(d):02d}"
+                        break
 
             # Result / score — extract from the game stats page
             extracted = _extract_result_from_game_page(page_text, opponent)
             if extracted:
-                # If we already have V/D from the game log but no score, combine them
-                if game_result in ("V", "D") and not re.search(r"\d", extracted):
-                    game_result = f"{game_result} {extracted}"
+                score_m = re.search(r"\d{2,3}-\d{2,3}", extracted)
+                if game_result in ("V", "D") and score_m:
+                    # Game log gives V/D; game page gives the score
+                    game_result = f"{game_result} {score_m.group()}"
+                elif extracted.startswith(("V ", "D ")):
+                    game_result = extracted
+                elif game_result in ("V", "D") and extracted.strip():
+                    game_result = f"{game_result} {extracted.strip()}"
                 else:
                     game_result = extracted
 
