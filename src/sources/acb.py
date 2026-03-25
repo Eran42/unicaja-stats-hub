@@ -575,15 +575,29 @@ def fetch_player_stats(player_id: str) -> dict:
 
     target_table: Tag | None = None
     col_map: dict[str, int] = {}
+    best_game_rows: int = -1
     for tbl in all_tables:
         tbl_rows = tbl.find_all("tr")
         # Search up to 5 header rows (some tables have multi-row headers)
+        cmap_candidate: dict[str, int] = {}
         for row in tbl_rows[:5]:
             cells = row.find_all(["th", "td"])
             candidate = _build_col_map(cells)
-            if len(candidate) > len(col_map):
-                col_map = candidate
-                target_table = tbl
+            if len(candidate) > len(cmap_candidate):
+                cmap_candidate = candidate
+        game_row_count = sum(
+            1 for row in tbl_rows
+            for cells in [row.find_all(["td", "th"])]
+            if _is_game_row(cells)
+        )
+        # Prefer tables with more recognised columns; break ties by game row count
+        # (avoids picking an empty JS-rendered table over a populated one)
+        if len(cmap_candidate) > len(col_map) or (
+            len(cmap_candidate) == len(col_map) and game_row_count > best_game_rows
+        ):
+            col_map = cmap_candidate
+            target_table = tbl
+            best_game_rows = game_row_count
 
     logger.debug(
         "ACB id=%s: best table col_map=%s",
@@ -742,6 +756,185 @@ def fetch_player_stats(player_id: str) -> dict:
         "plus_minus":     _z(stats["plus_minus"]),
         "val":            _z(stats["val"]),
     }
+
+
+def fetch_season_stats(player_id: str) -> list[dict]:
+    """
+    Fetch all game box scores for an ACB player this season.
+
+    Iterates every game row in the game log page and fetches each game's
+    stats page to obtain the date, result, blocks, and fouls.
+    Requests are spaced 0.5 s apart; expect ~N+1 HTTP requests total.
+
+    Returns a list of canonical dicts (one per played game), or [] on failure.
+    """
+    url = f"{_BASE_URL}/{player_id}"
+    logger.debug("ACB season fetch: %s", url)
+    time.sleep(_SLEEP)
+
+    try:
+        resp = requests.get(url, headers=_HEADERS, timeout=_TIMEOUT)
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        logger.warning("ACB season fetch failed id=%s: %s", player_id, exc)
+        return []
+
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    player_name = ""
+    h1 = soup.find("h1")
+    if h1:
+        player_name = h1.get_text(strip=True)
+
+    all_tables = soup.find_all("table")
+    if not all_tables:
+        return []
+
+    target_table: Tag | None = None
+    col_map: dict[str, int] = {}
+    best_game_rows: int = -1
+    for tbl in all_tables:
+        tbl_rows = tbl.find_all("tr")
+        cmap_candidate: dict[str, int] = {}
+        for row in tbl_rows[:5]:
+            cells = row.find_all(["th", "td"])
+            candidate = _build_col_map(cells)
+            if len(candidate) > len(cmap_candidate):
+                cmap_candidate = candidate
+        game_row_count = sum(
+            1 for row in tbl_rows
+            for cells in [row.find_all(["td", "th"])]
+            if _is_game_row(cells)
+        )
+        if len(cmap_candidate) > len(col_map) or (
+            len(cmap_candidate) == len(col_map) and game_row_count > best_game_rows
+        ):
+            col_map = cmap_candidate
+            target_table = tbl
+            best_game_rows = game_row_count
+
+    if target_table is None or len(col_map) < 3:
+        return []
+
+    all_rows = target_table.find_all("tr")
+    game_rows: list[list[Tag]] = [
+        row.find_all(["td", "th"])
+        for row in all_rows
+        if _is_game_row(row.find_all(["td", "th"]))
+    ]
+    if not game_rows:
+        return []
+
+    player_team_abbr = _find_player_team_abbr(game_rows, col_map)
+
+    _ES_MONTHS = {
+        "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6,
+        "jul": 7, "ago": 8, "sep": 9, "oct": 10, "nov": 11, "dic": 12,
+    }
+
+    records: list[dict] = []
+    today = str(date.today())
+
+    for cells in game_rows:
+        stats = _parse_game_row(cells, col_map)
+        if stats.get("min") is None and stats.get("pts") is None:
+            continue  # scheduled game, not yet played
+
+        opponent = _strip_matchup(stats.get("opponent", ""), player_team_abbr)
+        game_result = stats.get("result", "").strip()
+        game_date   = ""
+        detail_stats: dict[str, float | None] = {}
+
+        for cell in cells:
+            live_link = cell.find("a", href=re.compile(r"live\.acb\.com"))
+            old_link  = cell.find("a", href=re.compile(r"/partido/ver/id/\d+"))
+            if live_link:
+                m_id = re.search(r"-(\d+)/", live_link["href"])
+                game_url = f"https://www.acb.com/partido/ver/id/{m_id.group(1)}" if m_id else ""
+            elif old_link:
+                game_url = "https://www.acb.com" + old_link["href"]
+            else:
+                continue
+            if not game_url:
+                continue
+            try:
+                time.sleep(0.5)
+                gr = requests.get(game_url, headers=_HEADERS, timeout=_TIMEOUT)
+                gr.raise_for_status()
+                page_text = gr.text
+
+                dm = re.search(r"(\d{1,2})\s+([a-záéíóú]{3})\s+(20\d{2})", page_text, re.I)
+                if dm:
+                    mon = _ES_MONTHS.get(dm.group(2).lower()[:3], 0)
+                    if mon:
+                        game_date = f"{dm.group(3)}-{mon:02d}-{int(dm.group(1)):02d}"
+                if not game_date:
+                    for dm2 in re.finditer(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", page_text):
+                        d_val, mo, yr = dm2.group(1), dm2.group(2), dm2.group(3)
+                        if 2020 <= int(yr) <= 2035 and 1 <= int(mo) <= 12 and 1 <= int(d_val) <= 31:
+                            game_date = f"{yr}-{int(mo):02d}-{int(d_val):02d}"
+                            break
+
+                extracted = _extract_result_from_game_page(page_text, opponent)
+                if extracted:
+                    score_m = re.search(r"\d{2,3}-\d{2,3}", extracted)
+                    if game_result in ("V", "D") and score_m:
+                        game_result = f"{game_result} {score_m.group()}"
+                    elif extracted.startswith(("V ", "D ")):
+                        game_result = extracted
+                    elif game_result in ("V", "D") and extracted.strip():
+                        game_result = f"{game_result} {extracted.strip()}"
+                    else:
+                        game_result = extracted
+
+                detail_stats = _extract_player_boxscore(page_text, player_name or player_id)
+            except requests.RequestException:
+                pass
+            break
+
+        if not game_date:
+            continue  # can't verify when this game was played
+
+        def _z(v: float | None) -> float:
+            return v if v is not None else 0.0
+
+        blk    = detail_stats.get("blk")
+        if blk is None:
+            blk = _z(stats["blk"])
+        fouls         = detail_stats.get("fouls")
+        fouls_received = detail_stats.get("fouls_received")
+
+        records.append({
+            "player_id":      player_id,
+            "player_name":    player_name or player_id,
+            "source":         "acb",
+            "competition":    "ACB",
+            "season":         "2025-26",
+            "game_date":      game_date,
+            "opponent":       opponent,
+            "result":         game_result,
+            "date":           today,
+            "min":            stats["min"],
+            "pts":            _z(stats["pts"]),
+            "t2m":  _z(stats["t2m"]),  "t2a":  _z(stats["t2a"]),  "t2_pct":  stats["t2_pct"],
+            "t3m":  _z(stats["t3m"]),  "t3a":  _z(stats["t3a"]),  "t3_pct":  stats["t3_pct"],
+            "ftm":  _z(stats["ftm"]),  "fta":  _z(stats["fta"]),  "ft_pct":  stats["ft_pct"],
+            "reb_off":        _z(stats["reb_off"]),
+            "reb_def":        _z(stats["reb_def"]),
+            "reb":            _z(stats["reb"]),
+            "ast":            _z(stats["ast"]),
+            "stl":            _z(stats["stl"]),
+            "tov":            _z(stats["tov"]),
+            "blk":            blk,
+            "blk_against":    detail_stats.get("blk_against"),
+            "fouls":          fouls if fouls is not None else stats["fouls"],
+            "fouls_received": fouls_received,
+            "plus_minus":     _z(stats["plus_minus"]),
+            "val":            _z(stats["val"]),
+        })
+
+    logger.info("ACB season fetch: %d games for id=%s", len(records), player_id)
+    return records
 
 
 # ---------------------------------------------------------------------------

@@ -296,6 +296,88 @@ def fetch_player_stats(
     return {}
 
 
+def fetch_season_stats(
+    player_code: str,
+    *,
+    competition: str = _EL_COMP,
+    season: str = _EL_SEASON,
+) -> list[dict]:
+    """Return all game box scores for the full season (not just the last 20)."""
+    bare_code = player_code[1:] if player_code.startswith("P") else player_code
+    competition_label = "EuroLeague" if competition == _EL_COMP else "EuroCup"
+
+    url  = f"{_BASE}/{competition}/seasons/{season}/games"
+    data = _get_json(url, params={"limit": 200})
+    if not data or not isinstance(data, dict):
+        return []
+
+    games = data.get("data", [])
+    played = [g for g in games if str(g.get("status", "")).lower() == "result"]
+    played.sort(key=lambda g: str(g.get("date", "")))
+
+    records: list[dict] = []
+    today = str(date.today())
+    for game in played:
+        raw_code = game.get("code")
+        try:
+            game_code = int(raw_code)
+        except (TypeError, ValueError):
+            continue
+        raw_date  = str(game.get("date", ""))
+        game_date = raw_date[:10] if raw_date else ""
+
+        stats, player_name, opponent, result = _fetch_game_stats(
+            competition, season, game_code, bare_code
+        )
+        if stats is None:
+            continue
+
+        t2m = _safe_float(stats.get("fieldGoalsMade2"))
+        t2a = _safe_float(stats.get("fieldGoalsAttempted2"))
+        t2_pct = round(t2m / t2a * 100, 1) if t2m is not None and t2a else _pct(stats.get("twoPointShootingPercentage"))
+        t3m = _safe_float(stats.get("fieldGoalsMade3"))
+        t3a = _safe_float(stats.get("fieldGoalsAttempted3"))
+        t3_pct = round(t3m / t3a * 100, 1) if t3m is not None and t3a else _pct(stats.get("threePointShootingPercentage"))
+        ftm = _safe_float(stats.get("freeThrowsMade"))
+        fta = _safe_float(stats.get("freeThrowsAttempted"))
+        ft_pct = round(ftm / fta * 100, 1) if ftm is not None and fta else _pct(stats.get("freeThrowShootingPercentage"))
+
+        records.append({
+            "player_id":      player_code,
+            "player_name":    player_name or player_code,
+            "source":         competition_label.lower().replace(" ", ""),
+            "competition":    competition_label,
+            "season":         season,
+            "game_date":      game_date,
+            "opponent":       opponent,
+            "result":         result,
+            "date":           today,
+            "min":            _parse_minutes(stats.get("timePlayed")),
+            "pts":            _safe_float(stats.get("points")),
+            "t2m":  t2m,   "t2a":  t2a,  "t2_pct":  t2_pct,
+            "t3m":  t3m,   "t3a":  t3a,  "t3_pct":  t3_pct,
+            "ftm":  ftm,   "fta":  fta,  "ft_pct":  ft_pct,
+            "reb_off":        _safe_float(stats.get("offensiveRebounds")),
+            "reb_def":        _safe_float(stats.get("defensiveRebounds")),
+            "reb":            _safe_float(stats.get("totalRebounds")),
+            "ast":            _safe_float(stats.get("assistances")),
+            "stl":            _safe_float(stats.get("steals")),
+            "tov":            _safe_float(stats.get("turnovers")),
+            "blk":            _safe_float(stats.get("blocksFavour")),
+            "blk_against":    _safe_float(stats.get("blocksAgainst")),
+            "fouls":          _safe_float(stats.get("foulsCommited")),
+            "fouls_received": _safe_float(stats.get("foulsReceived")),
+            "plus_minus":     _safe_float(stats.get("plusMinus")),
+            "val":            _safe_float(stats.get("valuation")),
+        })
+
+    logger.info(
+        "EL/EC season fetch: %d games for player %s (%s)",
+        len(records), player_code, competition_label,
+    )
+    return records
+
+
 def find_player_code(
     name_fragment: str,
     *,

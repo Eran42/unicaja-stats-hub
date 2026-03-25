@@ -160,7 +160,7 @@
     "country": "Canada",
     "active": true,
     "sources": [
-      { "competition": "Lega A",   "type": "lega",    "id": "7079"   },
+      { "competition": "Lega A",   "type": "eurobasket", "id": "201473" },
       { "competition": "EuroCup",  "type": "eurocup", "id": "P008052" }
     ]
   },
@@ -254,7 +254,7 @@
     "country": "United States",
     "active": true,
     "sources": [
-      { "competition": "Lega A", "type": "lega", "id": "773"       },
+      { "competition": "Lega A", "type": "eurobasket", "id": "136973" },
       { "competition": "BCL",    "type": "bcl",  "id": "pallacanestro-trieste/192665-jeff-brooks" }
     ]
   }

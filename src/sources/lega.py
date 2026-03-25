@@ -249,6 +249,7 @@ def fetch_player_stats(player_id: str | int) -> dict:
     pid = str(player_id)
 
     url_candidates = [
+        f"https://www.legabasket.it/protagonisti/giocatori/{pid}",
         f"https://www.legabasket.it/statistiche/giocatori/{pid}",
         f"https://www.legabasket.it/giocatori/{pid}",
         f"https://www.legabasket.it/player/{pid}",

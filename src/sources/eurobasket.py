@@ -170,6 +170,8 @@ _COMP_KEYWORDS: dict[str, list[str]] = {
     "eurocup":       ["eurocup", "7days"],
     "bcl":           ["champions league", "bcl"],
     "acb":           ["acb"],
+    "lega a":        ["italy", "serie a"],
+    "plk":           ["poland", "obl"],
 }
 
 
@@ -275,6 +277,9 @@ def _extract_record(
     game_date_raw = row_data[0]
     game_date = _parse_date_flexible(game_date_raw)
     if not game_date or not re.match(r"\d{4}-\d{2}-\d{2}", game_date):
+        return None
+    # Reject games from before the 2025-26 season
+    if game_date < "2025-09-01":
         return None
 
     def _get(field: str) -> float | None:
