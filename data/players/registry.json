@@ -160,7 +160,8 @@
     "country": "Canada",
     "active": true,
     "sources": [
-      { "competition": "Lega A", "type": "lega", "id": "7079" }
+      { "competition": "Lega A",   "type": "lega",    "id": "7079"   },
+      { "competition": "EuroCup",  "type": "eurocup", "id": "P008052" }
     ]
   },
   {
@@ -174,10 +175,12 @@
   },
   {
     "name": "Adam Waczyński",
-    "team": "Free Agent",
+    "team": "WKS Śląsk Wrocław",
     "country": "Poland",
-    "active": false,
-    "sources": []
+    "active": true,
+    "sources": [
+      { "competition": "PLK", "type": "eurobasket", "id": "103227" }
+    ]
   },
   {
     "name": "Jaime Fernández",
@@ -219,11 +222,40 @@
   },
   {
     "name": "Francis Alonso",
-    "team": "San Pablo Burgos",
+    "team": "Río Breogán",
     "country": "Spain",
     "active": true,
     "sources": [
       { "competition": "ACB", "type": "acb", "id": "20210585" }
+    ]
+  },
+  {
+    "name": "Dani Díez",
+    "team": "San Pablo Burgos",
+    "country": "Spain",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "20204156" }
+    ]
+  },
+  {
+    "name": "Aleksa Avramović",
+    "team": "Dubai Basketball",
+    "country": "Serbia",
+    "active": true,
+    "sources": [
+      { "competition": "EuroLeague", "type": "euroleague", "id": "P003983" },
+      { "competition": "ABA League", "type": "aba",        "id": "3857"    }
+    ]
+  },
+  {
+    "name": "Jeffrey Brooks",
+    "team": "Pallacanestro Trieste",
+    "country": "United States",
+    "active": true,
+    "sources": [
+      { "competition": "Lega A", "type": "lega", "id": "773"       },
+      { "competition": "BCL",    "type": "bcl",  "id": "pallacanestro-trieste/192665-jeff-brooks" }
     ]
   }
 ]
