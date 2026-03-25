@@ -7,6 +7,8 @@ History table: select a player → every game we've ever collected, one row each
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import unicodedata
 from datetime import datetime, timedelta
@@ -125,6 +127,22 @@ def _render_header() -> None:
     )
 
 # ---------------------------------------------------------------------------
+# Registry team lookup — populated once at startup
+# ---------------------------------------------------------------------------
+
+def _load_team_lookup() -> dict[str, str]:
+    """Return {canonical_player_name: team} from the registry."""
+    path = os.path.join(os.path.dirname(__file__), "data", "players", "registry.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return {p["name"]: p.get("team", "") for p in json.load(f)}
+    except Exception:
+        return {}
+
+_TEAM_LOOKUP: dict[str, str] = _load_team_lookup()
+
+
+# ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
@@ -223,6 +241,11 @@ def _build_row(record: dict) -> dict:
         label = _COL_LABELS.get(field, field)
         if field in _STAT_COLS:
             row[label] = _to_num(record.get(field))
+        elif field == "team":
+            team = record.get("team") or ""
+            if not team:
+                team = _TEAM_LOOKUP.get(record.get("player_name", ""), "")
+            row[label] = team or "N/A"
         else:
             row[label] = record.get(field) or "N/A"
 
