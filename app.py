@@ -216,9 +216,28 @@ def _game_is_within_24h(game_date: str) -> bool:
 
 _PCT_FIELDS = {"t2_pct", "t3_pct", "ft_pct"}
 
+
+def _make_stat_formatter(fmt: str):
+    """Return a callable that applies *fmt* to numbers but passes strings through.
+
+    Pre-formatted strings (used by the average row) are returned unchanged so
+    that the average row can display one decimal while game rows stay as integers.
+    """
+    def _fmt(val):
+        if isinstance(val, str):
+            return val          # already formatted by _build_avg_row
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            return "N/A"
+        try:
+            return fmt.format(val)
+        except (TypeError, ValueError):
+            return str(val)
+    return _fmt
+
+
 # Styler format spec per display-label — keeps sorting numeric, display pretty
-_STAT_FORMAT: dict[str, str] = {
-    _COL_LABELS[f]: ("{:.1f}" if f in _PCT_FIELDS else "{:.0f}")
+_STAT_FORMAT: dict[str, object] = {
+    _COL_LABELS[f]: _make_stat_formatter("{:.1f}" if f in _PCT_FIELDS else "{:.0f}")
     for f in _STAT_COLS
 }
 
@@ -389,7 +408,12 @@ _PCT_TRIPLES = [
 
 
 def _build_avg_row(df: pd.DataFrame, n_games: int) -> dict:
-    """Return a summary row: means for numeric stats, true % for shooting columns."""
+    """Return a summary row with values pre-formatted to 1 decimal as strings.
+
+    Using strings lets the Styler pass them through unchanged while game rows
+    continue to render as integers (via the numeric format in _STAT_FORMAT).
+    Percentages are computed as sum(made)/sum(attempts)*100, not mean(pct).
+    """
     row: dict = {}
     stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
     pct_labels  = {triple[2] for triple in _PCT_TRIPLES}
@@ -398,18 +422,19 @@ def _build_avg_row(df: pd.DataFrame, n_games: int) -> dict:
         if col not in stat_labels:
             row[col] = ""
         elif col in pct_labels:
-            row[col] = None  # filled below from made/attempts
+            row[col] = "N/A"  # filled below from made/attempts
         else:
             series = pd.to_numeric(df[col], errors="coerce").dropna()
-            row[col] = round(series.mean(), 1) if len(series) else None
+            row[col] = f"{series.mean():.1f}" if len(series) else "N/A"
 
     # True shooting percentages: sum(made) / sum(attempts) * 100
     for made_lbl, att_lbl, pct_lbl in _PCT_TRIPLES:
         made_s = pd.to_numeric(df[made_lbl], errors="coerce").dropna()
         att_s  = pd.to_numeric(df[att_lbl],  errors="coerce").dropna()
-        total_made = made_s.sum()
-        total_att  = att_s.sum()
-        row[pct_lbl] = round(total_made / total_att * 100, 1) if total_att > 0 else None
+        total_att = att_s.sum()
+        row[pct_lbl] = (
+            f"{made_s.sum() / total_att * 100:.1f}" if total_att > 0 else "N/A"
+        )
 
     # Label the row
     row[_COL_LABELS["player_name"]] = f"Average ({n_games} games)"
