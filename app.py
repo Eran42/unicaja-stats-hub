@@ -669,9 +669,13 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
             # Reduce font to match st.dataframe appearance
             ".ag-header-cell-text": {"font-size": "12px !important"},
             ".ag-cell":             {"font-size": "12px !important"},
-            # The filter-button placeholder is always rendered (display:block, 16px)
-            # even when filter=False. With narrow stat columns it eats the entire
-            # label area, leaving 0px for the header text. Hide it completely.
+            # Alpine theme uses 16px padding per side in headers — leaves only
+            # 10px for text in a 50px column. Drop to 4px so stat labels fit.
+            ".ag-header-cell": {
+                "padding-left":  "4px !important",
+                "padding-right": "4px !important",
+            },
+            # Hide unused button placeholders that also steal width
             ".ag-header-cell-filter-button": {"display": "none !important"},
             ".ag-header-cell-menu-button":   {"display": "none !important"},
         },
