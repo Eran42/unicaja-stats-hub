@@ -669,11 +669,11 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
             # Reduce font to match st.dataframe appearance
             ".ag-header-cell-text": {"font-size": "12px !important"},
             ".ag-cell":             {"font-size": "12px !important"},
-            # Hide hamburger menu button (~20px) and the placeholder sort icon
-            # (~16px) so narrow columns can display their header text at rest.
-            # Active sort arrows (asc/desc) remain visible.
-            ".ag-header-cell-menu-button":    {"display": "none !important"},
-            ".ag-sort-none-icon":             {"display": "none !important"},
+            # The filter-button placeholder is always rendered (display:block, 16px)
+            # even when filter=False. With narrow stat columns it eats the entire
+            # label area, leaving 0px for the header text. Hide it completely.
+            ".ag-header-cell-filter-button": {"display": "none !important"},
+            ".ag-header-cell-menu-button":   {"display": "none !important"},
         },
     )
 
