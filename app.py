@@ -307,11 +307,36 @@ _HEADER_HEIGHT_PX = 50   # AG Grid alpine renders ~49px; set explicitly via head
 _GRID_PAD_PX      = 20   # extra pixels for AG Grid borders + horizontal scrollbar
 
 def _aggrid_theme() -> str:
-    """Return 'alpine-dark' when Streamlit is running in dark mode, else 'alpine'."""
-    try:
-        return "alpine-dark" if st.get_option("theme.base") == "dark" else "alpine"
-    except Exception:
-        return "alpine"
+    """Return 'alpine-dark' when the page is in dark mode, else 'alpine'.
+
+    st.get_option('theme.base') only sees the config file and misses
+    the system-preference dark mode that Streamlit auto-detects.  We
+    therefore store the preference in a URL query param (_dark=1) which
+    is set by a JS snippet injected at startup, then read it here.
+    """
+    return "alpine-dark" if st.query_params.get("_dark") == "1" else "alpine"
+
+
+def _inject_dark_mode_detector() -> None:
+    """Inject JS that syncs prefers-color-scheme → URL param → Streamlit rerun."""
+    st.markdown(
+        """
+<script>
+(function () {
+    var dark  = window.matchMedia('(prefers-color-scheme: dark)').matches ? '1' : '0';
+    var url   = new URL(window.location.href);
+    if (url.searchParams.get('_dark') !== dark) {
+        url.searchParams.set('_dark', dark);
+        window.history.replaceState({}, '', url.toString());
+        // Dispatching popstate causes Streamlit to pick up the new query param
+        // and rerun the script, so the correct AG Grid theme is chosen.
+        window.dispatchEvent(new PopStateEvent('popstate', {state: history.state}));
+    }
+})();
+</script>
+""",
+        unsafe_allow_html=True,
+    )
 
 
 _AGGRID_CSS = {
@@ -695,6 +720,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 # App layout
 # ---------------------------------------------------------------------------
 
+_inject_dark_mode_detector()
 _inject_css()
 _render_header()
 
