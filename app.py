@@ -531,7 +531,7 @@ def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None, da
             return{{backgroundColor:odd?'{odd_bg}':'{even_bg}',borderLeft:'{bl}',color:'{text_color}'}};
         }}""")
 
-        kwargs = dict(width=w, minWidth=w, cellStyle=cell_style, resizable=True)
+        kwargs = dict(width=w, cellStyle=cell_style, resizable=True)
         if vfmt is not None:
             kwargs["valueFormatter"] = vfmt
         gb.configure_column(col, **kwargs)
