@@ -302,8 +302,8 @@ def _load_all() -> dict[str, list[dict]]:
 # Main table
 # ---------------------------------------------------------------------------
 
-_ROW_HEIGHT_PX  = 35
-_HEADER_HEIGHT_PX = 38
+_ROW_HEIGHT_PX    = 35
+_HEADER_HEIGHT_PX = 50   # AG Grid alpine renders ~49px; set explicitly via headerHeight
 
 _AGGRID_CSS = {
     ".ag-header-cell-text": {"font-size": "12px !important"},
@@ -479,8 +479,9 @@ def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None) ->
     gb.configure_grid_options(
         pinnedBottomRowData=[avg_row] if avg_row is not None else [],
         rowHeight=_ROW_HEIGHT_PX,
+        headerHeight=_HEADER_HEIGHT_PX,
         suppressMovableColumns=True,
-        suppressHeaderMenuButton=True,  # belt-and-suspenders for newer AG Grid
+        suppressHeaderMenuButton=True,
     )
     return gb.build()
 
