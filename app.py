@@ -407,6 +407,41 @@ _PCT_TRIPLES = [
 ]
 
 
+def _render_avg_row_html(avg_row: dict) -> None:
+    """Render the average row as HTML below the scrollable dataframe — no extra header."""
+    all_widths = {**_TEXT_WIDTHS, **_STAT_WIDTHS}
+    cols = [_COL_LABELS.get(f, f) for f in _DISPLAY_COLS]
+    total_w = sum(all_widths.get(c, 42) for c in cols)
+
+    col_defs = "".join(
+        f'<col style="width:{all_widths.get(c, 42) / total_w * 100:.3f}%">'
+        for c in cols
+    )
+
+    cells = ""
+    for c in cols:
+        val = avg_row.get(c, "")
+        border_left = "border-left:2px solid rgba(80,80,80,0.30);" if c in _GROUP_DIVIDERS else ""
+        cells += (
+            f'<td style="padding:3px 6px;font-size:13px;font-weight:700;'
+            f'font-family:monospace;'
+            f'background-color:rgba(80,80,80,0.12);'
+            f'border-top:2px solid rgba(80,80,80,0.40);'
+            f'border-bottom:1px solid rgba(80,80,80,0.20);'
+            f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+            f'{border_left}">{val}</td>'
+        )
+
+    html = (
+        '<div style="overflow:hidden;margin-top:2px;">'
+        '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">'
+        f'<colgroup>{col_defs}</colgroup>'
+        f'<tbody><tr>{cells}</tr></tbody>'
+        '</table></div>'
+    )
+    st.markdown(html, unsafe_allow_html=True)
+
+
 def _build_avg_row(df: pd.DataFrame, n_games: int) -> dict:
     """Return a summary row with values pre-formatted to 1 decimal as strings.
 
@@ -588,19 +623,9 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         column_config=_col_config(),
     )
 
-    # Average row — rendered outside the scroll container so it is always visible
+    # Average row — rendered as HTML so it has no header of its own
     avg_row = _build_avg_row(df, len(game_rows))
-    avg_df  = pd.DataFrame([avg_row])
-    avg_height = _HEADER_HEIGHT_PX + _ROW_HEIGHT_PX + 4
-    st.dataframe(
-        avg_df.style.apply(
-            _style_table, stripe="", avg_index=0, axis=None
-        ).format(_STAT_FORMAT, na_rep="N/A"),
-        use_container_width=True,
-        hide_index=True,
-        height=avg_height,
-        column_config=_col_config(),
-    )
+    _render_avg_row_html(avg_row)
 
 
 # ---------------------------------------------------------------------------
