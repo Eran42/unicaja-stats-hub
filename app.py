@@ -306,15 +306,9 @@ _ROW_HEIGHT_PX    = 35
 _HEADER_HEIGHT_PX = 50   # AG Grid alpine renders ~49px; set explicitly via headerHeight
 _GRID_PAD_PX      = 20   # extra pixels for AG Grid borders + horizontal scrollbar
 
-def _aggrid_theme() -> str:
-    """Return 'alpine-dark' when the page is in dark mode, else 'alpine'.
-
-    st.get_option('theme.base') only sees the config file and misses
-    the system-preference dark mode that Streamlit auto-detects.  We
-    therefore store the preference in a URL query param (_dark=1) which
-    is set by a JS snippet injected at startup, then read it here.
-    """
-    return "alpine-dark" if st.query_params.get("_dark") == "1" else "alpine"
+def _is_dark() -> bool:
+    """True when the browser reports prefers-color-scheme: dark (via ?_dark=1)."""
+    return st.query_params.get("_dark") == "1"
 
 
 def _inject_dark_mode_detector() -> None:
@@ -339,13 +333,33 @@ def _inject_dark_mode_detector() -> None:
     )
 
 
-_AGGRID_CSS = {
+_AGGRID_CSS_BASE = {
     ".ag-header-cell-text": {"font-size": "12px !important"},
     ".ag-cell":             {"font-size": "12px !important", "padding-left": "6px !important", "padding-right": "6px !important"},
     ".ag-header-cell":      {"padding-left": "4px !important", "padding-right": "4px !important"},
     ".ag-header-cell-filter-button": {"display": "none !important"},
     ".ag-header-cell-menu-button":   {"display": "none !important"},
 }
+
+_AGGRID_CSS_DARK_EXTRA = {
+    ".ag-root-wrapper":    {"background-color": "#0e1117 !important", "border-color": "#3d3d3d !important", "color": "#fafafa !important"},
+    ".ag-header":          {"background-color": "#262730 !important", "border-bottom-color": "#3d3d3d !important"},
+    ".ag-header-cell":     {"background-color": "#262730 !important", "color": "#fafafa !important",
+                            "border-color": "#3d3d3d !important",
+                            "padding-left": "4px !important", "padding-right": "4px !important"},
+    ".ag-header-cell-text": {"font-size": "12px !important", "color": "#fafafa !important"},
+    ".ag-row":             {"border-color": "#3d3d3d !important"},
+    ".ag-floating-bottom": {"border-top-color": "#555 !important"},
+    ".ag-body-viewport":   {"background-color": "#0e1117 !important"},
+    ".ag-center-cols-viewport": {"background-color": "#0e1117 !important"},
+}
+
+
+def _aggrid_css() -> dict:
+    css = dict(_AGGRID_CSS_BASE)
+    if _is_dark():
+        css.update(_AGGRID_CSS_DARK_EXTRA)
+    return css
 
 # ---------------------------------------------------------------------------
 # Column config
@@ -451,7 +465,7 @@ _PCT_TRIPLES = [
 ]
 
 
-def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None) -> dict:
+def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None, dark: bool = False) -> dict:
     """Build AgGrid options. stripe sets odd-row background for ungrouped columns."""
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column(
@@ -463,9 +477,16 @@ def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None) ->
     all_widths = {**_TEXT_WIDTHS, **_STAT_WIDTHS}
     stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
     pct_labels  = {_COL_LABELS[f] for f in _PCT_FIELDS}
-    avg_bg      = "rgba(80,80,80,0.12)"
-    avg_border  = "2px solid rgba(80,80,80,0.40)"
-    grp_border  = "2px solid rgba(80,80,80,0.30)"
+
+    # Dark-mode adjustments
+    text_color  = "#fafafa" if dark else "inherit"
+    avg_bg      = "rgba(120,120,120,0.30)" if dark else "rgba(80,80,80,0.12)"
+    avg_border  = "2px solid rgba(180,180,180,0.50)" if dark else "2px solid rgba(80,80,80,0.40)"
+    grp_border  = "2px solid rgba(180,180,180,0.30)" if dark else "2px solid rgba(80,80,80,0.30)"
+    base_even   = "#0e1117" if dark else "transparent"
+    base_odd    = ("#1c1c2e" if dark else stripe) if not stripe.startswith("rgba") else (
+                  stripe.replace("0.08", "0.25") if dark else stripe
+    )
 
     for col in df.columns:
         w         = all_widths.get(col, 42)
@@ -474,9 +495,14 @@ def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None) ->
         is_pct    = col in pct_labels
 
         if col in _COL_GROUP_COLORS:
-            even_bg, odd_bg = _COL_GROUP_COLORS[col]
+            e_bg, o_bg = _COL_GROUP_COLORS[col]
+            if dark:
+                # Boost opacity of group tints for dark backgrounds
+                e_bg = e_bg.replace("0.07", "0.20")
+                o_bg = o_bg.replace("0.15", "0.35")
+            even_bg, odd_bg = e_bg, o_bg
         else:
-            even_bg, odd_bg = "transparent", stripe
+            even_bg, odd_bg = base_even, base_odd
 
         bl = grp_border if is_div else "none"
 
@@ -499,10 +525,10 @@ def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None) ->
         cell_style = JsCode(f"""function(p){{
             if(p.node.rowPinned==='bottom'){{
                 return{{fontWeight:'700',backgroundColor:'{avg_bg}',
-                        borderTop:'{avg_border}',borderLeft:'{bl}'}};
+                        borderTop:'{avg_border}',borderLeft:'{bl}',color:'{text_color}'}};
             }}
             var odd=p.node.rowIndex%2!==0;
-            return{{backgroundColor:odd?'{odd_bg}':'{even_bg}',borderLeft:'{bl}'}};
+            return{{backgroundColor:odd?'{odd_bg}':'{even_bg}',borderLeft:'{bl}',color:'{text_color}'}};
         }}""")
 
         kwargs = dict(width=w, minWidth=w, cellStyle=cell_style, resizable=True)
@@ -581,17 +607,18 @@ def render_latest(records: list[dict]) -> None:
 
     df = pd.DataFrame(played_rows)
     height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + _GRID_PAD_PX
+    dark = _is_dark()
     st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
     AgGrid(
         df,
-        gridOptions=_build_aggrid(df, stripe="rgba(0,102,51,0.08)"),
+        gridOptions=_build_aggrid(df, stripe="rgba(0,102,51,0.08)", dark=dark),
         height=height,
         use_container_width=True,
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=False,
         update_mode="NO_UPDATE",
-        theme=_aggrid_theme(),
-        custom_css=_AGGRID_CSS,
+        theme="alpine",
+        custom_css=_aggrid_css(),
     )
 
 
@@ -694,9 +721,10 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     )
 
     # Avg row only makes sense when browsing a single player's full history
+    dark      = _is_dark()
     show_avg  = filter_player is not None and filter_date is None
     avg_row   = _build_avg_row(df, len(game_rows)) if show_avg else None
-    grid_opts = _build_aggrid(df, stripe="rgba(107,47,160,0.08)", avg_row=avg_row)
+    grid_opts = _build_aggrid(df, stripe="rgba(107,47,160,0.08)", avg_row=avg_row, dark=dark)
 
     pinned_rows = 1 if show_avg else 0
     grid_height = min(
@@ -711,8 +739,8 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=False,
         update_mode="NO_UPDATE",
-        theme=_aggrid_theme(),
-        custom_css=_AGGRID_CSS,
+        theme="alpine",
+        custom_css=_aggrid_css(),
     )
 
 
