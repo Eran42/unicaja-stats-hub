@@ -414,7 +414,8 @@ def _build_history_grid(df: pd.DataFrame, avg_row: dict | None) -> dict:
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column(
         resizable=True, sortable=True, filter=False,
-        suppressMenu=True,   # removes the hamburger icon, freeing header space
+        suppressMenu=True,          # removes the hamburger icon, freeing header space
+        sortingOrder=["desc", "asc", None],  # first click → descending
     )
 
     all_widths = {**_TEXT_WIDTHS, **_STAT_WIDTHS}
