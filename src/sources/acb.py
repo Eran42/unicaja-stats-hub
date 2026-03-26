@@ -246,14 +246,18 @@ def _parse_game_row(cells: list[Tag], col_map: dict[str, int]) -> dict:
         fta  = _safe_float(_at("fta"))
         ft_pct = _safe_float(_at("ft_pct"))
 
-    # Rebounds
-    reb_raw = _at("reb_combined")
+    # Rebounds — try combined cell first, then "reb" column (header "RT" maps here
+    # but ACB stores the combined '7 (5+2)' format there too), then split columns.
+    reb_raw = _at("reb_combined") or _at("reb")
     if reb_raw:
-        reb_def, reb_off, reb = _parse_reb_cell(reb_raw)
+        parsed_def, parsed_off, parsed_total = _parse_reb_cell(reb_raw)
+        reb_def = parsed_def if parsed_def is not None else _safe_float(_at("reb_def"))
+        reb_off = parsed_off if parsed_off is not None else _safe_float(_at("reb_off"))
+        reb     = parsed_total
     else:
         reb_def = _safe_float(_at("reb_def"))
         reb_off = _safe_float(_at("reb_off"))
-        reb     = _safe_float(_at("reb"))
+        reb     = None
 
     return {
         "opponent":   opponent,
