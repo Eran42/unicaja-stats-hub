@@ -343,9 +343,11 @@ def _extract_player_boxscore(
         if len(rows) < 3:
             continue
 
-        # Find the parent header row that contains TAP and/or FP labels
+        # Find the parent header row that contains TAP and/or FP labels.
+        # Save the flat header to determine whether paired sub-columns exist.
         tap_start: int | None = None
-        fp_start: int | None = None
+        fp_start:  int | None = None
+        saved_flat: list[str] = []
 
         for hrow in rows[:4]:
             flat = _expand_header_row(hrow)
@@ -355,24 +357,40 @@ def _extract_player_boxscore(
                 if label == "FP" and fp_start is None:
                     fp_start = i
             if tap_start is not None or fp_start is not None:
+                saved_flat = flat
                 break
 
         if tap_start is None and fp_start is None:
             continue
 
-        # Find the player's data row (td cells) and extract by flat-index
+        # Determine which column holds blk_against and fouls_received.
+        # Old /resumen format (colspan-expanded): TAP TAP ... FP FP
+        # New /estadisticas format: TAP TR ... FP FR
+        blk_against_idx: int | None = None
+        if tap_start is not None and len(saved_flat) > tap_start + 1:
+            if saved_flat[tap_start + 1] in ("TAP", "TAP.", "TR"):
+                blk_against_idx = tap_start + 1
+
+        fr_idx: int | None = None
+        if fp_start is not None and len(saved_flat) > fp_start + 1:
+            if saved_flat[fp_start + 1] in ("FP", "FR"):
+                fr_idx = fp_start + 1
+
+        # Find the player's data row (td cells) and extract by flat-index.
+        # Player name may be in cells[0] (new format: "11D. Díez") or
+        # cells[1] (old format where first cell is a jersey-number column).
         for row in rows:
             cells = row.find_all("td")
-            if len(cells) < 10:
+            if len(cells) < 5:
                 continue
 
-            # Player name is typically in the second cell (index 1 = "Nombre")
-            name_raw = cells[1].get_text(strip=True) if len(cells) > 1 else ""
+            name_raw = ""
+            for name_idx in (0, 1):
+                candidate_name = cells[name_idx].get_text(strip=True) if len(cells) > name_idx else ""
+                if _ascii_tokens(candidate_name).intersection(pname_tokens):
+                    name_raw = candidate_name
+                    break
             if not name_raw:
-                continue
-            # Use ASCII-normalised tokens to avoid encoding mismatches
-            name_tokens = _ascii_tokens(name_raw)
-            if not pname_tokens.intersection(name_tokens):
                 continue
 
             # Matched — extract values
@@ -384,10 +402,10 @@ def _extract_player_boxscore(
                 return _safe_float(cells[idx].get_text(strip=True))
 
             candidate = {
-                "blk":           _gcell(tap_start),
-                "blk_against":   _gcell(tap_start + 1) if tap_start is not None else None,
-                "fouls":         _gcell(fp_start),
-                "fouls_received": _gcell(fp_start + 1) if fp_start is not None else None,
+                "blk":            _gcell(tap_start),
+                "blk_against":    _gcell(blk_against_idx),
+                "fouls":          _gcell(fp_start),
+                "fouls_received": _gcell(fr_idx),
             }
             # Skip rows where ALL target values are empty (wrong team, same name)
             if any(v is not None for v in candidate.values()):
@@ -708,8 +726,19 @@ def fetch_player_stats(player_id: str) -> dict:
                 else:
                     game_result = extracted
 
-            # Blocks and fouls — separate F/C columns in the box score table
-            detail_stats = _extract_player_boxscore(page_text, player_name or player_id)
+            # Blocks and fouls — try /estadisticas page first (has TAP/TR/FP/FR),
+            # fall back to /resumen page (has old TAP+TAP / FP+FP colspan format).
+            stats_url = re.sub(r"/resumen$", "/estadisticas", gr.url)
+            if stats_url != gr.url:
+                try:
+                    time.sleep(0.3)
+                    sr = requests.get(stats_url, headers=_HEADERS, timeout=_TIMEOUT)
+                    sr.raise_for_status()
+                    detail_stats = _extract_player_boxscore(sr.text, player_name or player_id)
+                except requests.RequestException:
+                    detail_stats = {}
+            if not any(v is not None for v in detail_stats.values()):
+                detail_stats = _extract_player_boxscore(page_text, player_name or player_id)
             logger.debug("ACB game detail stats for %s: %s", player_name, detail_stats)
 
         except requests.RequestException:
@@ -891,7 +920,18 @@ def fetch_season_stats(player_id: str) -> list[dict]:
                     else:
                         game_result = extracted
 
-                detail_stats = _extract_player_boxscore(page_text, player_name or player_id)
+                # Try /estadisticas page first (has TAP/TR/FP/FR columns)
+                stats_url = re.sub(r"/resumen$", "/estadisticas", gr.url)
+                if stats_url != gr.url:
+                    try:
+                        time.sleep(0.3)
+                        sr = requests.get(stats_url, headers=_HEADERS, timeout=_TIMEOUT)
+                        sr.raise_for_status()
+                        detail_stats = _extract_player_boxscore(sr.text, player_name or player_id)
+                    except requests.RequestException:
+                        detail_stats = {}
+                if not any(v is not None for v in detail_stats.values()):
+                    detail_stats = _extract_player_boxscore(page_text, player_name or player_id)
             except requests.RequestException:
                 pass
             break

@@ -125,9 +125,9 @@
     "ftm": 0.0,
     "fta": 0.0,
     "ft_pct": 0.0,
-    "reb_off": 1.0,
-    "reb_def": 0.0,
-    "reb": 1.0,
+    "reb_off": 3.0,
+    "reb_def": 2.0,
+    "reb": 5.0,
     "ast": 3.0,
     "stl": 0.0,
     "tov": 1.0,
@@ -137,7 +137,7 @@
     "val": 10.0,
     "team": "Lenovo Tenerife",
     "blk_against": 0.0,
-    "fouls_received": 2.0
+    "fouls_received": 1.0
   },
   {
     "player_id": "20211625",
@@ -305,9 +305,9 @@
     "stl": 0.0,
     "tov": 0.0,
     "blk": 0.0,
-    "blk_against": null,
+    "blk_against": 0.0,
     "fouls": 0.0,
-    "fouls_received": null,
+    "fouls_received": 1.0,
     "plus_minus": -3.0,
     "val": 12.0
   }
