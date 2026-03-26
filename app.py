@@ -306,6 +306,14 @@ _ROW_HEIGHT_PX    = 35
 _HEADER_HEIGHT_PX = 50   # AG Grid alpine renders ~49px; set explicitly via headerHeight
 _GRID_PAD_PX      = 20   # extra pixels for AG Grid borders + horizontal scrollbar
 
+def _aggrid_theme() -> str:
+    """Return 'alpine-dark' when Streamlit is running in dark mode, else 'alpine'."""
+    try:
+        return "alpine-dark" if st.get_option("theme.base") == "dark" else "alpine"
+    except Exception:
+        return "alpine"
+
+
 _AGGRID_CSS = {
     ".ag-header-cell-text": {"font-size": "12px !important"},
     ".ag-cell":             {"font-size": "12px !important", "padding-left": "6px !important", "padding-right": "6px !important"},
@@ -557,7 +565,7 @@ def render_latest(records: list[dict]) -> None:
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=False,
         update_mode="NO_UPDATE",
-        theme="alpine",
+        theme=_aggrid_theme(),
         custom_css=_AGGRID_CSS,
     )
 
@@ -678,17 +686,8 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=False,
         update_mode="NO_UPDATE",
-        theme="alpine",
-        custom_css={
-            # Reduce font to 12px
-            ".ag-header-cell-text": {"font-size": "12px !important"},
-            ".ag-cell":             {"font-size": "12px !important", "padding-left": "6px !important", "padding-right": "6px !important"},
-            # Alpine default is 16px per side in headers — reduced to 4px
-            ".ag-header-cell":      {"padding-left": "4px !important", "padding-right": "4px !important"},
-            # Hide unused placeholder buttons that consume column width
-            ".ag-header-cell-filter-button": {"display": "none !important"},
-            ".ag-header-cell-menu-button":   {"display": "none !important"},
-        },
+        theme=_aggrid_theme(),
+        custom_css=_AGGRID_CSS,
     )
 
 
