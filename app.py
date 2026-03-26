@@ -304,6 +304,7 @@ def _load_all() -> dict[str, list[dict]]:
 
 _ROW_HEIGHT_PX    = 35
 _HEADER_HEIGHT_PX = 50   # AG Grid alpine renders ~49px; set explicitly via headerHeight
+_GRID_PAD_PX      = 20   # extra pixels for AG Grid borders + horizontal scrollbar
 
 _AGGRID_CSS = {
     ".ag-header-cell-text": {"font-size": "12px !important"},
@@ -546,7 +547,7 @@ def render_latest(records: list[dict]) -> None:
         return
 
     df = pd.DataFrame(played_rows)
-    height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + 4
+    height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + _GRID_PAD_PX
     st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
     AgGrid(
         df,
@@ -666,7 +667,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 
     pinned_rows = 1 if show_avg else 0
     grid_height = min(
-        _HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + pinned_rows * _ROW_HEIGHT_PX + 4,
+        _HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + pinned_rows * _ROW_HEIGHT_PX + _GRID_PAD_PX,
         500 + _ROW_HEIGHT_PX,
     )
     AgGrid(
