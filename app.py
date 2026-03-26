@@ -312,23 +312,24 @@ _HEADER_HEIGHT_PX = 38
 _TEXT_WIDTHS: dict[str, int] = {
     "Player":      150,
     "Team":         95,
-    "Competition":  90,
-    "Game Date":    88,
-    "Opponent":    140,
-    "Result":       72,
+    "Competition":  95,
+    "Game Date":   102,
+    "Opponent":    150,
+    "Result":       84,
 }
 
-# Stat columns: widths in pixels. Percentages need room for "100.0".
+# Stat columns: widths sized for 12px font with 6px cell padding each side.
+# Minimum needed: content_width + 12px padding.  "100.0" ≈ 35px → 47px min.
 _STAT_WIDTHS: dict[str, int] = {
-    "MIN": 52, "PTS": 50,
-    "T2M": 50, "T2A": 50, "T2%": 54,
-    "T3M": 50, "T3A": 50, "T3%": 54,
-    "FTM": 50, "FTA": 50, "FT%": 54,
-    "RO":  46, "RD":  46, "RT":  46,
-    "AST": 50, "STL": 50, "TOV": 50,
-    "BLK": 50, "BLK-A": 58,
-    "F":   46, "FR":   46,
-    "+/-": 52, "VAL":  52,
+    "MIN": 48, "PTS": 44,
+    "T2M": 44, "T2A": 44, "T2%": 52,
+    "T3M": 44, "T3A": 44, "T3%": 52,
+    "FTM": 44, "FTA": 44, "FT%": 52,
+    "RO":  42, "RD":  42, "RT":  44,
+    "AST": 44, "STL": 44, "TOV": 44,
+    "BLK": 44, "BLK-A": 56,
+    "F":   38, "FR":   38,
+    "+/-": 48, "VAL":  48,
 }
 
 
@@ -462,7 +463,7 @@ def _build_history_grid(df: pd.DataFrame, avg_row: dict | None) -> dict:
             return{{backgroundColor:odd?'{odd_bg}':'{even_bg}',borderLeft:'{bl}'}};
         }}""")
 
-        kwargs = dict(width=w, cellStyle=cell_style, resizable=True)
+        kwargs = dict(width=w, minWidth=w, cellStyle=cell_style, resizable=True)
         if vfmt is not None:
             kwargs["valueFormatter"] = vfmt
         gb.configure_column(col, **kwargs)
@@ -666,16 +667,12 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         update_mode="NO_UPDATE",
         theme="alpine",
         custom_css={
-            # Reduce font to match st.dataframe appearance
+            # Reduce font to 12px
             ".ag-header-cell-text": {"font-size": "12px !important"},
-            ".ag-cell":             {"font-size": "12px !important"},
-            # Alpine theme uses 16px padding per side in headers — leaves only
-            # 10px for text in a 50px column. Drop to 4px so stat labels fit.
-            ".ag-header-cell": {
-                "padding-left":  "4px !important",
-                "padding-right": "4px !important",
-            },
-            # Hide unused button placeholders that also steal width
+            ".ag-cell":             {"font-size": "12px !important", "padding-left": "6px !important", "padding-right": "6px !important"},
+            # Alpine default is 16px per side in headers — reduced to 4px
+            ".ag-header-cell":      {"padding-left": "4px !important", "padding-right": "4px !important"},
+            # Hide unused placeholder buttons that consume column width
             ".ag-header-cell-filter-button": {"display": "none !important"},
             ".ag-header-cell-menu-button":   {"display": "none !important"},
         },
