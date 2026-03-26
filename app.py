@@ -320,15 +320,15 @@ _TEXT_WIDTHS: dict[str, int] = {
 
 # Stat columns: widths in pixels. Percentages need room for "100.0".
 _STAT_WIDTHS: dict[str, int] = {
-    "MIN": 52, "PTS": 42,
-    "T2M": 42, "T2A": 42, "T2%": 52,
-    "T3M": 42, "T3A": 42, "T3%": 52,
-    "FTM": 42, "FTA": 42, "FT%": 52,
-    "RO":  42, "RD":  42, "RT":  42,
-    "AST": 42, "STL": 42, "TOV": 42,
-    "BLK": 42, "BLK-A": 52,
-    "F":   42, "FR":   42,
-    "+/-": 52, "VAL":  48,
+    "MIN": 52, "PTS": 50,
+    "T2M": 50, "T2A": 50, "T2%": 54,
+    "T3M": 50, "T3A": 50, "T3%": 54,
+    "FTM": 50, "FTA": 50, "FT%": 54,
+    "RO":  46, "RD":  46, "RT":  46,
+    "AST": 50, "STL": 50, "TOV": 50,
+    "BLK": 50, "BLK-A": 58,
+    "F":   46, "FR":   46,
+    "+/-": 52, "VAL":  52,
 }
 
 
@@ -664,7 +664,17 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=False,
         update_mode="NO_UPDATE",
-        theme="balham",
+        theme="alpine",
+        custom_css={
+            # Reduce font to match st.dataframe appearance
+            ".ag-header-cell-text": {"font-size": "12px !important"},
+            ".ag-cell":             {"font-size": "12px !important"},
+            # Hide hamburger menu button (~20px) and the placeholder sort icon
+            # (~16px) so narrow columns can display their header text at rest.
+            # Active sort arrows (asc/desc) remain visible.
+            ".ag-header-cell-menu-button":    {"display": "none !important"},
+            ".ag-sort-none-icon":             {"display": "none !important"},
+        },
     )
 
 
