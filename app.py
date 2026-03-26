@@ -408,10 +408,13 @@ _PCT_TRIPLES = [
 ]
 
 
-def _build_history_grid(df: pd.DataFrame, avg_row: dict) -> dict:
-    """Build AgGrid options for the history table with a pinned average row at the bottom."""
+def _build_history_grid(df: pd.DataFrame, avg_row: dict | None) -> dict:
+    """Build AgGrid options for the history table with an optional pinned average row."""
     gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_default_column(resizable=True, sortable=True, filter=False)
+    gb.configure_default_column(
+        resizable=True, sortable=True, filter=False,
+        suppressMenu=True,   # removes the hamburger icon, freeing header space
+    )
 
     all_widths = {**_TEXT_WIDTHS, **_STAT_WIDTHS}
     stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
@@ -465,10 +468,10 @@ def _build_history_grid(df: pd.DataFrame, avg_row: dict) -> dict:
         gb.configure_column(col, **kwargs)
 
     gb.configure_grid_options(
-        pinnedBottomRowData=[avg_row],
+        pinnedBottomRowData=[avg_row] if avg_row is not None else [],
         rowHeight=_ROW_HEIGHT_PX,
-        headerHeight=_HEADER_HEIGHT_PX,
         suppressMovableColumns=True,
+        suppressHeaderMenuButton=True,  # belt-and-suspenders for newer AG Grid
     )
     return gb.build()
 
@@ -643,11 +646,14 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         unsafe_allow_html=True,
     )
 
-    avg_row     = _build_avg_row(df, len(game_rows))
-    grid_opts   = _build_history_grid(df, avg_row)
-    # Height: header + game rows + pinned avg row, capped at 500 + one row
+    # Avg row only makes sense when browsing a single player's full history
+    show_avg  = filter_player is not None and filter_date is None
+    avg_row   = _build_avg_row(df, len(game_rows)) if show_avg else None
+    grid_opts = _build_history_grid(df, avg_row)
+
+    pinned_rows = 1 if show_avg else 0
     grid_height = min(
-        _HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + _ROW_HEIGHT_PX + 4,
+        _HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + pinned_rows * _ROW_HEIGHT_PX + 4,
         500 + _ROW_HEIGHT_PX,
     )
     AgGrid(
@@ -658,11 +664,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=False,
         update_mode="NO_UPDATE",
-        custom_css={
-            ".ag-cell":             {"font-size": "12px !important", "line-height": "1.2 !important"},
-            ".ag-header-cell-text": {"font-size": "12px !important"},
-            ".ag-pinned-bottom-container .ag-cell": {"font-size": "12px !important"},
-        },
+        theme="balham",
     )
 
 
