@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
 from src.storage import get_all_dates, load_stats
 
@@ -407,39 +408,69 @@ _PCT_TRIPLES = [
 ]
 
 
-def _render_avg_row_html(avg_row: dict) -> None:
-    """Render the average row as HTML below the scrollable dataframe — no extra header."""
+def _build_history_grid(df: pd.DataFrame, avg_row: dict) -> dict:
+    """Build AgGrid options for the history table with a pinned average row at the bottom."""
+    gb = GridOptionsBuilder.from_dataframe(df)
+    gb.configure_default_column(resizable=True, sortable=False, filter=False)
+
     all_widths = {**_TEXT_WIDTHS, **_STAT_WIDTHS}
-    cols = [_COL_LABELS.get(f, f) for f in _DISPLAY_COLS]
-    total_w = sum(all_widths.get(c, 42) for c in cols)
+    stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
+    pct_labels  = {_COL_LABELS[f] for f in _PCT_FIELDS}
+    stripe      = "rgba(107,47,160,0.08)"
+    avg_bg      = "rgba(80,80,80,0.12)"
+    avg_border  = "2px solid rgba(80,80,80,0.40)"
+    grp_border  = "2px solid rgba(80,80,80,0.30)"
 
-    col_defs = "".join(
-        f'<col style="width:{all_widths.get(c, 42) / total_w * 100:.3f}%">'
-        for c in cols
+    for col in df.columns:
+        w         = all_widths.get(col, 42)
+        is_div    = col in _GROUP_DIVIDERS
+        is_stat   = col in stat_labels
+        is_pct    = col in pct_labels
+
+        if col in _COL_GROUP_COLORS:
+            even_bg, odd_bg = _COL_GROUP_COLORS[col]
+        else:
+            even_bg, odd_bg = "transparent", stripe
+
+        bl = grp_border if is_div else "none"
+
+        # Value formatter: pass strings through, format numbers
+        if is_pct:
+            vfmt = JsCode("""function(p){
+                if(p.node.rowPinned==='bottom') return p.value==null?'N/A':String(p.value);
+                if(p.value==null) return 'N/A';
+                return typeof p.value==='string'?p.value:p.value.toFixed(1);
+            }""")
+        elif is_stat:
+            vfmt = JsCode("""function(p){
+                if(p.node.rowPinned==='bottom') return p.value==null?'N/A':String(p.value);
+                if(p.value==null) return 'N/A';
+                return typeof p.value==='string'?p.value:Math.round(p.value).toString();
+            }""")
+        else:
+            vfmt = None
+
+        cell_style = JsCode(f"""function(p){{
+            if(p.node.rowPinned==='bottom'){{
+                return{{fontWeight:'700',backgroundColor:'{avg_bg}',
+                        borderTop:'{avg_border}',borderLeft:'{bl}'}};
+            }}
+            var odd=p.node.rowIndex%2!==0;
+            return{{backgroundColor:odd?'{odd_bg}':'{even_bg}',borderLeft:'{bl}'}};
+        }}""")
+
+        kwargs = dict(width=w, cellStyle=cell_style, resizable=True)
+        if vfmt is not None:
+            kwargs["valueFormatter"] = vfmt
+        gb.configure_column(col, **kwargs)
+
+    gb.configure_grid_options(
+        pinnedBottomRowData=[avg_row],
+        rowHeight=_ROW_HEIGHT_PX,
+        headerHeight=_HEADER_HEIGHT_PX,
+        suppressMovableColumns=True,
     )
-
-    cells = ""
-    for c in cols:
-        val = avg_row.get(c, "")
-        border_left = "border-left:2px solid rgba(80,80,80,0.30);" if c in _GROUP_DIVIDERS else ""
-        cells += (
-            f'<td style="padding:3px 6px;font-size:13px;font-weight:700;'
-            f'font-family:monospace;'
-            f'background-color:rgba(80,80,80,0.12);'
-            f'border-top:2px solid rgba(80,80,80,0.40);'
-            f'border-bottom:1px solid rgba(80,80,80,0.20);'
-            f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
-            f'{border_left}">{val}</td>'
-        )
-
-    html = (
-        '<div style="overflow:hidden;margin-top:2px;">'
-        '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">'
-        f'<colgroup>{col_defs}</colgroup>'
-        f'<tbody><tr>{cells}</tr></tbody>'
-        '</table></div>'
-    )
-    st.markdown(html, unsafe_allow_html=True)
+    return gb.build()
 
 
 def _build_avg_row(df: pd.DataFrame, n_games: int) -> dict:
@@ -612,20 +643,22 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         unsafe_allow_html=True,
     )
 
-    # Game rows — scrollable, capped height
-    game_height = min(_HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + 4, 500)
-    st.dataframe(
-        df.style.apply(_style_table, stripe="rgba(107,47,160,0.08)", axis=None)
-           .format(_STAT_FORMAT, na_rep="N/A"),
-        use_container_width=True,
-        hide_index=True,
-        height=game_height,
-        column_config=_col_config(),
+    avg_row     = _build_avg_row(df, len(game_rows))
+    grid_opts   = _build_history_grid(df, avg_row)
+    # Height: header + game rows + pinned avg row, capped at 500 + one row
+    grid_height = min(
+        _HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + _ROW_HEIGHT_PX + 4,
+        500 + _ROW_HEIGHT_PX,
     )
-
-    # Average row — rendered as HTML so it has no header of its own
-    avg_row = _build_avg_row(df, len(game_rows))
-    _render_avg_row_html(avg_row)
+    AgGrid(
+        df,
+        gridOptions=grid_opts,
+        height=grid_height,
+        use_container_width=True,
+        allow_unsafe_jscode=True,
+        fit_columns_on_grid_load=False,
+        update_mode="NO_UPDATE",
+    )
 
 
 # ---------------------------------------------------------------------------

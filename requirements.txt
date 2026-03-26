@@ -5,4 +5,5 @@ pandas
 schedule
 python-dotenv
 streamlit>=1.35.0
+streamlit-aggrid>=0.3.4
 altair>=5.0,<6
