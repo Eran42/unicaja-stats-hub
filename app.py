@@ -542,6 +542,7 @@ def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None, da
         headerHeight=_HEADER_HEIGHT_PX,
         suppressMovableColumns=True,
         suppressHeaderMenuButton=True,
+        onGridSizeChanged=JsCode("function(p){p.api.sizeColumnsToFit();}"),
     )
     return gb.build()
 
@@ -615,7 +616,7 @@ def render_latest(records: list[dict]) -> None:
         height=height,
         use_container_width=True,
         allow_unsafe_jscode=True,
-        fit_columns_on_grid_load=False,
+        fit_columns_on_grid_load=True,
         update_mode="NO_UPDATE",
         theme="alpine",
         custom_css=_aggrid_css(),
