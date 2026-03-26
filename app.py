@@ -577,18 +577,28 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         unsafe_allow_html=True,
     )
 
-    # Append fixed average row at the bottom
-    avg_row = _build_avg_row(df, len(game_rows))
-    avg_idx = len(df)
-    df = pd.concat([df, pd.DataFrame([avg_row])], ignore_index=True)
-
-    height = min(_HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + 4, 500 + _ROW_HEIGHT_PX)
+    # Game rows — scrollable, capped height
+    game_height = min(_HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + 4, 500)
     st.dataframe(
-        df.style.apply(_style_table, stripe="rgba(107,47,160,0.08)", avg_index=avg_idx, axis=None)
+        df.style.apply(_style_table, stripe="rgba(107,47,160,0.08)", axis=None)
            .format(_STAT_FORMAT, na_rep="N/A"),
         use_container_width=True,
         hide_index=True,
-        height=height,
+        height=game_height,
+        column_config=_col_config(),
+    )
+
+    # Average row — rendered outside the scroll container so it is always visible
+    avg_row = _build_avg_row(df, len(game_rows))
+    avg_df  = pd.DataFrame([avg_row])
+    avg_height = _HEADER_HEIGHT_PX + _ROW_HEIGHT_PX + 4
+    st.dataframe(
+        avg_df.style.apply(
+            _style_table, stripe="", avg_index=0, axis=None
+        ).format(_STAT_FORMAT, na_rep="N/A"),
+        use_container_width=True,
+        hide_index=True,
+        height=avg_height,
         column_config=_col_config(),
     )
 
