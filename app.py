@@ -411,7 +411,7 @@ _PCT_TRIPLES = [
 def _build_history_grid(df: pd.DataFrame, avg_row: dict) -> dict:
     """Build AgGrid options for the history table with a pinned average row at the bottom."""
     gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_default_column(resizable=True, sortable=False, filter=False)
+    gb.configure_default_column(resizable=True, sortable=True, filter=False)
 
     all_widths = {**_TEXT_WIDTHS, **_STAT_WIDTHS}
     stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
@@ -658,6 +658,11 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=False,
         update_mode="NO_UPDATE",
+        custom_css={
+            ".ag-cell":             {"font-size": "12px !important", "line-height": "1.2 !important"},
+            ".ag-header-cell-text": {"font-size": "12px !important"},
+            ".ag-pinned-bottom-container .ag-cell": {"font-size": "12px !important"},
+        },
     )
 
 
