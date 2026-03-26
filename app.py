@@ -305,8 +305,16 @@ def _load_all() -> dict[str, list[dict]]:
 _ROW_HEIGHT_PX  = 35
 _HEADER_HEIGHT_PX = 38
 
+_AGGRID_CSS = {
+    ".ag-header-cell-text": {"font-size": "12px !important"},
+    ".ag-cell":             {"font-size": "12px !important", "padding-left": "6px !important", "padding-right": "6px !important"},
+    ".ag-header-cell":      {"padding-left": "4px !important", "padding-right": "4px !important"},
+    ".ag-header-cell-filter-button": {"display": "none !important"},
+    ".ag-header-cell-menu-button":   {"display": "none !important"},
+}
+
 # ---------------------------------------------------------------------------
-# Column config — controls display width in st.dataframe
+# Column config
 # ---------------------------------------------------------------------------
 
 _TEXT_WIDTHS: dict[str, int] = {
@@ -409,19 +417,18 @@ _PCT_TRIPLES = [
 ]
 
 
-def _build_history_grid(df: pd.DataFrame, avg_row: dict | None) -> dict:
-    """Build AgGrid options for the history table with an optional pinned average row."""
+def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None) -> dict:
+    """Build AgGrid options. stripe sets odd-row background for ungrouped columns."""
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column(
         resizable=True, sortable=True, filter=False,
-        suppressMenu=True,          # removes the hamburger icon, freeing header space
-        sortingOrder=["desc", "asc", None],  # first click → descending
+        suppressMenu=True,
+        sortingOrder=["desc", "asc", None],
     )
 
     all_widths = {**_TEXT_WIDTHS, **_STAT_WIDTHS}
     stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
     pct_labels  = {_COL_LABELS[f] for f in _PCT_FIELDS}
-    stripe      = "rgba(107,47,160,0.08)"
     avg_bg      = "rgba(80,80,80,0.12)"
     avg_border  = "2px solid rgba(80,80,80,0.40)"
     grp_border  = "2px solid rgba(80,80,80,0.30)"
@@ -540,13 +547,16 @@ def render_latest(records: list[dict]) -> None:
     df = pd.DataFrame(played_rows)
     height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + 4
     st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
-    st.dataframe(
-        df.style.apply(_style_table, stripe="rgba(0,102,51,0.08)", axis=None)
-           .format(_STAT_FORMAT, na_rep="N/A"),
-        use_container_width=True,
-        hide_index=True,
+    AgGrid(
+        df,
+        gridOptions=_build_aggrid(df, stripe="rgba(0,102,51,0.08)"),
         height=height,
-        column_config=_col_config(),
+        use_container_width=True,
+        allow_unsafe_jscode=True,
+        fit_columns_on_grid_load=False,
+        update_mode="NO_UPDATE",
+        theme="alpine",
+        custom_css=_AGGRID_CSS,
     )
 
 
@@ -651,7 +661,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     # Avg row only makes sense when browsing a single player's full history
     show_avg  = filter_player is not None and filter_date is None
     avg_row   = _build_avg_row(df, len(game_rows)) if show_avg else None
-    grid_opts = _build_history_grid(df, avg_row)
+    grid_opts = _build_aggrid(df, stripe="rgba(107,47,160,0.08)", avg_row=avg_row)
 
     pinned_rows = 1 if show_avg else 0
     grid_height = min(
