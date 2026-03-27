@@ -18,6 +18,13 @@ import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 from streamlit_autorefresh import st_autorefresh
 
+try:
+    import folium
+    from streamlit_folium import st_folium
+    _FOLIUM_OK = True
+except ImportError:
+    _FOLIUM_OK = False
+
 from src.storage import get_all_dates, load_stats
 
 # ---------------------------------------------------------------------------
@@ -141,7 +148,265 @@ def _load_team_lookup() -> dict[str, str]:
     except Exception:
         return {}
 
-_TEAM_LOOKUP: dict[str, str] = _load_team_lookup()
+def _load_registry() -> list[dict]:
+    path = os.path.join(os.path.dirname(__file__), "data", "players", "registry.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def _load_player_status() -> dict:
+    path = os.path.join(os.path.dirname(__file__), "data", "players", "status.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+_TEAM_LOOKUP:    dict[str, str]    = _load_team_lookup()
+_REGISTRY:       list[dict]        = _load_registry()
+_PLAYER_STATUS:  dict              = _load_player_status()
+
+
+# ---------------------------------------------------------------------------
+# Map — city coordinates and region views
+# ---------------------------------------------------------------------------
+
+# (lat, lon) for each team in the registry.
+# Teams sharing a city are offset by ~0.05° so their pins don't overlap.
+_TEAM_COORDS: dict[str, tuple[float, float]] = {
+    # Spain
+    "FC Barcelona":            (41.381,   2.173),
+    "Valencia Basket":         (39.470,  -0.376),
+    "Lenovo Tenerife":         (28.464, -16.252),
+    "MoraBanc Andorra":        (42.506,   1.522),
+    "San Pablo Burgos":        (42.344,  -3.697),
+    "Hiopos Lleida":           (41.618,   0.620),
+    "Río Breogán":             (43.362,  -8.412),
+    "CB Estudiantes":          (40.417,  -3.704),
+    # Serbia — Partizan and Crvena zvezda share Belgrade; offset slightly
+    "Partizan Mozzart Bet":    (44.790,  20.452),
+    "Crvena zvezda":           (44.820,  20.480),
+    # Greece — Panathinaikos and AEK share Athens; offset slightly
+    "Panathinaikos":           (37.968,  23.718),
+    "AEK BC":                  (37.999,  23.750),
+    # France / Monaco
+    "AS Monaco":               (43.738,   7.424),
+    # Italy
+    "Umana Reyer Venezia":     (45.441,  12.316),
+    "Pallacanestro Trieste":   (45.650,  13.777),
+    # Montenegro
+    "Budućnost VOLI":          (42.430,  19.259),
+    # Bosnia
+    "Igokea m:tel":            (44.454,  17.281),
+    # Poland
+    "WKS Śląsk Wrocław":      (51.108,  17.038),
+    # UAE
+    "Dubai Basketball":        (25.205,  55.271),
+    # USA
+    "Sacramento Kings":        (38.580, -121.499),
+    "Gonzaga Bulldogs":        (47.667, -117.402),
+}
+
+_REGION_VIEWS: dict[str, tuple[float, float, int]] = {
+    "🌍 Europe":   (50.0,   12.0, 4),
+    "🌎 Americas": (45.0, -110.0, 5),
+    "🌐 World":    (25.0,    0.0, 2),
+}
+
+# ---------------------------------------------------------------------------
+# Map — data helpers
+# ---------------------------------------------------------------------------
+
+def _best_record_per_player(all_data: dict[str, list[dict]]) -> dict[str, dict]:
+    """Return the single most recent valid game record per player name."""
+    best: dict[str, dict] = {}
+    for records in all_data.values():
+        for rec in records:
+            name = rec.get("player_name", "")
+            if not name or not _is_real_name(name):
+                continue
+            gd = str(rec.get("game_date", ""))
+            if not gd or gd in ("", "—", "N/A"):
+                continue
+            if name not in best or gd > str(best[name].get("game_date", "")):
+                best[name] = rec
+    return best
+
+
+def _build_map_data(all_data: dict[str, list[dict]]) -> dict[str, dict]:
+    """
+    Group players by team. For each team return:
+      coords     : (lat, lon)
+      any_recent : True if any player played in last 24 h
+      players    : list of per-player dicts with stats + status
+    """
+    best = _best_record_per_player(all_data)
+    teams: dict[str, dict] = {}
+
+    for player in _REGISTRY:
+        name = player["name"]
+        team = player.get("team", "")
+        if not team or team not in _TEAM_COORDS:
+            continue
+
+        rec          = best.get(name)
+        status_info  = _PLAYER_STATUS.get(name, {})
+        recent       = bool(rec and _game_is_within_24h(str(rec.get("game_date", ""))))
+
+        entry: dict = {
+            "name":        name,
+            "team":        team,
+            "status":      status_info.get("status", "active"),
+            "status_note": status_info.get("note", ""),
+            "recent":      recent,
+        }
+        if rec:
+            entry.update({
+                "competition": rec.get("competition", ""),
+                "game_date":   str(rec.get("game_date", "")),
+                "result":      rec.get("result") or "",
+                "pts":         rec.get("pts"),
+                "reb":         rec.get("reb"),
+                "ast":         rec.get("ast"),
+                "plus_minus":  rec.get("plus_minus"),
+            })
+        else:
+            entry.update({
+                "competition": "",
+                "game_date": "",
+                "result": "",
+                "pts": None, "reb": None, "ast": None, "plus_minus": None,
+            })
+
+        if team not in teams:
+            teams[team] = {
+                "coords":     _TEAM_COORDS[team],
+                "any_recent": False,
+                "players":    [],
+            }
+        teams[team]["players"].append(entry)
+        if recent:
+            teams[team]["any_recent"] = True
+
+    return teams
+
+
+def _stat_str(val) -> str:
+    if val is None or (isinstance(val, float) and pd.isna(val)):
+        return "—"
+    try:
+        return str(int(float(val)))
+    except Exception:
+        return "—"
+
+
+def _player_card_html(p: dict) -> str:
+    name  = p["name"]
+    team  = p["team"]
+    comp  = p.get("competition", "")
+    gd    = p.get("game_date", "")
+    res   = p.get("result", "") or ""
+    note  = p.get("status_note", "")
+
+    if gd:
+        meta  = f"{comp} · {gd}" + (f" · {res}" if res else "")
+        stats = (
+            "<table style='width:100%;border-collapse:collapse;margin-top:5px;'>"
+            "<tr style='background:#f5f5f5;text-align:center;'>"
+            "<th style='padding:3px 7px;font-size:10px;font-weight:600;color:#555;'>PTS</th>"
+            "<th style='padding:3px 7px;font-size:10px;font-weight:600;color:#555;'>REB</th>"
+            "<th style='padding:3px 7px;font-size:10px;font-weight:600;color:#555;'>AST</th>"
+            "<th style='padding:3px 7px;font-size:10px;font-weight:600;color:#555;'>+/-</th>"
+            "</tr>"
+            "<tr style='text-align:center;'>"
+            f"<td style='padding:4px 7px;font-size:14px;font-weight:700;'>{_stat_str(p.get('pts'))}</td>"
+            f"<td style='padding:4px 7px;font-size:14px;font-weight:700;'>{_stat_str(p.get('reb'))}</td>"
+            f"<td style='padding:4px 7px;font-size:14px;font-weight:700;'>{_stat_str(p.get('ast'))}</td>"
+            f"<td style='padding:4px 7px;font-size:14px;font-weight:700;'>{_stat_str(p.get('plus_minus'))}</td>"
+            "</tr>"
+            "</table>"
+        )
+        body = f"<div style='font-size:10px;color:#666;margin:2px 0 3px;'>{meta}</div>{stats}"
+    else:
+        reason = note if note else "No recent game data"
+        body   = f"<div style='font-size:10px;color:#999;margin-top:4px;'>⚠ {reason}</div>"
+
+    return (
+        "<div style='font-family:sans-serif;min-width:200px;"
+        "margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid #e8e8e8;'>"
+        f"<div style='font-size:13px;font-weight:700;color:#1a1a1a;'>🏀 {name}</div>"
+        f"<div style='font-size:10px;font-weight:600;color:#006633;margin-bottom:1px;'>{team}</div>"
+        f"{body}"
+        "</div>"
+    )
+
+
+def render_map(all_data: dict[str, list[dict]]) -> None:
+    if not _FOLIUM_OK:
+        st.info("Install `folium` and `streamlit-folium` to enable the map.")
+        return
+
+    st.markdown(
+        f'<h3 style="color:{_UNICAJA_GREEN_DARK};font-weight:700;margin-top:16px;">'
+        "🌍 Where are they now?"
+        "</h3>",
+        unsafe_allow_html=True,
+    )
+
+    col_region, col_legend = st.columns([3, 2])
+    with col_region:
+        region = st.radio(
+            "Region",
+            list(_REGION_VIEWS.keys()),
+            horizontal=True,
+            label_visibility="collapsed",
+            key="map_region",
+        )
+    with col_legend:
+        st.markdown(
+            "<div style='font-size:12px;padding-top:6px;'>"
+            "<span style='color:#006633;font-size:16px;'>●</span> played last 24 h &nbsp;&nbsp;"
+            "<span style='color:#999;font-size:16px;'>●</span> no recent game"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+    map_data = _build_map_data(all_data)
+    lat, lon, zoom = _REGION_VIEWS[region]
+
+    m = folium.Map(
+        location=[lat, lon],
+        zoom_start=zoom,
+        tiles="CartoDB positron",
+        control_scale=False,
+        prefer_canvas=True,
+    )
+
+    for team, data in map_data.items():
+        clat, clon = data["coords"]
+        color      = "#006633" if data["any_recent"] else "#999999"
+        last_names = ", ".join(p["name"].split()[-1] for p in data["players"])
+        tooltip    = f"<b style='font-size:12px;'>{team}</b><br><span style='font-size:11px;'>{last_names}</span>"
+        popup_html = "".join(_player_card_html(p) for p in data["players"])
+
+        folium.CircleMarker(
+            location=[clat, clon],
+            radius=9,
+            color=color,
+            fill=True,
+            fill_color=color,
+            fill_opacity=0.85,
+            weight=2,
+            tooltip=folium.Tooltip(tooltip),
+            popup=folium.Popup(
+                folium.Html(popup_html, script=False),
+                max_width=250,
+            ),
+        ).add_to(m)
+
+    st_folium(m, use_container_width=True, height=420, returned_objects=[])
 
 
 # ---------------------------------------------------------------------------
@@ -765,6 +1030,10 @@ if not dates:
 
 _, latest_records = _load_latest()
 all_data = _load_all()
+
+render_map(all_data)
+
+st.divider()
 
 render_latest(latest_records)
 
