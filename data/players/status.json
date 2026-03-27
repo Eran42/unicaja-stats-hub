@@ -1,22 +1,27 @@
 {
   "Mathias Lessort": {
-    "status": "recovering",
-    "note": "Fractured fibula (Dec 2024) — back in EuroLeague Mar 2026, no Greek League games yet"
+    "status": "injured",
+    "note": "Fractured fibula (Dec 2024) — back in EuroLeague Mar 2026, no Greek League games yet",
+    "updated": "2026-03-27"
   },
   "Tyson Carter": {
     "status": "injured",
-    "note": "Pulmonary embolism (Oct 2025) — minimal play this season"
+    "note": "Pulmonary embolism (Oct 2025) — minimal play this season",
+    "updated": "2026-03-27"
   },
   "Yankuba Sima": {
-    "status": "active",
-    "note": "Limited minutes this season"
+    "status": "unknown",
+    "note": "Limited minutes this season — EuroLeague ID not found in recent games",
+    "updated": "2026-03-27"
   },
   "Jayson Granger": {
-    "status": "active",
-    "note": "FEB stats are season averages — no per-game date available"
+    "status": "unknown",
+    "note": "FEB data available per game — DNP in some jornadas this season",
+    "updated": "2026-03-27"
   },
   "Sasu Salin": {
-    "status": "active",
-    "note": "FEB stats are season averages — no per-game date available"
+    "status": "unknown",
+    "note": "No data in most recent Estudiantes game (Mar 21) — possible injury or DNP",
+    "updated": "2026-03-27"
   }
 }

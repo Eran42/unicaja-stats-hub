@@ -4,6 +4,7 @@ lxml
 pandas
 schedule
 python-dotenv
+anthropic>=0.25.0
 streamlit>=1.35.0
 streamlit-aggrid>=0.3.4
 streamlit-autorefresh>=1.0.1

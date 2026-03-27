@@ -843,6 +843,90 @@ def _build_avg_row(df: pd.DataFrame, n_games: int) -> dict:
 
 
 
+_STATUS_ICON = {
+    "injured":   "🤕",
+    "rest":      "😴",
+    "suspended": "🚫",
+    "unknown":   "❓",
+}
+
+
+def _render_absent_players(rows: list[dict]) -> None:
+    """Render a compact table of players who didn't play, with their absence reason."""
+    st.markdown(
+        f'<div style="margin-top:10px;font-size:13px;font-weight:600;color:{_UNICAJA_GREEN_DARK};">'
+        "Did not play</div>",
+        unsafe_allow_html=True,
+    )
+    lines = []
+    for r in rows:
+        icon = _STATUS_ICON.get(r["status"], "❓")
+        lines.append(
+            f"<tr>"
+            f"<td style='padding:5px 10px 5px 0;font-weight:600;white-space:nowrap;'>{icon} {r['player_name']}</td>"
+            f"<td style='padding:5px 10px;color:#555;white-space:nowrap;'>{r['team']}</td>"
+            f"<td style='padding:5px 10px;color:#666;font-size:12px;'>{r['competition']}</td>"
+            f"<td style='padding:5px 0 5px 10px;color:#888;font-size:12px;font-style:italic;'>{r['note']}</td>"
+            f"</tr>"
+        )
+    table_html = (
+        "<table style='border-collapse:collapse;width:100%;margin-top:4px;'>"
+        "<thead><tr>"
+        "<th style='text-align:left;font-size:11px;color:#999;padding:3px 10px 3px 0;font-weight:500;'>Player</th>"
+        "<th style='text-align:left;font-size:11px;color:#999;padding:3px 10px;font-weight:500;'>Team</th>"
+        "<th style='text-align:left;font-size:11px;color:#999;padding:3px 10px;font-weight:500;'>Competition</th>"
+        "<th style='text-align:left;font-size:11px;color:#999;padding:3px 0 3px 10px;font-weight:500;'>Note</th>"
+        "</tr></thead>"
+        "<tbody>" + "".join(lines) + "</tbody>"
+        "</table>"
+    )
+    st.markdown(table_html, unsafe_allow_html=True)
+
+
+def _absent_player_rows(latest_records: list[dict]) -> list[dict]:
+    """
+    Return rows for active players who have no game in the last 24 h but
+    have a status note (from status.json) worth displaying.
+
+    Excludes players whose status is 'no_game' — they simply didn't play
+    because no fixture was scheduled, which isn't noteworthy.
+    """
+    names_with_recent = {
+        r["player_name"]
+        for r in latest_records
+        if _game_is_within_24h(str(r.get("game_date", "")))
+    }
+
+    rows = []
+    for player in _REGISTRY:
+        name = player["name"]
+        if not player.get("active", True):
+            continue
+        if name in names_with_recent:
+            continue
+
+        info = _PLAYER_STATUS.get(name, {})
+        note = info.get("note", "")
+        status = info.get("status", "")
+
+        # Only show rows where there's something useful to say
+        if not note or status == "no_game":
+            continue
+
+        competitions = ", ".join(
+            s["competition"] for s in player.get("sources", [])
+        )
+        rows.append({
+            "player_name": name,
+            "team":        player.get("team", ""),
+            "competition": competitions,
+            "note":        note,
+            "status":      status,
+        })
+
+    return rows
+
+
 def render_latest(records: list[dict]) -> None:
     cutoff_label = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M")
     st.markdown(
@@ -862,26 +946,31 @@ def render_latest(records: list[dict]) -> None:
     ]
 
     played_rows: list[dict] = [_build_row(r) for r in played_records]
+    absent_rows: list[dict] = _absent_player_rows(records)
 
-    if not played_rows:
+    if not played_rows and not absent_rows:
         st.info("No games in the last 24 hours.")
         return
 
-    df = pd.DataFrame(played_rows)
-    height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + _GRID_PAD_PX
-    dark = _is_dark()
-    st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
-    AgGrid(
-        df,
-        gridOptions=_build_aggrid(df, stripe="rgba(0,102,51,0.08)", dark=dark),
-        height=height,
-        use_container_width=True,
-        allow_unsafe_jscode=True,
-        fit_columns_on_grid_load=True,
-        update_mode="NO_UPDATE",
-        theme="alpine",
-        custom_css=_aggrid_css(),
-    )
+    if played_rows:
+        df = pd.DataFrame(played_rows)
+        height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + _GRID_PAD_PX
+        dark = _is_dark()
+        st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
+        AgGrid(
+            df,
+            gridOptions=_build_aggrid(df, stripe="rgba(0,102,51,0.08)", dark=dark),
+            height=height,
+            use_container_width=True,
+            allow_unsafe_jscode=True,
+            fit_columns_on_grid_load=True,
+            update_mode="NO_UPDATE",
+            theme="alpine",
+            custom_css=_aggrid_css(),
+        )
+
+    if absent_rows:
+        _render_absent_players(absent_rows)
 
 
 # ---------------------------------------------------------------------------

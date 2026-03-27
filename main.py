@@ -26,6 +26,7 @@ import time as _time
 from src.players import get_active_players, seed_registry
 from src.router import fetch_all_stats
 from src.storage import save_daily_stats, save_csv_snapshot
+from src.agents import status_agent
 
 # ---------------------------------------------------------------------------
 # Logging setup — force UTF-8 on Windows console to avoid cp1252 errors
@@ -81,6 +82,18 @@ def run_job() -> None:
 
     logger.info("Saved %d record(s) -> %s", len(stats), json_path)
     logger.info("CSV snapshot       -> %s", csv_path)
+
+    # Run status agent for players with no data today
+    names_with_data = {r["player_name"] for r in stats}
+    players_no_data = [
+        {"name": p.name, "team": p.team}
+        for p in players
+        if p.name not in names_with_data
+    ]
+    if players_no_data:
+        logger.info("Running status agent for %d player(s) with no data...", len(players_no_data))
+        status_agent.run(players_no_data, today)
+
     logger.info("=== Run complete ===")
 
     # Print a quick summary table to stdout
