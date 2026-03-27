@@ -885,40 +885,50 @@ def _render_absent_players(rows: list[dict]) -> None:
 
 def _absent_player_rows(latest_records: list[dict]) -> list[dict]:
     """
-    Return rows for active players who have no game in the last 24 h but
-    have a status note (from status.json) worth displaying.
+    Return rows for active players whose team played in the last 24 h but
+    who have no game record themselves.
 
-    Excludes players whose status is 'no_game' — they simply didn't play
-    because no fixture was scheduled, which isn't noteworthy.
+    'Team played' is determined from the actual records: if any tracked player
+    on the same team has a game_date within the last 24 h, we know the team
+    had a fixture — so any teammate missing from the records is a DNP.
     """
-    names_with_recent = {
-        r["player_name"]
-        for r in latest_records
-        if _game_is_within_24h(str(r.get("game_date", "")))
-    }
+    # Teams that had at least one game in the last 24 h
+    teams_with_recent: set[str] = set()
+    names_with_recent: set[str] = set()
+    for r in latest_records:
+        if _game_is_within_24h(str(r.get("game_date", ""))):
+            names_with_recent.add(r["player_name"])
+            team = r.get("team") or _TEAM_LOOKUP.get(r.get("player_name", ""), "")
+            if team:
+                teams_with_recent.add(team)
+
+    if not teams_with_recent:
+        return []
 
     rows = []
     for player in _REGISTRY:
         name = player["name"]
+        team = player.get("team", "")
+
         if not player.get("active", True):
             continue
         if name in names_with_recent:
             continue
-
-        info = _PLAYER_STATUS.get(name, {})
-        note = info.get("note", "")
-        status = info.get("status", "")
-
-        # Only show rows where there's something useful to say
-        if not note or status == "no_game":
+        # Only show if the player's team actually played today
+        if team not in teams_with_recent:
             continue
+
+        info   = _PLAYER_STATUS.get(name, {})
+        note   = info.get("note", "No data available")
+        status = info.get("status", "unknown")
 
         competitions = ", ".join(
             s["competition"] for s in player.get("sources", [])
+            if s.get("competition")
         )
         rows.append({
             "player_name": name,
-            "team":        player.get("team", ""),
+            "team":        team,
             "competition": competitions,
             "note":        note,
             "status":      status,
