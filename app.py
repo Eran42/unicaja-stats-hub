@@ -209,18 +209,6 @@ _TEAM_COORDS: dict[str, tuple[float, float]] = {
     "Gonzaga Bulldogs":        (47.667, -117.402),
 }
 
-# Region filter: given (lat, lon) returns True if that pin belongs in the region
-_REGION_FILTER: dict[str, object] = {
-    "🌍 Europe":   lambda lat, lon: lon > -20,
-    "🌎 Americas": lambda lat, lon: lon < -20,
-    "🌐 World":    lambda lat, lon: True,
-}
-# Max zoom when fitting bounds (prevents over-zoom on regions with few/close pins)
-_REGION_MAX_ZOOM: dict[str, int] = {
-    "🌍 Europe":   7,
-    "🌎 Americas": 7,
-    "🌐 World":    5,
-}
 
 # ---------------------------------------------------------------------------
 # Map — data helpers
@@ -365,44 +353,29 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         unsafe_allow_html=True,
     )
 
-    col_region, col_legend = st.columns([3, 2])
-    with col_region:
-        region = st.radio(
-            "Region",
-            list(_REGION_FILTER.keys()),
-            horizontal=True,
-            label_visibility="collapsed",
-            key="map_region",
-        )
-    with col_legend:
-        st.markdown(
-            "<div style='font-size:12px;padding-top:6px;'>"
-            "<span style='color:#006633;font-size:16px;'>●</span> played last 24 h &nbsp;&nbsp;"
-            "<span style='color:#999;font-size:16px;'>●</span> no recent game"
-            "</div>",
-            unsafe_allow_html=True,
-        )
+    st.markdown(
+        "<div style='font-size:12px;margin-bottom:4px;'>"
+        "<span style='color:#006633;font-size:16px;'>●</span> played last 24 h &nbsp;&nbsp;"
+        "<span style='color:#999;font-size:16px;'>●</span> no recent game"
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
     map_data = _build_map_data(all_data)
 
-    # Compute bounds for the selected region
-    region_fn   = _REGION_FILTER[region]
-    region_coords = [
-        data["coords"]
-        for data in map_data.values()
-        if region_fn(*data["coords"])
+    # Fit the initial view to Europe (where 19/21 teams are).
+    # Sacramento Kings and Gonzaga Bulldogs are rendered but reachable by panning.
+    europe_coords = [
+        data["coords"] for data in map_data.values() if data["coords"][1] > -20
     ]
-    # Fallback to world coords if somehow empty
-    if not region_coords:
-        region_coords = [data["coords"] for data in map_data.values()]
+    fit_coords = europe_coords if europe_coords else [data["coords"] for data in map_data.values()]
 
     m = folium.Map(
-        location=[0, 0],        # overridden by fit_bounds below
+        location=[0, 0],
         zoom_start=2,
         tiles="CartoDB positron",
         control_scale=False,
-        prefer_canvas=True,
-        max_bounds=True,        # prevents panning beyond world bounds
+        max_bounds=True,
         min_zoom=2,
     )
 
@@ -422,16 +395,13 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
             fill_opacity=0.85,
             weight=2,
             tooltip=folium.Tooltip(tooltip),
-            popup=folium.Popup(
-                folium.Html(popup_html, script=False),
-                max_width=250,
-            ),
+            popup=folium.Popup(popup_html, max_width=260),
         ).add_to(m)
 
-    # Fit the view to show all pins in the selected region
-    m.fit_bounds(region_coords, padding=[35, 35], max_zoom=_REGION_MAX_ZOOM[region])
+    m.fit_bounds(fit_coords, padding=[35, 35], max_zoom=6)
 
-    st_folium(m, use_container_width=True, height=420, returned_objects=[])
+    # returning map_data triggers no Streamlit rerun so popups stay open
+    st_folium(m, use_container_width=True, height=420)
 
 
 # ---------------------------------------------------------------------------
