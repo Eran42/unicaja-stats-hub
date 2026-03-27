@@ -142,7 +142,7 @@
     "country": "Uruguay",
     "active": true,
     "sources": [
-      { "competition": "Primera FEB", "type": "feb", "id": "951466" }
+      { "competition": "Primera FEB", "type": "feb", "id": "ESTUDIANTES/GRANGER" }
     ]
   },
   {
@@ -151,7 +151,7 @@
     "country": "Finland",
     "active": true,
     "sources": [
-      { "competition": "Primera FEB", "type": "feb", "id": "791394" }
+      { "competition": "Primera FEB", "type": "feb", "id": "ESTUDIANTES/SALIN" }
     ]
   },
   {
