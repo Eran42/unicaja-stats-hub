@@ -100,7 +100,34 @@ def _inject_css() -> None:
     )
 
 
-def _render_header() -> None:
+def _section_heading(text: str) -> str:
+    """Consistent h3 style: dark green text, purple left-border accent."""
+    return (
+        f'<h3 style="'
+        f"color:{_UNICAJA_GREEN_DARK};"
+        f"font-weight:700;"
+        f"margin:4px 0 8px 0;"
+        f"padding-left:12px;"
+        f"border-left:4px solid {_UNICAJA_PURPLE};"
+        f'">{text}</h3>'
+    )
+
+
+def _render_header(run_date: str = "") -> None:
+    date_html = ""
+    if run_date:
+        try:
+            from datetime import datetime as _dt
+            dt = _dt.strptime(run_date, "%Y-%m-%d")
+            label = dt.strftime("%d %b %Y").lstrip("0")
+        except Exception:
+            label = run_date
+        date_html = (
+            f'<div style="font-size:11px;font-family:sans-serif;'
+            f'color:{_UNICAJA_PURPLE};margin-top:3px;font-weight:500;">'
+            f'📅 Data as of {label}</div>'
+        )
+
     st.markdown(
         f"""
         <div style="
@@ -126,9 +153,10 @@ def _render_header() -> None:
                 <div style="font-size: 22px; font-weight: 700; font-family: sans-serif;">
                     Ex-Players Stats
                 </div>
-                <div style="font-size: 13px; opacity: 0.65; font-family: sans-serif;">
+                <div style="font-size: 13px; opacity: 0.85; font-family: sans-serif;">
                     Latest game box scores for former Unicaja Baloncesto players
                 </div>
+                {date_html}
             </div>
         </div>
         """,
@@ -346,12 +374,7 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         st.info("Install `folium` and `streamlit-folium` to enable the map.")
         return
 
-    st.markdown(
-        f'<h3 style="color:{_UNICAJA_GREEN_DARK};font-weight:700;margin-top:16px;">'
-        "🌍 Where are they now?"
-        "</h3>",
-        unsafe_allow_html=True,
-    )
+    st.markdown(_section_heading("🌍 Where are they now?"), unsafe_allow_html=True)
 
     st.markdown(
         "<div style='font-size:12px;margin-bottom:4px;'>"
@@ -386,14 +409,15 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         tooltip    = f"<b style='font-size:12px;'>{team}</b><br><span style='font-size:11px;'>{last_names}</span>"
         popup_html = "".join(_player_card_html(p) for p in data["players"])
 
+        is_active = data["any_recent"]
         folium.CircleMarker(
             location=[clat, clon],
-            radius=9,
+            radius=12 if is_active else 7,
             color=color,
             fill=True,
             fill_color=color,
-            fill_opacity=0.85,
-            weight=2,
+            fill_opacity=0.9 if is_active else 0.55,
+            weight=2 if is_active else 1.5,
             tooltip=folium.Tooltip(tooltip),
             popup=folium.Popup(popup_html, max_width=260),
         ).add_to(m)
@@ -441,6 +465,16 @@ _DISPLAY_COLS = (
     ["player_name", "team", "competition", "game_date", "opponent", "result"]
     + _STAT_COLS
 )
+
+# Column groups for the AgGrid header — label → (group name, [col labels in order])
+_COL_GROUPS_DEF: list[tuple[str, list[str]]] = [
+    ("2PT",  [_COL_LABELS["t2m"],  _COL_LABELS["t2a"],  _COL_LABELS["t2_pct"]]),
+    ("3PT",  [_COL_LABELS["t3m"],  _COL_LABELS["t3a"],  _COL_LABELS["t3_pct"]]),
+    ("FT",   [_COL_LABELS["ftm"],  _COL_LABELS["fta"],  _COL_LABELS["ft_pct"]]),
+    ("REB",  [_COL_LABELS["reb_off"], _COL_LABELS["reb_def"], _COL_LABELS["reb"]]),
+]
+_GROUPED_COLS:    set[str]          = {c for _, cols in _COL_GROUPS_DEF for c in cols}
+_GROUP_FIRST_COL: dict[str, tuple]  = {cols[0]: (name, cols) for name, cols in _COL_GROUPS_DEF}
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -600,6 +634,14 @@ _AGGRID_CSS_BASE = {
     ".ag-header-cell":      {"padding-left": "4px !important", "padding-right": "4px !important"},
     ".ag-header-cell-filter-button": {"display": "none !important"},
     ".ag-header-cell-menu-button":   {"display": "none !important"},
+    # Column group headers (2PT / 3PT / FT / REB)
+    ".ag-header-group-cell": {
+        "font-size": "11px !important",
+        "font-weight": "700 !important",
+        "color": "#6B2FA0 !important",
+        "border-bottom": "2px solid rgba(107,47,160,0.35) !important",
+    },
+    ".ag-header-group-cell-label": {"justify-content": "center !important"},
 }
 
 _AGGRID_CSS_DARK_EXTRA = {
@@ -613,6 +655,11 @@ _AGGRID_CSS_DARK_EXTRA = {
     ".ag-floating-bottom": {"border-top-color": "#555 !important"},
     ".ag-body-viewport":   {"background-color": "#0e1117 !important"},
     ".ag-center-cols-viewport": {"background-color": "#0e1117 !important"},
+    ".ag-header-group-cell": {
+        "background-color": "#262730 !important",
+        "color": "#c4a5e8 !important",
+        "border-bottom": "2px solid rgba(196,165,232,0.35) !important",
+    },
 }
 
 
@@ -801,11 +848,34 @@ def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None, da
         pinnedBottomRowData=[avg_row] if avg_row is not None else [],
         rowHeight=_ROW_HEIGHT_PX,
         headerHeight=_HEADER_HEIGHT_PX,
+        groupHeaderHeight=28,
         suppressMovableColumns=True,
         suppressHeaderMenuButton=True,
         onGridSizeChanged=JsCode("function(p){p.api.sizeColumnsToFit();}"),
     )
-    return gb.build()
+    go = gb.build()
+
+    # Wrap shooting / rebound columns into visible group headers (2PT / 3PT / FT / REB).
+    by_field: dict[str, dict] = {c["field"]: c for c in go["columnDefs"]}
+    new_defs: list[dict] = []
+    seen: set[str] = set()
+    for col_def in go["columnDefs"]:
+        field = col_def.get("field", "")
+        if field in seen:
+            continue
+        if field in _GROUP_FIRST_COL:
+            grp_name, grp_fields = _GROUP_FIRST_COL[field]
+            new_defs.append({
+                "headerName": grp_name,
+                "marryChildren": True,
+                "children": [by_field[f] for f in grp_fields if f in by_field],
+            })
+            seen.update(grp_fields)
+        elif field not in _GROUPED_COLS:
+            new_defs.append(col_def)
+            seen.add(field)
+    go["columnDefs"] = new_defs
+    return go
 
 
 def _build_avg_row(df: pd.DataFrame, n_games: int) -> dict:
@@ -853,11 +923,7 @@ _STATUS_ICON = {
 
 def _render_absent_players(rows: list[dict]) -> None:
     """Render a compact table of players who didn't play, with their absence reason."""
-    st.markdown(
-        f'<div style="margin-top:10px;font-size:13px;font-weight:600;color:{_UNICAJA_GREEN_DARK};">'
-        "Did not play</div>",
-        unsafe_allow_html=True,
-    )
+    count = len(rows)
     lines = []
     for r in rows:
         icon = _STATUS_ICON.get(r["status"], "❓")
@@ -870,7 +936,7 @@ def _render_absent_players(rows: list[dict]) -> None:
             f"</tr>"
         )
     table_html = (
-        "<table style='border-collapse:collapse;width:100%;margin-top:4px;'>"
+        "<table style='border-collapse:collapse;width:100%;margin-top:6px;'>"
         "<thead><tr>"
         "<th style='text-align:left;font-size:11px;color:#999;padding:3px 10px 3px 0;font-weight:500;'>Player</th>"
         "<th style='text-align:left;font-size:11px;color:#999;padding:3px 10px;font-weight:500;'>Team</th>"
@@ -880,7 +946,23 @@ def _render_absent_players(rows: list[dict]) -> None:
         "<tbody>" + "".join(lines) + "</tbody>"
         "</table>"
     )
-    st.markdown(table_html, unsafe_allow_html=True)
+    heading = (
+        f'<div style="font-size:14px;font-weight:700;color:{_UNICAJA_PURPLE};margin-bottom:0;">'
+        f'Did not play'
+        f'<span style="margin-left:9px;background:{_UNICAJA_PURPLE};color:white;'
+        f'padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;">'
+        f'{count}</span></div>'
+    )
+    container = (
+        f'<div style="'
+        f'margin-top:16px;'
+        f'padding:10px 14px 14px 14px;'
+        f'background:rgba(107,47,160,0.05);'
+        f'border-left:3px solid rgba(107,47,160,0.5);'
+        f'border-radius:0 6px 6px 0;">'
+        f'{heading}{table_html}</div>'
+    )
+    st.markdown(container, unsafe_allow_html=True)
 
 
 def _absent_player_rows(latest_records: list[dict]) -> list[dict]:
@@ -939,10 +1021,7 @@ def _absent_player_rows(latest_records: list[dict]) -> list[dict]:
 
 def render_latest(records: list[dict]) -> None:
     cutoff_label = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M")
-    st.markdown(
-        f'<h3 style="color:{_UNICAJA_GREEN};font-weight:700;">Last 24 hours — since {cutoff_label}</h3>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(_section_heading(f"Last 24 hours — since {cutoff_label}"), unsafe_allow_html=True)
 
     if not records:
         st.warning("No data yet. Run `python main.py` to fetch stats.")
@@ -966,7 +1045,15 @@ def render_latest(records: list[dict]) -> None:
         df = pd.DataFrame(played_rows)
         height = _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + _GRID_PAD_PX
         dark = _is_dark()
-        st.caption(f"🟢 **{len(played_rows)}** game(s) in the last 24 h")
+        count = len(played_rows)
+        st.markdown(
+            f'<div style="margin:4px 0 6px;">'
+            f'<span style="background:{_UNICAJA_GREEN};color:white;padding:2px 10px;'
+            f'border-radius:10px;font-size:12px;font-weight:700;">'
+            f'{"1 game" if count == 1 else f"{count} games"}'
+            f'</span></div>',
+            unsafe_allow_html=True,
+        )
         AgGrid(
             df,
             gridOptions=_build_aggrid(df, stripe="rgba(0,102,51,0.08)", dark=dark),
@@ -988,10 +1075,7 @@ def render_latest(records: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 
 def render_history(all_data: dict[str, list[dict]]) -> None:
-    st.markdown(
-        f'<h3 style="color:{_UNICAJA_PURPLE};font-weight:700;">Game history</h3>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(_section_heading("Game history"), unsafe_allow_html=True)
 
     if not all_data:
         st.info("No historical data yet.")
@@ -1012,6 +1096,12 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     _ANY_PLAYER = "— All players —"
     _ANY_DATE   = "— All dates —"
 
+    st.markdown(
+        f'<p style="font-size:12px;font-weight:600;color:{_UNICAJA_PURPLE};'
+        f'margin-bottom:2px;margin-top:2px;">Browse records</p>',
+        unsafe_allow_html=True,
+    )
+    sorted_dates = sorted(all_game_dates, reverse=True)
     col_player, col_date, _ = st.columns([1, 1, 2])
     with col_player:
         selected_player = st.selectbox(
@@ -1022,7 +1112,8 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     with col_date:
         selected_date = st.selectbox(
             "Filter by date",
-            options=[_ANY_DATE] + sorted(all_game_dates, reverse=True),
+            options=[_ANY_DATE] + sorted_dates,
+            index=1,
             key="history_date",
         )
 
@@ -1115,9 +1206,10 @@ st_autorefresh(interval=5 * 60 * 1000, key="data_refresh")
 
 _inject_dark_mode_detector()
 _inject_css()
-_render_header()
 
 dates = get_all_dates()
+_render_header(dates[-1] if dates else "")
+
 if not dates:
     st.warning("No data yet. Run `python main.py` to fetch stats.")
     st.stop()
