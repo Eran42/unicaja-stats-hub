@@ -468,10 +468,12 @@ _DISPLAY_COLS = (
 
 # Column groups for the AgGrid header — label → (group name, [col labels in order])
 _COL_GROUPS_DEF: list[tuple[str, list[str]]] = [
-    ("2PT",  [_COL_LABELS["t2m"],  _COL_LABELS["t2a"],  _COL_LABELS["t2_pct"]]),
-    ("3PT",  [_COL_LABELS["t3m"],  _COL_LABELS["t3a"],  _COL_LABELS["t3_pct"]]),
-    ("FT",   [_COL_LABELS["ftm"],  _COL_LABELS["fta"],  _COL_LABELS["ft_pct"]]),
-    ("REB",  [_COL_LABELS["reb_off"], _COL_LABELS["reb_def"], _COL_LABELS["reb"]]),
+    ("2PT",   [_COL_LABELS["t2m"],      _COL_LABELS["t2a"],          _COL_LABELS["t2_pct"]]),
+    ("3PT",   [_COL_LABELS["t3m"],      _COL_LABELS["t3a"],          _COL_LABELS["t3_pct"]]),
+    ("FT",    [_COL_LABELS["ftm"],      _COL_LABELS["fta"],          _COL_LABELS["ft_pct"]]),
+    ("REB",   [_COL_LABELS["reb_off"],  _COL_LABELS["reb_def"],      _COL_LABELS["reb"]]),
+    ("BLK",   [_COL_LABELS["blk"],      _COL_LABELS["blk_against"]]),
+    ("FOULS", [_COL_LABELS["fouls"],    _COL_LABELS["fouls_received"]]),
 ]
 _GROUPED_COLS:    set[str]          = {c for _, cols in _COL_GROUPS_DEF for c in cols}
 _GROUP_FIRST_COL: dict[str, tuple]  = {cols[0]: (name, cols) for name, cols in _COL_GROUPS_DEF}
