@@ -209,10 +209,17 @@ _TEAM_COORDS: dict[str, tuple[float, float]] = {
     "Gonzaga Bulldogs":        (47.667, -117.402),
 }
 
-_REGION_VIEWS: dict[str, tuple[float, float, int]] = {
-    "🌍 Europe":   (50.0,   12.0, 4),
-    "🌎 Americas": (45.0, -110.0, 5),
-    "🌐 World":    (25.0,    0.0, 2),
+# Region filter: given (lat, lon) returns True if that pin belongs in the region
+_REGION_FILTER: dict[str, object] = {
+    "🌍 Europe":   lambda lat, lon: lon > -20,
+    "🌎 Americas": lambda lat, lon: lon < -20,
+    "🌐 World":    lambda lat, lon: True,
+}
+# Max zoom when fitting bounds (prevents over-zoom on regions with few/close pins)
+_REGION_MAX_ZOOM: dict[str, int] = {
+    "🌍 Europe":   7,
+    "🌎 Americas": 7,
+    "🌐 World":    5,
 }
 
 # ---------------------------------------------------------------------------
@@ -310,8 +317,11 @@ def _player_card_html(p: dict) -> str:
     res   = p.get("result", "") or ""
     note  = p.get("status_note", "")
 
+    recent = p.get("recent", False)
+
     if gd:
-        meta  = f"{comp} · {gd}" + (f" · {res}" if res else "")
+        game_label = "Last game: " if not recent else ""
+        meta  = f"{game_label}{comp} · {gd}" + (f" · {res}" if res else "")
         stats = (
             "<table style='width:100%;border-collapse:collapse;margin-top:5px;'>"
             "<tr style='background:#f5f5f5;text-align:center;'>"
@@ -359,7 +369,7 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
     with col_region:
         region = st.radio(
             "Region",
-            list(_REGION_VIEWS.keys()),
+            list(_REGION_FILTER.keys()),
             horizontal=True,
             label_visibility="collapsed",
             key="map_region",
@@ -374,14 +384,26 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         )
 
     map_data = _build_map_data(all_data)
-    lat, lon, zoom = _REGION_VIEWS[region]
+
+    # Compute bounds for the selected region
+    region_fn   = _REGION_FILTER[region]
+    region_coords = [
+        data["coords"]
+        for data in map_data.values()
+        if region_fn(*data["coords"])
+    ]
+    # Fallback to world coords if somehow empty
+    if not region_coords:
+        region_coords = [data["coords"] for data in map_data.values()]
 
     m = folium.Map(
-        location=[lat, lon],
-        zoom_start=zoom,
+        location=[0, 0],        # overridden by fit_bounds below
+        zoom_start=2,
         tiles="CartoDB positron",
         control_scale=False,
         prefer_canvas=True,
+        max_bounds=True,        # prevents panning beyond world bounds
+        min_zoom=2,
     )
 
     for team, data in map_data.items():
@@ -405,6 +427,9 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
                 max_width=250,
             ),
         ).add_to(m)
+
+    # Fit the view to show all pins in the selected region
+    m.fit_bounds(region_coords, padding=[35, 35], max_zoom=_REGION_MAX_ZOOM[region])
 
     st_folium(m, use_container_width=True, height=420, returned_objects=[])
 
