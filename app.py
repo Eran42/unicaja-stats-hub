@@ -294,13 +294,14 @@ def _build_map_data(all_data: dict[str, list[dict]]) -> dict[str, dict]:
                 "reb":         rec.get("reb"),
                 "ast":         rec.get("ast"),
                 "plus_minus":  rec.get("plus_minus"),
+                "val":         rec.get("val"),
             })
         else:
             entry.update({
                 "competition": "",
                 "game_date": "",
                 "result": "",
-                "pts": None, "reb": None, "ast": None, "plus_minus": None,
+                "pts": None, "reb": None, "ast": None, "plus_minus": None, "val": None,
             })
 
         if team not in teams:
@@ -341,16 +342,18 @@ def _player_card_html(p: dict) -> str:
         stats = (
             "<table style='width:100%;border-collapse:collapse;margin-top:5px;'>"
             "<tr style='background:#f5f5f5;text-align:center;'>"
-            "<th style='padding:3px 7px;font-size:10px;font-weight:600;color:#555;'>PTS</th>"
-            "<th style='padding:3px 7px;font-size:10px;font-weight:600;color:#555;'>REB</th>"
-            "<th style='padding:3px 7px;font-size:10px;font-weight:600;color:#555;'>AST</th>"
-            "<th style='padding:3px 7px;font-size:10px;font-weight:600;color:#555;'>+/-</th>"
+            "<th style='padding:3px 6px;font-size:10px;font-weight:600;color:#555;'>PTS</th>"
+            "<th style='padding:3px 6px;font-size:10px;font-weight:600;color:#555;'>REB</th>"
+            "<th style='padding:3px 6px;font-size:10px;font-weight:600;color:#555;'>AST</th>"
+            "<th style='padding:3px 6px;font-size:10px;font-weight:600;color:#555;'>+/-</th>"
+            "<th style='padding:3px 6px;font-size:10px;font-weight:600;color:#6B2FA0;'>VAL</th>"
             "</tr>"
             "<tr style='text-align:center;'>"
-            f"<td style='padding:4px 7px;font-size:14px;font-weight:700;'>{_stat_str(p.get('pts'))}</td>"
-            f"<td style='padding:4px 7px;font-size:14px;font-weight:700;'>{_stat_str(p.get('reb'))}</td>"
-            f"<td style='padding:4px 7px;font-size:14px;font-weight:700;'>{_stat_str(p.get('ast'))}</td>"
-            f"<td style='padding:4px 7px;font-size:14px;font-weight:700;'>{_stat_str(p.get('plus_minus'))}</td>"
+            f"<td style='padding:4px 6px;font-size:14px;font-weight:700;'>{_stat_str(p.get('pts'))}</td>"
+            f"<td style='padding:4px 6px;font-size:14px;font-weight:700;'>{_stat_str(p.get('reb'))}</td>"
+            f"<td style='padding:4px 6px;font-size:14px;font-weight:700;'>{_stat_str(p.get('ast'))}</td>"
+            f"<td style='padding:4px 6px;font-size:14px;font-weight:700;'>{_stat_str(p.get('plus_minus'))}</td>"
+            f"<td style='padding:4px 6px;font-size:14px;font-weight:700;color:#6B2FA0;'>{_stat_str(p.get('val'))}</td>"
             "</tr>"
             "</table>"
         )
