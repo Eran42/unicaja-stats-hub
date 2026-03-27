@@ -1101,6 +1101,14 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     _ANY_PLAYER = "— All players —"
     _ANY_DATE   = "— All dates —"
 
+    # Reset the date filter whenever the player selection changes to a specific player,
+    # so that selecting a player always shows their full history, not a filtered slice.
+    current_player_ss = st.session_state.get("history_player", _ANY_PLAYER)
+    prev_player_ss    = st.session_state.get("_history_player_prev", _ANY_PLAYER)
+    if current_player_ss != prev_player_ss and current_player_ss != _ANY_PLAYER:
+        st.session_state["history_date"] = _ANY_DATE
+    st.session_state["_history_player_prev"] = current_player_ss
+
     st.markdown(
         f'<p style="font-size:12px;font-weight:600;color:{_UNICAJA_PURPLE};'
         f'margin-bottom:2px;margin-top:2px;">Browse records</p>',
