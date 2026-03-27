@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+from streamlit_autorefresh import st_autorefresh
 
 from src.storage import get_all_dates, load_stats
 
@@ -748,6 +749,10 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 # ---------------------------------------------------------------------------
 # App layout
 # ---------------------------------------------------------------------------
+
+# Auto-refresh every 5 minutes — aligned with cache TTL so new scraping
+# results are picked up promptly without requiring a manual page reload.
+st_autorefresh(interval=5 * 60 * 1000, key="data_refresh")
 
 _inject_dark_mode_detector()
 _inject_css()
