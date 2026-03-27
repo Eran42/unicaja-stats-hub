@@ -8,7 +8,6 @@ History table: select a player → every game we've ever collected, one row each
 from __future__ import annotations
 
 import json
-import math
 import os
 import re
 import unicodedata
@@ -241,13 +240,16 @@ def _best_record_per_player(all_data: dict[str, list[dict]]) -> dict[str, dict]:
 
 def _build_map_data(all_data: dict[str, list[dict]]) -> dict[str, dict]:
     """
-    Group players by team. For each team return:
+    Group players by city (identical coords). Teams in the same city share one
+    pin so they are visible without zooming in.
+
+    Returns a dict keyed by "lat,lon" with:
       coords     : (lat, lon)
       any_recent : True if any player played in last 24 h
       players    : list of per-player dicts with stats + status
     """
-    best = _best_record_per_player(all_data)
-    teams: dict[str, dict] = {}
+    best  = _best_record_per_player(all_data)
+    pins: dict[str, dict] = {}
 
     for player in _REGISTRY:
         name = player["name"]
@@ -255,9 +257,12 @@ def _build_map_data(all_data: dict[str, list[dict]]) -> dict[str, dict]:
         if not team or team not in _TEAM_COORDS:
             continue
 
-        rec          = best.get(name)
-        status_info  = _PLAYER_STATUS.get(name, {})
-        recent       = bool(rec and _game_is_within_24h(str(rec.get("game_date", ""))))
+        coords = _TEAM_COORDS[team]
+        pin_key = f"{coords[0]:.4f},{coords[1]:.4f}"
+
+        rec         = best.get(name)
+        status_info = _PLAYER_STATUS.get(name, {})
+        recent      = bool(rec and _game_is_within_24h(str(rec.get("game_date", ""))))
 
         entry: dict = {
             "name":        name,
@@ -285,17 +290,17 @@ def _build_map_data(all_data: dict[str, list[dict]]) -> dict[str, dict]:
                 "pts": None, "reb": None, "ast": None, "plus_minus": None, "val": None,
             })
 
-        if team not in teams:
-            teams[team] = {
-                "coords":     _TEAM_COORDS[team],
+        if pin_key not in pins:
+            pins[pin_key] = {
+                "coords":     coords,
                 "any_recent": False,
                 "players":    [],
             }
-        teams[team]["players"].append(entry)
+        pins[pin_key]["players"].append(entry)
         if recent:
-            teams[team]["any_recent"] = True
+            pins[pin_key]["any_recent"] = True
 
-    return teams
+    return pins
 
 
 def _stat_str(val) -> str:
@@ -353,70 +358,6 @@ def _player_card_html(p: dict) -> str:
     )
 
 
-_CLUSTER_THRESHOLD_DEG = 0.3   # teams within ~33 km are treated as a cluster
-_SPREAD_RADIUS_DEG     = 0.5   # pins in a cluster are placed this far from centroid
-
-
-def _spread_overlapping(
-    map_data: dict[str, dict],
-) -> dict[str, tuple[float, float]]:
-    """
-    Return adjusted (lat, lon) per team so that closely-spaced pins are
-    separated and individually clickable at the Europe zoom level.
-
-    Algorithm:
-      1. Build connected components of teams whose nominal coords fall within
-         _CLUSTER_THRESHOLD_DEG of each other (Euclidean, in degrees).
-      2. For each cluster of 2+ teams, compute the centroid and redistribute
-         the pins evenly around it at radius _SPREAD_RADIUS_DEG.
-         Starting angle is 45° (NE) so two-team clusters go NE / SW rather
-         than straight N / S, keeping them away from city labels.
-      3. Solo teams keep their nominal coords unchanged.
-
-    Only the rendered position is affected; tooltip / popup data is unchanged.
-    """
-    coords: dict[str, tuple[float, float]] = {t: map_data[t]["coords"] for t in map_data}
-
-    # Connected components via BFS
-    visited:  set[str]        = set()
-    clusters: list[list[str]] = []
-    for start in coords:
-        if start in visited:
-            continue
-        cluster: list[str] = [start]
-        visited.add(start)
-        queue = [start]
-        while queue:
-            node = queue.pop()
-            lat1, lon1 = coords[node]
-            for other, (lat2, lon2) in coords.items():
-                if other not in visited:
-                    dist_sq = (lat1 - lat2) ** 2 + (lon1 - lon2) ** 2
-                    if dist_sq < _CLUSTER_THRESHOLD_DEG ** 2:
-                        visited.add(other)
-                        cluster.append(other)
-                        queue.append(other)
-        clusters.append(cluster)
-
-    adjusted = dict(coords)
-    for cluster in clusters:
-        if len(cluster) <= 1:
-            continue
-        lats = [coords[t][0] for t in cluster]
-        lons = [coords[t][1] for t in cluster]
-        clat = sum(lats) / len(lats)
-        clon = sum(lons) / len(lons)
-        n    = len(cluster)
-        for i, team in enumerate(sorted(cluster)):   # sort for determinism
-            angle = math.pi / 4 + 2 * math.pi * i / n
-            adjusted[team] = (
-                clat + _SPREAD_RADIUS_DEG * math.sin(angle),
-                clon + _SPREAD_RADIUS_DEG * math.cos(angle),
-            )
-
-    return adjusted
-
-
 def render_map(all_data: dict[str, list[dict]]) -> None:
     if not _FOLIUM_OK:
         st.info("Install `folium` and `streamlit-folium` to enable the map.")
@@ -432,11 +373,8 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         unsafe_allow_html=True,
     )
 
-    map_data     = _build_map_data(all_data)
-    spread_coords = _spread_overlapping(map_data)  # adjusted positions for rendering
+    map_data = _build_map_data(all_data)
 
-    # Fit bounds use the NOMINAL coords (city centres) not the spread positions.
-    # Sacramento Kings and Gonzaga Bulldogs are rendered but reachable by panning.
     europe_coords = [
         data["coords"] for data in map_data.values() if data["coords"][1] > -20
     ]
@@ -451,12 +389,15 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         min_zoom=2,
     )
 
-    for team, data in map_data.items():
-        clat, clon = spread_coords[team]   # spread position for the pin
+    for _pin_key, data in map_data.items():
+        clat, clon = data["coords"]
         color      = "#006633" if data["any_recent"] else "#999999"
-        last_names = ", ".join(p["name"].split()[-1] for p in data["players"])
-        tooltip    = f"<b style='font-size:12px;'>{team}</b><br><span style='font-size:11px;'>{last_names}</span>"
-        popup_html = "".join(_player_card_html(p) for p in data["players"])
+        # Tooltip: unique team names + player last names
+        teams_in_pin = list(dict.fromkeys(p["team"] for p in data["players"]))
+        team_label   = " / ".join(teams_in_pin)
+        last_names   = ", ".join(p["name"].split()[-1] for p in data["players"])
+        tooltip      = f"<b style='font-size:12px;'>{team_label}</b><br><span style='font-size:11px;'>{last_names}</span>"
+        popup_html   = "".join(_player_card_html(p) for p in data["players"])
 
         is_active = data["any_recent"]
         folium.CircleMarker(
