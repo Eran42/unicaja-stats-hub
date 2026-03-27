@@ -257,5 +257,14 @@
       { "competition": "Lega A", "type": "eurobasket", "id": "136973" },
       { "competition": "BCL",    "type": "bcl",  "id": "pallacanestro-trieste/192665-jeff-brooks" }
     ]
+  },
+  {
+    "name": "Xavier Castañeda",
+    "team": "MoraBanc Andorra",
+    "country": "United States",
+    "active": true,
+    "sources": [
+      { "competition": "ACB", "type": "acb", "id": "30003967" }
+    ]
   }
 ]
