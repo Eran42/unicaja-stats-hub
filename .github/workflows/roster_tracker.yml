@@ -33,6 +33,10 @@ jobs:
                append them with "id": "TBD" for each source (derived from their tournaments).
             4. Update data/unicaja_active_roster.json with the current squad.
             5. Append a run summary to data/unicaja_tracker_log.md.
+            6. For every new player added to registry.json, check whether their team
+               already exists in data/players/team_coords.json.  If it does not, add it:
+               research the team's city and add an entry as [lat, lon] (two-decimal
+               precision).  Never modify existing entries in team_coords.json.
 
             Apply CLAUDE.md name canonicalisation rules before writing any name.
             Never modify existing registry entries — only append.
@@ -49,6 +53,7 @@ jobs:
                   data/unicaja_active_roster.json \
                   data/unicaja_tracker_log.md \
                   data/players/registry.json \
+                  data/players/team_coords.json \
                   .claude/agent-memory/unicaja-roster-tracker/
           git diff --staged --quiet \
             || git commit -m "roster: weekly tracker update $(date -u +%Y-%m-%d)"

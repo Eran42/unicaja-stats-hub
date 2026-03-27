@@ -192,50 +192,30 @@ def _load_player_status() -> dict:
     except Exception:
         return {}
 
-_TEAM_LOOKUP:    dict[str, str]    = _load_team_lookup()
-_REGISTRY:       list[dict]        = _load_registry()
-_PLAYER_STATUS:  dict              = _load_player_status()
+def _load_team_coords() -> dict[str, tuple[float, float]]:
+    """Load team → (lat, lon) from data/players/team_coords.json.
+
+    Stored as JSON arrays [lat, lon] so the roster-tracker agent can add
+    new teams without touching app.py.  Falls back to an empty dict so the
+    map degrades gracefully when a team has no coordinates yet.
+    """
+    path = os.path.join(os.path.dirname(__file__), "data", "players", "team_coords.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            raw = json.load(f)
+        return {team: tuple(coords) for team, coords in raw.items()}
+    except Exception:
+        return {}
+
+_TEAM_LOOKUP:    dict[str, str]              = _load_team_lookup()
+_REGISTRY:       list[dict]                  = _load_registry()
+_PLAYER_STATUS:  dict                        = _load_player_status()
+_TEAM_COORDS:    dict[str, tuple[float, float]] = _load_team_coords()
 
 
 # ---------------------------------------------------------------------------
 # Map — city coordinates and region views
 # ---------------------------------------------------------------------------
-
-# (lat, lon) for each team in the registry.
-# Teams sharing a city are offset by ~0.05° so their pins don't overlap.
-_TEAM_COORDS: dict[str, tuple[float, float]] = {
-    # Spain
-    "FC Barcelona":            (41.381,   2.173),
-    "Valencia Basket":         (39.470,  -0.376),
-    "Lenovo Tenerife":         (28.464, -16.252),
-    "MoraBanc Andorra":        (42.506,   1.522),
-    "San Pablo Burgos":        (42.344,  -3.697),
-    "Hiopos Lleida":           (41.618,   0.620),
-    "Río Breogán":             (43.362,  -8.412),
-    "CB Estudiantes":          (40.417,  -3.704),
-    # Serbia — Partizan and Crvena zvezda share Belgrade; offset slightly
-    "Partizan Mozzart Bet":    (44.790,  20.452),
-    "Crvena zvezda":           (44.820,  20.480),
-    # Greece — Panathinaikos and AEK share Athens; offset slightly
-    "Panathinaikos":           (37.968,  23.718),
-    "AEK BC":                  (37.999,  23.750),
-    # France / Monaco
-    "AS Monaco":               (43.738,   7.424),
-    # Italy
-    "Umana Reyer Venezia":     (45.441,  12.316),
-    "Pallacanestro Trieste":   (45.650,  13.777),
-    # Montenegro
-    "Budućnost VOLI":          (42.430,  19.259),
-    # Bosnia
-    "Igokea m:tel":            (44.454,  17.281),
-    # Poland
-    "WKS Śląsk Wrocław":      (51.108,  17.038),
-    # UAE
-    "Dubai Basketball":        (25.205,  55.271),
-    # USA
-    "Sacramento Kings":        (38.580, -121.499),
-    "Gonzaga Bulldogs":        (47.667, -117.402),
-}
 
 
 # ---------------------------------------------------------------------------
@@ -429,6 +409,20 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
 
     # returning map_data triggers no Streamlit rerun so popups stay open
     st_folium(m, use_container_width=True, height=420)
+
+    # Surface any tracked players whose team has no coordinates yet.
+    unmapped = [
+        p["name"]
+        for p in _REGISTRY
+        if p.get("active", True) and p.get("team", "") not in _TEAM_COORDS
+    ]
+    if unmapped:
+        st.markdown(
+            f'<p style="font-size:11px;color:#999;margin-top:4px;">'
+            f'⚠ Not shown on map (team coordinates pending): '
+            f'{", ".join(unmapped)}</p>',
+            unsafe_allow_html=True,
+        )
 
 
 # ---------------------------------------------------------------------------
