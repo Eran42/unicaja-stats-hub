@@ -12,7 +12,6 @@ import os
 import re
 import unicodedata
 from datetime import datetime, timedelta
-from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
@@ -433,14 +432,48 @@ def _player_card_html(p: dict) -> str:
     if recent:
         card_style += "border-left:3px solid #006633;padding-left:8px;"
 
-    link_url = f"/?history_player={quote(name)}#game-history"
+    # postMessage to the Streamlit page — the page-level listener (injected by
+    # _inject_player_nav_listener) picks this up and navigates same-tab to the
+    # history section with this player pre-selected.
+    player_json = json.dumps(name)   # safe encoding for names with accents/apostrophes
+    onclick = f"window.parent.postMessage({{type:'selectPlayer',player:{player_json}}},'*')"
     return (
-        f"<a href='{link_url}' target='_blank' style='text-decoration:none;color:inherit;display:block;'>"
-        f"<div style='{card_style}'>"
+        f"<div style='{card_style}' onclick=\"{onclick}\">"
         f"{header}"
         f"{body}"
         "</div>"
-        "</a>"
+    )
+
+
+def _inject_player_nav_listener() -> None:
+    """
+    Inject a one-time message listener on the Streamlit page window.
+
+    Folium popup cards post {type:'selectPlayer', player:NAME} to window.parent
+    (the Streamlit page). This listener catches it and navigates the same tab to
+    /?history_player=NAME#game-history, which triggers a Streamlit rerun with
+    the player pre-selected in the history filter.
+
+    The guard on _unicajaNavListenerAdded prevents duplicate listeners on reruns.
+    """
+    import streamlit.components.v1 as components
+    components.html(
+        """
+<script>
+(function() {
+    var p = window.parent;
+    if (p._unicajaNavListenerAdded) return;
+    p._unicajaNavListenerAdded = true;
+    p.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'selectPlayer' && e.data.player) {
+            e.currentTarget.location.href =
+                '/?history_player=' + encodeURIComponent(e.data.player) + '#game-history';
+        }
+    });
+})();
+</script>
+""",
+        height=0,
     )
 
 
@@ -1326,6 +1359,7 @@ if not dates:
 _, latest_records = _load_latest()
 all_data = _load_all()
 
+_inject_player_nav_listener()
 render_map(all_data)
 
 st.divider()
