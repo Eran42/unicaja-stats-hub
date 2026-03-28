@@ -11,7 +11,6 @@ import json
 import os
 import re
 import unicodedata
-import urllib.parse
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -322,7 +321,7 @@ def _stat_str(val) -> str:
         return "—"
 
 
-def _player_card_html(p: dict) -> str:
+def _player_card_html(p: dict, nav_lat: float | None = None) -> str:
     name  = p["name"]
     team  = p["team"]
     comp  = p.get("competition", "")
@@ -433,17 +432,27 @@ def _player_card_html(p: dict) -> str:
     if recent:
         card_style += "border-left:3px solid #006633;padding-left:8px;"
 
-    # "→ History" link — clicking it changes the parent page hash, which the
-    # JS bridge (in render_map) detects and converts into a Streamlit rerun.
-    nav_id  = urllib.parse.quote(name, safe="")
-    nav_js  = f"window.parent.parent.location.hash='#player-nav-{nav_id}';event.stopPropagation();"
-    nav_link = (
-        "<div onclick=\"" + nav_js + "\" "
-        "style='margin-top:5px;padding-top:4px;border-top:1px solid #eee;"
-        "color:#006633;font-size:11px;font-weight:600;cursor:pointer;"
-        "text-align:right;user-select:none;'>"
-        "→ History</div>"
-    )
+    # "→ History" link — fires a synthetic Leaflet map click at an encoded
+    # latitude so st_folium returns it via last_clicked; Python maps it back
+    # to this player's name.  Entirely within the Leaflet iframe, no cross-
+    # frame JS needed.
+    if nav_lat is not None:
+        nav_js = (
+            f"(function(){{"
+            f"if(window._leafletMap){{"
+            f"window._leafletMap.closePopup();"
+            f"window._leafletMap.fire('click',{{latlng:L.latLng({nav_lat:.4f},0)}});"
+            f"}}}})()"
+        )
+        nav_link = (
+            "<div onclick=\"" + nav_js + "\" "
+            "style='margin-top:5px;padding-top:4px;border-top:1px solid #eee;"
+            "color:#006633;font-size:11px;font-weight:600;cursor:pointer;"
+            "text-align:right;user-select:none;'>"
+            "→ History</div>"
+        )
+    else:
+        nav_link = ""
 
     return (
         f"<div style='{card_style}'>"
@@ -485,15 +494,27 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         min_zoom=2,
     )
 
+    # Build stable per-player encoded latitudes for "→ History" synthetic clicks.
+    # Each player gets a unique lat in [100.0, 200.0) that encodes their index.
+    # Python maps it back to the player name when st_folium reports last_clicked.
+    _nav_names = [rp["name"] for rp in _REGISTRY if rp.get("name")]
+    _player_nav_lat: dict[str, float] = {
+        name: round(100.0 + i / 1000.0, 4)
+        for i, name in enumerate(_nav_names)
+    }
+    _nav_lat_to_name: dict[float, str] = {v: k for k, v in _player_nav_lat.items()}
+
     for _pin_key, data in map_data.items():
         clat, clon = data["coords"]
         color      = "#006633" if data["any_recent"] else "#999999"
-        # Tooltip: unique team names + player last names
         teams_in_pin = list(dict.fromkeys(p["team"] for p in data["players"]))
         team_label   = " / ".join(teams_in_pin)
         last_names   = ", ".join(p["name"].split()[-1] for p in data["players"])
         tooltip      = f"<b style='font-size:12px;'>{team_label}</b><br><span style='font-size:11px;'>{last_names}</span>"
-        popup_html   = "".join(_player_card_html(p) for p in data["players"])
+        popup_html   = "".join(
+            _player_card_html(p, nav_lat=_player_nav_lat.get(p["name"]))
+            for p in data["players"]
+        )
 
         is_active = data["any_recent"]
         folium.CircleMarker(
@@ -508,74 +529,42 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
             popup=folium.Popup(popup_html, max_width=260),
         ).add_to(m)
 
+    # Inject script that stores the Leaflet map reference in window._leafletMap
+    # so popup card onclick handlers can fire synthetic clicks via map.fire().
+    m.get_root().html.add_child(folium.Element(
+        "<script>"
+        "(function(){"
+        "function init(){"
+        "var el=document.querySelector('.folium-map');"
+        "if(el&&window[el.id]){window._leafletMap=window[el.id];}"
+        "else{setTimeout(init,100);}"
+        "}"
+        "setTimeout(init,200);"
+        "})();"
+        "</script>"
+    ))
+
     m.fit_bounds(fit_coords, padding=[35, 35], max_zoom=6)
 
-    st_folium(m, use_container_width=True, height=420)
+    result = st_folium(m, use_container_width=True, height=420,
+                       returned_objects=["last_clicked"])
 
-    # ---------------------------------------------------------------------------
-    # Popup-card navigation bridge
-    #
-    # Each player card has a "→ History" link whose onclick sets
-    # window.parent.parent.location.hash = '#player-nav-<encoded_name>'.
-    # The JS below polls that hash and clicks the matching hidden st.button,
-    # which triggers a Streamlit rerun that scrolls to and selects the player.
-    # ---------------------------------------------------------------------------
-
-    # Hidden nav buttons — one per tracked player.  The JS bridge below keeps
-    # them visually hidden; Streamlit still detects their clicks.
-    for _rp in _REGISTRY:
-        _rp_name = _rp.get("name", "")
-        if not _rp_name:
-            continue
-        if st.button(f"__nav__{_rp_name}", key=f"_navbtn_{_rp_name}"):
-            st.session_state["history_player"] = _rp_name
-            st.session_state["_scroll_to_history"] = True
-            st.rerun()
-
-    import streamlit.components.v1 as _cv1
-    _cv1.html(
-        """
-<script>
-(function () {
-  var lastHash = '';
-  setInterval(function () {
-    try {
-      var p  = window.parent;
-      var pd = p.document;
-
-      // Keep nav buttons visually hidden
-      pd.querySelectorAll('button').forEach(function (btn) {
-        if (btn.textContent.trim().startsWith('__nav__')) {
-          var wrap = btn.closest('.stButton') || btn.parentElement;
-          if (wrap) {
-            wrap.style.cssText =
-              'position:absolute;width:0;height:0;overflow:hidden;' +
-              'margin:0;padding:0;pointer-events:none;';
-          }
-        }
-      });
-
-      // Detect player navigation hash written by popup card links
-      var hash = p.location.hash;
-      if (hash && hash !== lastHash && hash.startsWith('#player-nav-')) {
-        lastHash = hash;
-        var name = decodeURIComponent(hash.slice(12)); // 12 = '#player-nav-'.length
-        p.history.replaceState(null, '', p.location.pathname + p.location.search);
-        var btns = pd.querySelectorAll('button');
-        for (var i = 0; i < btns.length; i++) {
-          if (btns[i].textContent.trim() === '__nav__' + name) {
-            btns[i].click();
-            break;
-          }
-        }
-      }
-    } catch (e) { /* cross-origin or DOM not ready — fail silently */ }
-  }, 150);
-})();
-</script>
-""",
-        height=0,
-    )
+    # Detect synthetic clicks from "→ History" links (lat in 99.9–200 range).
+    # Use _processing_click latch so the stale last_clicked on the post-rerun
+    # doesn't re-trigger navigation.
+    if st.session_state.pop("_processing_click", False):
+        pass  # skip — this rerun was triggered by our own st.rerun()
+    else:
+        _lc = (result or {}).get("last_clicked") or {}
+        _clat = round(_lc.get("lat", 0), 4)
+        if 99.9 < _clat < 200.0:
+            _nav_name = _nav_lat_to_name.get(_clat)
+            if _nav_name:
+                if st.session_state.get("history_player") != _nav_name:
+                    st.session_state["history_player"] = _nav_name
+                st.session_state["_scroll_to_history"] = True
+                st.session_state["_processing_click"] = True
+                st.rerun()
 
     # Surface any tracked players whose team has no coordinates yet.
     unmapped = [
