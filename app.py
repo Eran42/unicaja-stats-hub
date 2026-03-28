@@ -496,6 +496,16 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         min_zoom=2,
     )
 
+    # Hide Leaflet tooltips on touch devices using a CSS media query injected
+    # directly into the folium iframe — reliable without any JS detection round-trip.
+    m.get_root().html.add_child(folium.Element(
+        "<style>"
+        "@media (hover: none) and (pointer: coarse) {"
+        "  .leaflet-tooltip { display: none !important; }"
+        "}"
+        "</style>"
+    ))
+
     # Build stable per-player encoded latitudes for "→ History" synthetic clicks.
     # Each player gets a unique lat in [100.0, 200.0) that encodes their index.
     # Python maps it back to the player name when st_folium reports last_clicked.
