@@ -207,10 +207,19 @@ def _load_team_coords() -> dict[str, tuple[float, float]]:
     except Exception:
         return {}
 
+def _load_player_photos() -> dict[str, str]:
+    path = os.path.join(os.path.dirname(__file__), "data", "players", "photos.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
 _TEAM_LOOKUP:    dict[str, str]              = _load_team_lookup()
 _REGISTRY:       list[dict]                  = _load_registry()
 _PLAYER_STATUS:  dict                        = _load_player_status()
 _TEAM_COORDS:    dict[str, tuple[float, float]] = _load_team_coords()
+_PLAYER_PHOTOS:  dict[str, str]              = _load_player_photos()
 
 
 # ---------------------------------------------------------------------------
@@ -348,11 +357,34 @@ def _player_card_html(p: dict) -> str:
         reason = note if note else "No recent game data"
         body   = f"<div style='font-size:10px;color:#999;margin-top:4px;'>⚠ {reason}</div>"
 
+    photo_url = _PLAYER_PHOTOS.get(name, "")
+    if photo_url:
+        avatar = (
+            f"<img src='{photo_url}' "
+            "style='width:42px;height:42px;border-radius:50%;object-fit:cover;"
+            "border:2px solid #006633;flex-shrink:0;'>"
+        )
+    else:
+        avatar = (
+            "<div style='width:42px;height:42px;border-radius:50%;background:#e8f0eb;"
+            "border:2px solid #006633;display:flex;align-items:center;"
+            "justify-content:center;font-size:18px;flex-shrink:0;'>🏀</div>"
+        )
+
+    header = (
+        "<div style='display:flex;align-items:center;gap:9px;margin-bottom:5px;'>"
+        f"{avatar}"
+        "<div>"
+        f"<div style='font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.2;'>{name}</div>"
+        f"<div style='font-size:10px;font-weight:600;color:#006633;'>{team}</div>"
+        "</div>"
+        "</div>"
+    )
+
     return (
-        "<div style='font-family:sans-serif;min-width:200px;"
+        "<div style='font-family:sans-serif;min-width:210px;"
         "margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid #e8e8e8;'>"
-        f"<div style='font-size:13px;font-weight:700;color:#1a1a1a;'>🏀 {name}</div>"
-        f"<div style='font-size:10px;font-weight:600;color:#006633;margin-bottom:1px;'>{team}</div>"
+        f"{header}"
         f"{body}"
         "</div>"
     )
