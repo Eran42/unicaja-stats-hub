@@ -499,28 +499,55 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
     result = st_folium(m, use_container_width=True, height=420,
                        returned_objects=["last_object_clicked"])
 
-    # When a pin is clicked, pre-select the player in the history table and
-    # scroll to it.  st.rerun() is a WebSocket rerun — no page reload, no URL
-    # change, just Streamlit re-executes and the DOM updates in place.
-    clicked = (result or {}).get("last_object_clicked")
-    if clicked:
-        clat = clicked.get("lat")
-        clng = clicked.get("lng")
-        if clat is not None:
-            for pin_data in map_data.values():
-                pcl, pcn = pin_data["coords"]
-                if abs(pcl - clat) < 0.01 and abs(pcn - clng) < 0.01:
-                    players = pin_data["players"]
-                    if players:
-                        # Pick the player with the most recent game, or first
-                        best = max(players,
-                                   key=lambda p: p.get("game_date", "") or "")
-                        name = best["name"]
-                        if st.session_state.get("history_player") != name:
-                            st.session_state["history_player"] = name
-                            st.session_state["_scroll_to_history"] = True
+    # When a pin is clicked, detect which city was clicked and either navigate
+    # directly (single player) or surface per-player buttons below the map
+    # (multiple players).
+    #
+    # _processing_click latch: after calling st.rerun() we set this flag so
+    # that the immediately-following rerun skips stale component click data.
+    if st.session_state.pop("_processing_click", False):
+        pass  # skip — this rerun was triggered by our own st.rerun() call
+    else:
+        clicked = (result or {}).get("last_object_clicked")
+        if clicked:
+            clat = clicked.get("lat")
+            clng = clicked.get("lng")
+            if clat is not None:
+                for pin_data in map_data.values():
+                    pcl, pcn = pin_data["coords"]
+                    if abs(pcl - clat) < 0.01 and abs(pcn - clng) < 0.01:
+                        players     = pin_data["players"]
+                        new_names   = [p["name"] for p in players]
+                        if st.session_state.get("_city_players") != new_names:
+                            st.session_state["_city_players"] = new_names
+                            st.session_state["_processing_click"] = True
                             st.rerun()
-                    break
+                        break
+
+    # For single-player cities, navigate immediately.  For multi-player cities,
+    # show per-player buttons so the user can pick which history to open.
+    city_players = st.session_state.get("_city_players", [])
+    if city_players:
+        if len(city_players) == 1:
+            name = city_players[0]
+            if st.session_state.get("history_player") != name:
+                st.session_state["history_player"] = name
+                st.session_state["_scroll_to_history"] = True
+                st.rerun()
+        else:
+            st.markdown(
+                "<p style='font-size:12px;margin:6px 0 4px;color:#555;'>"
+                "View history for:</p>",
+                unsafe_allow_html=True,
+            )
+            cols = st.columns(len(city_players))
+            for i, name in enumerate(city_players):
+                with cols[i]:
+                    if st.button(name, key=f"_nav_{name}", use_container_width=True):
+                        st.session_state["history_player"] = name
+                        st.session_state["_scroll_to_history"] = True
+                        st.session_state.pop("_city_players", None)
+                        st.rerun()
 
     # Surface any tracked players whose team has no coordinates yet.
     unmapped = [
