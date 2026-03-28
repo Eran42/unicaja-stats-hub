@@ -432,48 +432,11 @@ def _player_card_html(p: dict) -> str:
     if recent:
         card_style += "border-left:3px solid #006633;padding-left:8px;"
 
-    # postMessage to the Streamlit page — the page-level listener (injected by
-    # _inject_player_nav_listener) picks this up and navigates same-tab to the
-    # history section with this player pre-selected.
-    player_json = json.dumps(name)   # safe encoding for names with accents/apostrophes
-    onclick = f"window.parent.postMessage({{type:'selectPlayer',player:{player_json}}},'*')"
     return (
-        f"<div style='{card_style}' onclick=\"{onclick}\">"
+        f"<div style='{card_style}'>"
         f"{header}"
         f"{body}"
         "</div>"
-    )
-
-
-def _inject_player_nav_listener() -> None:
-    """
-    Inject a one-time message listener on the Streamlit page window.
-
-    Folium popup cards post {type:'selectPlayer', player:NAME} to window.parent
-    (the Streamlit page). This listener catches it and navigates the same tab to
-    /?history_player=NAME#game-history, which triggers a Streamlit rerun with
-    the player pre-selected in the history filter.
-
-    The guard on _unicajaNavListenerAdded prevents duplicate listeners on reruns.
-    """
-    import streamlit.components.v1 as components
-    components.html(
-        """
-<script>
-(function() {
-    var p = window.parent;
-    if (p._unicajaNavListenerAdded) return;
-    p._unicajaNavListenerAdded = true;
-    p.addEventListener('message', function(e) {
-        if (e.data && e.data.type === 'selectPlayer' && e.data.player) {
-            e.currentTarget.location.href =
-                '/?history_player=' + encodeURIComponent(e.data.player) + '#game-history';
-        }
-    });
-})();
-</script>
-""",
-        height=0,
     )
 
 
@@ -533,8 +496,31 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
 
     m.fit_bounds(fit_coords, padding=[35, 35], max_zoom=6)
 
-    # returning map_data triggers no Streamlit rerun so popups stay open
-    st_folium(m, use_container_width=True, height=420)
+    result = st_folium(m, use_container_width=True, height=420,
+                       returned_objects=["last_object_clicked"])
+
+    # When a pin is clicked, pre-select the player in the history table and
+    # scroll to it.  st.rerun() is a WebSocket rerun — no page reload, no URL
+    # change, just Streamlit re-executes and the DOM updates in place.
+    clicked = (result or {}).get("last_object_clicked")
+    if clicked:
+        clat = clicked.get("lat")
+        clng = clicked.get("lng")
+        if clat is not None:
+            for pin_data in map_data.values():
+                pcl, pcn = pin_data["coords"]
+                if abs(pcl - clat) < 0.01 and abs(pcn - clng) < 0.01:
+                    players = pin_data["players"]
+                    if players:
+                        # Pick the player with the most recent game, or first
+                        best = max(players,
+                                   key=lambda p: p.get("game_date", "") or "")
+                        name = best["name"]
+                        if st.session_state.get("history_player") != name:
+                            st.session_state["history_player"] = name
+                            st.session_state["_scroll_to_history"] = True
+                            st.rerun()
+                    break
 
     # Surface any tracked players whose team has no coordinates yet.
     unmapped = [
@@ -1224,12 +1210,6 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     _ANY_PLAYER = "— All players —"
     _ANY_DATE   = "— All dates —"
 
-    # Pre-select player from URL query param (set by map card clicks).
-    # Only initialise session state if the widget hasn't been touched yet.
-    qp_player = st.query_params.get("history_player", "")
-    if qp_player and qp_player in all_names and st.session_state.get("history_player", _ANY_PLAYER) == _ANY_PLAYER:
-        st.session_state["history_player"] = qp_player
-
     # Reset the date filter whenever the player selection changes to a specific player,
     # so that selecting a player always shows their full history, not a filtered slice.
     current_player_ss = st.session_state.get("history_player", _ANY_PLAYER)
@@ -1359,7 +1339,6 @@ if not dates:
 _, latest_records = _load_latest()
 all_data = _load_all()
 
-_inject_player_nav_listener()
 render_map(all_data)
 
 st.divider()
@@ -1369,3 +1348,16 @@ render_latest(latest_records)
 st.divider()
 
 render_history(all_data)
+
+# After a map-pin click triggers st.rerun(), scroll to the history section.
+if st.session_state.pop("_scroll_to_history", False):
+    import streamlit.components.v1 as _c
+    _c.html(
+        "<script>"
+        "setTimeout(function(){"
+        "var el=window.parent.document.getElementById('game-history');"
+        "if(el)el.scrollIntoView({behavior:'smooth',block:'start'});"
+        "},200);"
+        "</script>",
+        height=0,
+    )
