@@ -483,7 +483,7 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         is_active = data["any_recent"]
         folium.CircleMarker(
             location=[clat, clon],
-            radius=12 if is_active else 7,
+            radius=9 if is_active else 6,
             color=color,
             fill=True,
             fill_color=color,
