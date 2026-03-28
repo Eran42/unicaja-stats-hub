@@ -13,5 +13,20 @@
     "status": "unknown",
     "note": "Limited minutes this season — EuroLeague ID not found in recent games",
     "updated": "2026-03-27"
+  },
+  "Jayson Granger": {
+    "status": "no_game",
+    "note": "No game today.",
+    "updated": "2026-03-28"
+  },
+  "Sasu Salin": {
+    "status": "no_game",
+    "note": "No game today.",
+    "updated": "2026-03-28"
+  },
+  "Adam Waczyński": {
+    "status": "no_game",
+    "note": "No game today.",
+    "updated": "2026-03-28"
   }
 }

@@ -1,51 +1,48 @@
 """
-NBA latest game box score via stats.nba.com playergamelog API.
+NBA latest game box score via ESPN Core API.
 
-Endpoint:
-  GET https://stats.nba.com/stats/playergamelog
-      ?PlayerID={id}&Season=2024-25&SeasonType=Regular+Season
+Endpoint flow:
+  1. GET https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/athletes/{espn_id}/eventlog
+     → find last event with "played": true; extract event_id and team_id
+  2. GET .../events/{event_id}
+     → shortName ("MEM @ SAC"), date
+  3. GET .../events/{event_id}/competitions/{event_id}
+     → competitors with homeAway + winner + score/$ref
+  4. GET score/$ref for each competitor → home/away scores
+  5. GET .../competitors/{team_id}/roster/{espn_id}/statistics/0
+     → per-game stat categories
 
-Returns games in reverse-chronological order (most recent first).
-We take row 0.
-
-Player IDs from nba.com URLs, e.g.:
-  https://www.nba.com/player/1627734/domantas-sabonis → ID 1627734
+Player IDs are ESPN athlete IDs (different from nba.com player IDs).
+Find via: https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/{team_id}/roster
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any
 
 import requests
 
 logger = logging.getLogger(__name__)
 
-_BASE_URL       = "https://stats.nba.com/stats/playergamelog"
-_TIMEOUT        = 15
-_CURRENT_SEASON = "2024-25"
-
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/121.0.0.0 Safari/537.36"
-    ),
-    "Accept":             "application/json, text/plain, */*",
-    "Accept-Language":    "en-US,en;q=0.9",
-    "Accept-Encoding":    "gzip, deflate, br",
-    "Referer":            "https://www.nba.com/",
-    "Origin":             "https://www.nba.com",
-    "Connection":         "keep-alive",
-    "x-nba-stats-origin": "stats",
-    "x-nba-stats-token":  "true",
-}
+_BASE    = "https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba"
+_TIMEOUT = 15
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _get(url: str) -> dict | None:
+    try:
+        r = requests.get(url, timeout=_TIMEOUT)
+        r.raise_for_status()
+        return r.json()
+    except Exception as exc:
+        logger.warning("NBA ESPN fetch failed %s: %s", url, exc)
+        return None
+
 
 def _safe_float(value: Any) -> float | None:
     if value is None:
@@ -56,142 +53,169 @@ def _safe_float(value: Any) -> float | None:
         return None
 
 
-def _parse_nba_date(value: str) -> str:
-    """Convert 'MAR 10, 2026' → 'YYYY-MM-DD'."""
+def _stat_by_name(categories: list[dict], name: str) -> float | None:
+    for cat in categories:
+        for s in cat.get("stats", []):
+            if s.get("name") == name:
+                return _safe_float(s.get("value"))
+    return None
+
+
+def _parse_date(iso: str) -> str:
+    """'2026-02-05T03:00Z' → '2026-02-05'"""
     try:
-        return datetime.strptime(value.strip(), "%b %d, %Y").strftime("%Y-%m-%d")
-    except ValueError:
-        return value
-
-
-def _parse_minutes(value: Any) -> float | None:
-    """NBA game log returns minutes as 'MM:SS' string."""
-    if value is None:
-        return None
-    text = str(value).strip()
-    if ":" in text:
-        parts = text.split(":")
-        try:
-            return round(float(parts[0]) + float(parts[1]) / 60, 2)
-        except (ValueError, IndexError):
-            return None
-    return _safe_float(text)
-
-
-def _row_to_dict(headers: list[str], row: list) -> dict:
-    return dict(zip(headers, row))
-
-
-def _parse_opponent(matchup: str) -> str:
-    """
-    Extract the opponent team abbreviation from an NBA matchup string.
-
-    'SAC vs. GSW'  → 'vs. GSW'   (home game)
-    'SAC @ LAL'    → '@ LAL'     (away game)
-    """
-    if " vs. " in matchup:
-        return "vs. " + matchup.split(" vs. ", 1)[1]
-    if " @ " in matchup:
-        return "@ " + matchup.split(" @ ", 1)[1]
-    return matchup
+        return datetime.fromisoformat(iso.replace("Z", "+00:00")).strftime("%Y-%m-%d")
+    except Exception:
+        return ""
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-def fetch_season_averages(player_id: str | int, season: str = _CURRENT_SEASON) -> dict:
+def fetch_season_averages(espn_athlete_id: str | int) -> dict:
     """
-    Fetch the most recent game box score for an NBA player.
+    Fetch the most recent game box score for an NBA player via ESPN Core API.
 
     Args:
-        player_id:  NBA player ID.
-        season:     Season string "YYYY-YY" (e.g. "2024-25").
+        espn_athlete_id: ESPN athlete ID (not the nba.com player ID).
 
     Returns:
         Canonical single-game stats dict, or empty dict on failure.
     """
-    params = {
-        "PlayerID":   str(player_id),
-        "Season":     season,
-        "SeasonType": "Regular Season",
-    }
-    logger.debug("NBA game log fetch: player_id=%s season=%s", player_id, season)
+    athlete_id = str(espn_athlete_id)
 
-    try:
-        resp = requests.get(_BASE_URL, headers=_HEADERS, params=params, timeout=_TIMEOUT)
-        resp.raise_for_status()
-        data = resp.json()
-    except requests.HTTPError as exc:
-        logger.warning("NBA HTTP error player_id=%s: %s", player_id, exc)
-        return {}
-    except requests.RequestException as exc:
-        logger.warning("NBA request failed player_id=%s: %s", player_id, exc)
-        return {}
-    except ValueError as exc:
-        logger.warning("NBA JSON parse error player_id=%s: %s", player_id, exc)
+    # 1. Event log
+    eventlog = _get(f"{_BASE}/athletes/{athlete_id}/eventlog")
+    if not eventlog:
         return {}
 
-    # Find the "PlayerGameLog" result set
-    result_set = None
-    for rs in data.get("resultSets", []):
-        if rs.get("name") == "PlayerGameLog":
-            result_set = rs
-            break
-
-    if result_set is None:
-        logger.warning("NBA: PlayerGameLog result set missing for player_id=%s", player_id)
+    events = eventlog.get("events", {}).get("items", [])
+    last_ev = next((ev for ev in reversed(events) if ev.get("played")), None)
+    if not last_ev:
+        logger.warning("NBA ESPN: no played events for athlete_id=%s", athlete_id)
         return {}
 
-    headers = result_set.get("headers", [])
-    rows    = result_set.get("rowSet", [])
+    event_ref  = last_ev["event"]["$ref"].split("?")[0]
+    event_id   = event_ref.rstrip("/").rsplit("/", 1)[-1]
+    team_id    = str(last_ev.get("teamId", ""))
+    stats_ref  = last_ev.get("statistics", {}).get("$ref", "").split("?")[0]
 
-    if not rows:
-        logger.warning("NBA: no game log rows for player_id=%s season=%s", player_id, season)
+    # 2. Event (shortName + date)
+    event_data = _get(f"{_BASE}/events/{event_id}")
+    if not event_data:
         return {}
 
-    # Row 0 = most recent game
-    row = _row_to_dict(headers, rows[0])
+    game_date  = _parse_date(event_data.get("date", ""))
+    short_name = event_data.get("shortName", "")   # e.g. "MEM @ SAC"
 
-    fgm  = _safe_float(row.get("FGM"))
-    fga  = _safe_float(row.get("FGA"))
-    fg3m = _safe_float(row.get("FG3M"))
-    fg3a = _safe_float(row.get("FG3A"))
+    # 3. Competition (competitors with homeAway, winner, score ref)
+    comp = _get(f"{_BASE}/events/{event_id}/competitions/{event_id}")
+    if not comp:
+        return {}
 
-    t2m = round(fgm  - fg3m, 1) if fgm  is not None and fg3m is not None else None
-    t2a = round(fga  - fg3a, 1) if fga  is not None and fg3a is not None else None
-    t2_pct = round(t2m / t2a * 100, 1) if t2m is not None and t2a else None
+    home_score = away_score = None
+    player_won = False
+    opponent   = short_name   # fallback
 
-    def _pct(v: Any) -> float | None:
-        f = _safe_float(v)
-        return round(f * 100, 1) if f is not None else None
+    for c in comp.get("competitors", []):
+        cteam_ref  = c.get("team", {}).get("$ref", "")
+        cteam_id   = cteam_ref.rstrip("/").rsplit("/", 1)[-1].split("?")[0]
+        c_home     = c.get("homeAway") == "home"
+        score_ref  = c.get("score", {}).get("$ref", "").split("?")[0]
 
-    matchup   = str(row.get("MATCHUP", ""))
-    game_date = _parse_nba_date(str(row.get("GAME_DATE", "")))
+        score_val = None
+        if score_ref:
+            score_data = _get(score_ref)
+            if score_data:
+                score_val = _safe_float(score_data.get("value"))
+
+        if c_home:
+            home_score = score_val
+        else:
+            away_score = score_val
+
+        if cteam_id == team_id:
+            player_won = bool(c.get("winner"))
+            # Determine opponent from shortName: "MEM @ SAC" → opponent is the other team
+            # shortName format: "AWAY @ HOME"; player's team is one of them
+            parts = short_name.split(" @ ")
+            if len(parts) == 2:
+                if c_home:
+                    opponent = "vs. " + parts[0]   # player is home, opponent is left
+                else:
+                    opponent = "@ " + parts[1]     # player is away, opponent is right
+
+    # Build result string
+    result = ""
+    if home_score is not None and away_score is not None:
+        # Find player's score vs opponent score
+        # team_id is the player's team
+        # need to know if player's team is home or away
+        player_is_home = any(
+            c.get("homeAway") == "home" and
+            c.get("team", {}).get("$ref", "").rstrip("/").rsplit("/", 1)[-1].split("?")[0] == team_id
+            for c in comp.get("competitors", [])
+        )
+        if player_is_home:
+            my_score  = int(home_score)
+            opp_score = int(away_score)
+        else:
+            my_score  = int(away_score)
+            opp_score = int(home_score)
+        prefix = "V" if player_won else "D"
+        result = f"{prefix} {my_score}-{opp_score}"
+
+    # 4. Per-game stats
+    if not stats_ref:
+        logger.warning("NBA ESPN: no stats ref for athlete_id=%s event=%s", athlete_id, event_id)
+        return {}
+
+    stats_data = _get(stats_ref)
+    if not stats_data:
+        return {}
+
+    cats = stats_data.get("splits", {}).get("categories", [])
+
+    fgm  = _stat_by_name(cats, "fieldGoalsMade")
+    fga  = _stat_by_name(cats, "fieldGoalsAttempted")
+    fg3m = _stat_by_name(cats, "threePointFieldGoalsMade")
+    fg3a = _stat_by_name(cats, "threePointFieldGoalsAttempted")
+    ftm  = _stat_by_name(cats, "freeThrowsMade")
+    fta  = _stat_by_name(cats, "freeThrowsAttempted")
+
+    t2m = round(fgm - fg3m, 1) if fgm is not None and fg3m is not None else None
+    t2a = round(fga - fg3a, 1) if fga is not None and fg3a is not None else None
+    t2_pct  = round(t2m / t2a * 100, 1) if t2m is not None and t2a else None
+    t3_pct  = round(fg3m / fg3a * 100, 1) if fg3m is not None and fg3a else None
+    ft_pct  = round(ftm / fta * 100, 1) if ftm is not None and fta else None
+
+    minutes_raw = _stat_by_name(cats, "minutes")
+    minutes = round(float(minutes_raw), 1) if minutes_raw is not None else None
 
     return {
-        "player_id":   str(player_id),
-        "player_name": "",                        # router fills via setdefault
+        "player_id":   athlete_id,
+        "player_name": "",                   # router fills via setdefault
         "source":      "nba",
         "competition": "NBA",
-        "season":      season,
+        "season":      "2025-26",
         "game_date":   game_date,
-        "opponent":    _parse_opponent(matchup),
-        "result":      str(row.get("WL", "")),    # "W" or "L" — team score not in playergamelog
+        "opponent":    opponent,
+        "result":      result,
         "date":        str(date.today()),
-        "min":         _parse_minutes(row.get("MIN")),
-        "pts":         _safe_float(row.get("PTS")),
-        "t2m":         t2m,                           "t2a":  t2a,                           "t2_pct":  t2_pct,
-        "t3m":         fg3m,                          "t3a":  fg3a,                          "t3_pct":  _pct(row.get("FG3_PCT")),
-        "ftm":         _safe_float(row.get("FTM")),   "fta":  _safe_float(row.get("FTA")),   "ft_pct":  _pct(row.get("FT_PCT")),
-        "reb_off":     _safe_float(row.get("OREB")),
-        "reb_def":     _safe_float(row.get("DREB")),
-        "reb":         _safe_float(row.get("REB")),
-        "ast":         _safe_float(row.get("AST")),
-        "stl":         _safe_float(row.get("STL")),
-        "tov":         _safe_float(row.get("TOV")),
-        "blk":         _safe_float(row.get("BLK")),
-        "fouls":       _safe_float(row.get("PF")),
-        "plus_minus":  _safe_float(row.get("PLUS_MINUS")),
+        "min":         minutes,
+        "pts":         _stat_by_name(cats, "points"),
+        "t2m":         t2m,   "t2a": t2a,   "t2_pct": t2_pct,
+        "t3m":         fg3m,  "t3a": fg3a,  "t3_pct": t3_pct,
+        "ftm":         ftm,   "fta": fta,   "ft_pct": ft_pct,
+        "reb_off":     _stat_by_name(cats, "offensiveRebounds"),
+        "reb_def":     _stat_by_name(cats, "defensiveRebounds"),
+        "reb":         _stat_by_name(cats, "rebounds"),
+        "ast":         _stat_by_name(cats, "assists"),
+        "stl":         _stat_by_name(cats, "steals"),
+        "tov":         _stat_by_name(cats, "turnovers"),
+        "blk":         _stat_by_name(cats, "blocks"),
+        "fouls":       _stat_by_name(cats, "fouls"),
+        "plus_minus":  _stat_by_name(cats, "plusMinus"),
         "val":         None,
     }

@@ -193,6 +193,15 @@ def run(players_no_data: list[dict], today: str | None = None) -> None:
             logger.debug("Status for %s already current (%s), skipping.", name, today)
             continue
 
+        # Skip if the roster-tracker wrote a meaningful status (injured/suspended) recently
+        # — let it own those; daily status_agent only handles no_game / unknown
+        if existing.get("status") in ("injured", "suspended"):
+            logger.debug(
+                "Status for %s is '%s' (set %s) — leaving for roster-tracker.",
+                name, existing["status"], existing.get("updated", "?"),
+            )
+            continue
+
         logger.info("Status agent: researching %s (%s)...", name, team)
         try:
             news   = _search_player_news(name, team)

@@ -5,7 +5,11 @@
     "country": "Lithuania",
     "active": true,
     "sources": [
-      { "competition": "NBA", "type": "nba", "id": "1627734" }
+      {
+        "competition": "NBA",
+        "type": "nba",
+        "id": "3155942"
+      }
     ]
   },
   {
@@ -14,8 +18,16 @@
     "country": "France",
     "active": true,
     "sources": [
-      { "competition": "EuroLeague",  "type": "euroleague", "id": "P003842" },
-      { "competition": "Greek League", "type": "eurobasket", "id": "252481"  }
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P003842"
+      },
+      {
+        "competition": "Greek League",
+        "type": "eurobasket",
+        "id": "252481"
+      }
     ]
   },
   {
@@ -24,8 +36,16 @@
     "country": "Serbia",
     "active": true,
     "sources": [
-      { "competition": "EuroLeague", "type": "euroleague", "id": "P000848" },
-      { "competition": "LNB Pro A",  "type": "eurobasket", "id": "130801"  }
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P000848"
+      },
+      {
+        "competition": "LNB Pro A",
+        "type": "eurobasket",
+        "id": "130801"
+      }
     ]
   },
   {
@@ -34,8 +54,16 @@
     "country": "United States",
     "active": true,
     "sources": [
-      { "competition": "EuroLeague", "type": "euroleague", "id": "P010581" },
-      { "competition": "ABA League", "type": "aba",        "id": "5100"    }
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P010581"
+      },
+      {
+        "competition": "ABA League",
+        "type": "aba",
+        "id": "5100"
+      }
     ]
   },
   {
@@ -44,8 +72,16 @@
     "country": "Spain",
     "active": true,
     "sources": [
-      { "competition": "EuroLeague", "type": "euroleague", "id": "P009992"  },
-      { "competition": "ACB",        "type": "acb",        "id": "20209919" }
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P009992"
+      },
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20209919"
+      }
     ]
   },
   {
@@ -54,9 +90,21 @@
     "country": "United States",
     "active": true,
     "sources": [
-      { "competition": "EuroLeague", "type": "euroleague",  "id": "P011305" },
-      { "competition": "ABA League", "type": "aba",         "id": "5075"    },
-      { "competition": "ABA League", "type": "eurobasket",  "id": "402220"  }
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P011305"
+      },
+      {
+        "competition": "ABA League",
+        "type": "aba",
+        "id": "5075"
+      },
+      {
+        "competition": "ABA League",
+        "type": "eurobasket",
+        "id": "402220"
+      }
     ]
   },
   {
@@ -65,8 +113,16 @@
     "country": "Spain",
     "active": true,
     "sources": [
-      { "competition": "EuroLeague", "type": "euroleague", "id": "P005596"  },
-      { "competition": "ACB",        "type": "acb",        "id": "20213230" }
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P005596"
+      },
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20213230"
+      }
     ]
   },
   {
@@ -75,8 +131,16 @@
     "country": "United States",
     "active": true,
     "sources": [
-      { "competition": "EuroLeague", "type": "euroleague", "id": "P011217"  },
-      { "competition": "ACB",        "type": "acb",        "id": "30001981" }
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P011217"
+      },
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "30001981"
+      }
     ]
   },
   {
@@ -85,8 +149,16 @@
     "country": "Georgia",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20210659" },
-      { "competition": "BCL", "type": "bcl", "id": "la-laguna-tenerife/151899-giorgi-shermadini" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20210659"
+      },
+      {
+        "competition": "BCL",
+        "type": "bcl",
+        "id": "la-laguna-tenerife/151899-giorgi-shermadini"
+      }
     ]
   },
   {
@@ -95,7 +167,11 @@
     "country": "Spain",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20210707" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20210707"
+      }
     ]
   },
   {
@@ -104,7 +180,11 @@
     "country": "Brazil",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20200277" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20200277"
+      }
     ]
   },
   {
@@ -113,8 +193,16 @@
     "country": "France",
     "active": true,
     "sources": [
-      { "competition": "EuroCup",    "type": "eurocup", "id": "P003840" },
-      { "competition": "ABA League", "type": "aba",     "id": "5073"    }
+      {
+        "competition": "EuroCup",
+        "type": "eurocup",
+        "id": "P003840"
+      },
+      {
+        "competition": "ABA League",
+        "type": "aba",
+        "id": "5073"
+      }
     ]
   },
   {
@@ -123,8 +211,16 @@
     "country": "Lithuania",
     "active": true,
     "sources": [
-      { "competition": "BCL",          "type": "bcl",        "id": "aek-bc/161021-mindaugas-kuzminskas" },
-      { "competition": "Greek League", "type": "eurobasket", "id": "26892"  }
+      {
+        "competition": "BCL",
+        "type": "bcl",
+        "id": "aek-bc/161021-mindaugas-kuzminskas"
+      },
+      {
+        "competition": "Greek League",
+        "type": "eurobasket",
+        "id": "26892"
+      }
     ]
   },
   {
@@ -133,7 +229,11 @@
     "country": "Serbia",
     "active": true,
     "sources": [
-      { "competition": "ABA League", "type": "aba", "id": "1076" }
+      {
+        "competition": "ABA League",
+        "type": "aba",
+        "id": "1076"
+      }
     ]
   },
   {
@@ -142,7 +242,11 @@
     "country": "Uruguay",
     "active": true,
     "sources": [
-      { "competition": "Primera FEB", "type": "feb", "id": "ESTUDIANTES/GRANGER" }
+      {
+        "competition": "Primera FEB",
+        "type": "feb",
+        "id": "ESTUDIANTES/GRANGER"
+      }
     ]
   },
   {
@@ -151,7 +255,11 @@
     "country": "Finland",
     "active": true,
     "sources": [
-      { "competition": "Primera FEB", "type": "feb", "id": "ESTUDIANTES/SALIN" }
+      {
+        "competition": "Primera FEB",
+        "type": "feb",
+        "id": "ESTUDIANTES/SALIN"
+      }
     ]
   },
   {
@@ -160,8 +268,16 @@
     "country": "Canada",
     "active": true,
     "sources": [
-      { "competition": "Lega A",   "type": "eurobasket", "id": "201473" },
-      { "competition": "EuroCup",  "type": "eurocup", "id": "P008052" }
+      {
+        "competition": "Lega A",
+        "type": "eurobasket",
+        "id": "201473"
+      },
+      {
+        "competition": "EuroCup",
+        "type": "eurocup",
+        "id": "P008052"
+      }
     ]
   },
   {
@@ -170,7 +286,11 @@
     "country": "Spain",
     "active": true,
     "sources": [
-      { "competition": "NCAA", "type": "ncaa_espn", "id": "5313012" }
+      {
+        "competition": "NCAA",
+        "type": "ncaa_espn",
+        "id": "5313012"
+      }
     ]
   },
   {
@@ -179,7 +299,11 @@
     "country": "Poland",
     "active": true,
     "sources": [
-      { "competition": "PLK", "type": "eurobasket", "id": "103227" }
+      {
+        "competition": "PLK",
+        "type": "eurobasket",
+        "id": "103227"
+      }
     ]
   },
   {
@@ -188,8 +312,16 @@
     "country": "Spain",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20204124" },
-      { "competition": "BCL", "type": "bcl", "id": "la-laguna-tenerife/175433-jaime-fernandez" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20204124"
+      },
+      {
+        "competition": "BCL",
+        "type": "bcl",
+        "id": "la-laguna-tenerife/175433-jaime-fernandez"
+      }
     ]
   },
   {
@@ -198,8 +330,16 @@
     "country": "United States",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20211625" },
-      { "competition": "BCL", "type": "bcl", "id": "la-laguna-tenerife/201675-tim-abromaitis" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20211625"
+      },
+      {
+        "competition": "BCL",
+        "type": "bcl",
+        "id": "la-laguna-tenerife/201675-tim-abromaitis"
+      }
     ]
   },
   {
@@ -208,7 +348,11 @@
     "country": "Congo",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "30000479" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "30000479"
+      }
     ]
   },
   {
@@ -217,7 +361,11 @@
     "country": "Canada",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "30000049" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "30000049"
+      }
     ]
   },
   {
@@ -226,7 +374,11 @@
     "country": "Spain",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20210585" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20210585"
+      }
     ]
   },
   {
@@ -235,7 +387,11 @@
     "country": "Spain",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "20204156" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20204156"
+      }
     ]
   },
   {
@@ -244,8 +400,16 @@
     "country": "Serbia",
     "active": true,
     "sources": [
-      { "competition": "EuroLeague", "type": "euroleague", "id": "P003983" },
-      { "competition": "ABA League", "type": "aba",        "id": "3857"    }
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P003983"
+      },
+      {
+        "competition": "ABA League",
+        "type": "aba",
+        "id": "3857"
+      }
     ]
   },
   {
@@ -254,8 +418,16 @@
     "country": "United States",
     "active": true,
     "sources": [
-      { "competition": "Lega A", "type": "eurobasket", "id": "136973" },
-      { "competition": "BCL",    "type": "bcl",  "id": "pallacanestro-trieste/192665-jeff-brooks" }
+      {
+        "competition": "Lega A",
+        "type": "eurobasket",
+        "id": "136973"
+      },
+      {
+        "competition": "BCL",
+        "type": "bcl",
+        "id": "pallacanestro-trieste/192665-jeff-brooks"
+      }
     ]
   },
   {
@@ -264,7 +436,11 @@
     "country": "United States",
     "active": true,
     "sources": [
-      { "competition": "ACB", "type": "acb", "id": "30003967" }
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "30003967"
+      }
     ]
   }
 ]
