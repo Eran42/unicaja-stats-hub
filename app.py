@@ -437,11 +437,12 @@ def _player_card_html(p: dict, nav_lat: float | None = None) -> str:
     # to this player's name.  Entirely within the Leaflet iframe, no cross-
     # frame JS needed.
     if nav_lat is not None:
+        # window.map is set by streamlit-folium itself after map initialisation.
         nav_js = (
             f"(function(){{"
-            f"if(window._leafletMap){{"
-            f"window._leafletMap.closePopup();"
-            f"window._leafletMap.fire('click',{{latlng:L.latLng({nav_lat:.4f},0)}});"
+            f"if(window.map){{"
+            f"window.map.closePopup();"
+            f"window.map.fire('click',{{latlng:L.latLng({nav_lat:.4f},0)}});"
             f"}}}})()"
         )
         nav_link = (
@@ -528,21 +529,6 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
             tooltip=folium.Tooltip(tooltip),
             popup=folium.Popup(popup_html, max_width=260),
         ).add_to(m)
-
-    # Inject script that stores the Leaflet map reference in window._leafletMap
-    # so popup card onclick handlers can fire synthetic clicks via map.fire().
-    m.get_root().html.add_child(folium.Element(
-        "<script>"
-        "(function(){"
-        "function init(){"
-        "var el=document.querySelector('.folium-map');"
-        "if(el&&window[el.id]){window._leafletMap=window[el.id];}"
-        "else{setTimeout(init,100);}"
-        "}"
-        "setTimeout(init,200);"
-        "})();"
-        "</script>"
-    ))
 
     m.fit_bounds(fit_coords, padding=[35, 35], max_zoom=6)
 
