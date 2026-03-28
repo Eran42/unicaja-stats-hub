@@ -977,6 +977,16 @@ _PCT_TRIPLES = [
 
 _MOBILE_HIDDEN_COLS = {"T2M", "T2A", "T3M", "T3A", "FTM", "FTA", "RO", "RD", "BLK-A", "F", "FR"}
 
+# Wider text-column widths for mobile — user cannot drag to resize on touch screen
+_MOBILE_TEXT_WIDTHS: dict[str, int] = {
+    "Player":      170,
+    "Team":        130,
+    "Competition": 120,
+    "Game Date":   115,
+    "Opponent":    170,
+    "Result":       95,
+}
+
 
 def _build_aggrid(
     df: pd.DataFrame,
@@ -995,7 +1005,8 @@ def _build_aggrid(
         sortingOrder=["desc", "asc", None],
     )
 
-    all_widths = {**_TEXT_WIDTHS, **_STAT_WIDTHS}
+    text_widths = {**_TEXT_WIDTHS, **((_MOBILE_TEXT_WIDTHS) if mobile else {})}
+    all_widths  = {**text_widths, **_STAT_WIDTHS}
     stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
     pct_labels  = {_COL_LABELS[f] for f in _PCT_FIELDS}
 
@@ -1059,6 +1070,10 @@ def _build_aggrid(
             kwargs["pinned"] = "left"
         if mobile and col in _MOBILE_HIDDEN_COLS:
             kwargs["hide"] = True
+        # Prevent auto-sizing from crushing text columns — especially important
+        # on mobile where users cannot drag to resize.
+        if col in text_widths:
+            kwargs["minWidth"] = text_widths[col]
         gb.configure_column(col, **kwargs)
 
     gb.configure_grid_options(
@@ -1281,7 +1296,7 @@ def render_latest(records: list[dict]) -> None:
             height=height,
             use_container_width=True,
             allow_unsafe_jscode=True,
-            fit_columns_on_grid_load=True,
+            fit_columns_on_grid_load=not mobile,
             update_mode="NO_UPDATE",
             theme="alpine",
             custom_css=_aggrid_css(),
