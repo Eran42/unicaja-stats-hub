@@ -447,10 +447,11 @@ def _player_card_html(p: dict, nav_lat: float | None = None) -> str:
         )
         nav_link = (
             "<div onclick=\"" + nav_js + "\" "
-            "style='margin-top:5px;padding-top:4px;border-top:1px solid #eee;"
-            "color:#006633;font-size:11px;font-weight:600;cursor:pointer;"
-            "text-align:right;user-select:none;'>"
-            "→ History</div>"
+            "style='margin-top:6px;padding:8px 10px;border-top:1px solid #eee;"
+            "background:#eef7f1;border-radius:4px;"
+            "color:#006633;font-size:12px;font-weight:700;cursor:pointer;"
+            "text-align:center;user-select:none;display:block;'>"
+            "→ View history</div>"
         )
     else:
         nav_link = ""
@@ -518,9 +519,10 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         )
 
         is_active = data["any_recent"]
+        _mob = _is_mobile()
         folium.CircleMarker(
             location=[clat, clon],
-            radius=9 if is_active else 6,
+            radius=(14 if is_active else 10) if _mob else (9 if is_active else 6),
             color=color,
             fill=True,
             fill_color=color,
@@ -532,7 +534,8 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
 
     m.fit_bounds(fit_coords, padding=[35, 35], max_zoom=6)
 
-    result = st_folium(m, use_container_width=True, height=420,
+    _map_height = 320 if _is_mobile() else 420
+    result = st_folium(m, use_container_width=True, height=_map_height,
                        returned_objects=["last_clicked"])
 
     # Detect synthetic clicks from "→ History" links (lat in 99.9–200 range).
@@ -748,6 +751,11 @@ def _is_dark() -> bool:
     return st.query_params.get("_dark") == "1"
 
 
+def _is_mobile() -> bool:
+    """True when the browser viewport is < 768 px wide (via ?_mobile=1)."""
+    return st.query_params.get("_mobile") == "1"
+
+
 def _inject_dark_mode_detector() -> None:
     """Inject JS that syncs prefers-color-scheme → URL param → Streamlit rerun."""
     st.markdown(
@@ -761,6 +769,26 @@ def _inject_dark_mode_detector() -> None:
         window.history.replaceState({}, '', url.toString());
         // Dispatching popstate causes Streamlit to pick up the new query param
         // and rerun the script, so the correct AG Grid theme is chosen.
+        window.dispatchEvent(new PopStateEvent('popstate', {state: history.state}));
+    }
+})();
+</script>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def _inject_mobile_detector() -> None:
+    """Inject JS that syncs viewport width → ?_mobile URL param → Streamlit rerun."""
+    st.markdown(
+        """
+<script>
+(function () {
+    var mob = window.innerWidth < 768 ? '1' : '0';
+    var url = new URL(window.location.href);
+    if (url.searchParams.get('_mobile') !== mob) {
+        url.searchParams.set('_mobile', mob);
+        window.history.replaceState({}, '', url.toString());
         window.dispatchEvent(new PopStateEvent('popstate', {state: history.state}));
     }
 })();
@@ -915,8 +943,19 @@ _PCT_TRIPLES = [
 ]
 
 
-def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None, dark: bool = False) -> dict:
+_MOBILE_HIDDEN_COLS = {"T2M", "T2A", "T3M", "T3A", "FTM", "FTA", "RO", "RD", "BLK-A", "F", "FR"}
+
+
+def _build_aggrid(
+    df: pd.DataFrame,
+    stripe: str,
+    avg_row: dict | None = None,
+    dark: bool = False,
+    mobile: bool = False,
+) -> dict:
     """Build AgGrid options. stripe sets odd-row background for ungrouped columns."""
+    row_height = 44 if mobile else _ROW_HEIGHT_PX
+
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_default_column(
         resizable=True, sortable=True, filter=False,
@@ -984,11 +1023,15 @@ def _build_aggrid(df: pd.DataFrame, stripe: str, avg_row: dict | None = None, da
         kwargs = dict(width=w, cellStyle=cell_style, resizable=True)
         if vfmt is not None:
             kwargs["valueFormatter"] = vfmt
+        if col == "Player":
+            kwargs["pinned"] = "left"
+        if mobile and col in _MOBILE_HIDDEN_COLS:
+            kwargs["hide"] = True
         gb.configure_column(col, **kwargs)
 
     gb.configure_grid_options(
         pinnedBottomRowData=[avg_row] if avg_row is not None else [],
-        rowHeight=_ROW_HEIGHT_PX,
+        rowHeight=row_height,
         headerHeight=_HEADER_HEIGHT_PX,
         groupHeaderHeight=28,
         suppressMovableColumns=True,
@@ -1185,8 +1228,10 @@ def render_latest(records: list[dict]) -> None:
 
     if played_rows:
         df = pd.DataFrame(played_rows)
-        height = _GROUP_HEADER_PX + _HEADER_HEIGHT_PX + len(played_rows) * _ROW_HEIGHT_PX + _GRID_PAD_PX
-        dark = _is_dark()
+        dark   = _is_dark()
+        mobile = _is_mobile()
+        rh     = 44 if mobile else _ROW_HEIGHT_PX
+        height = _GROUP_HEADER_PX + _HEADER_HEIGHT_PX + len(played_rows) * rh + _GRID_PAD_PX
         count = len(played_rows)
         st.markdown(
             f'<div style="margin:4px 0 6px;">'
@@ -1198,7 +1243,7 @@ def render_latest(records: list[dict]) -> None:
         )
         AgGrid(
             df,
-            gridOptions=_build_aggrid(df, stripe="rgba(0,102,51,0.08)", dark=dark),
+            gridOptions=_build_aggrid(df, stripe="rgba(0,102,51,0.08)", dark=dark, mobile=mobile),
             height=height,
             use_container_width=True,
             allow_unsafe_jscode=True,
@@ -1326,14 +1371,16 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 
     # Avg row only makes sense when browsing a single player's full history
     dark      = _is_dark()
+    mobile    = _is_mobile()
+    rh        = 44 if mobile else _ROW_HEIGHT_PX
     show_avg  = filter_player is not None and filter_date is None
     avg_row   = _build_avg_row(df, len(game_rows)) if show_avg else None
-    grid_opts = _build_aggrid(df, stripe="rgba(107,47,160,0.08)", avg_row=avg_row, dark=dark)
+    grid_opts = _build_aggrid(df, stripe="rgba(107,47,160,0.08)", avg_row=avg_row, dark=dark, mobile=mobile)
 
     pinned_rows = 1 if show_avg else 0
     grid_height = min(
-        _GROUP_HEADER_PX + _HEADER_HEIGHT_PX + len(df) * _ROW_HEIGHT_PX + pinned_rows * _ROW_HEIGHT_PX + _GRID_PAD_PX,
-        500 + _ROW_HEIGHT_PX,
+        _GROUP_HEADER_PX + _HEADER_HEIGHT_PX + len(df) * rh + pinned_rows * rh + _GRID_PAD_PX,
+        500 + rh,
     )
     AgGrid(
         df,
@@ -1357,6 +1404,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 st_autorefresh(interval=5 * 60 * 1000, key="data_refresh")
 
 _inject_dark_mode_detector()
+_inject_mobile_detector()
 _inject_css()
 
 dates = get_all_dates()
