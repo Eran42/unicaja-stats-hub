@@ -37,6 +37,19 @@ jobs:
                already exists in data/players/team_coords.json.  If it does not, add it:
                research the team's city and add an entry as [lat, lon] (two-decimal
                precision).  Never modify existing entries in team_coords.json.
+            7. Scan all files in data/stats/ to find each tracked player's most recent
+               game_date (skip rows where game_date is empty).  For any player whose
+               last game_date is more than 7 days ago (relative to today), search the web
+               for the reason they have not played (injury, suspension, team eliminated,
+               season finished, etc.) and update data/players/status.json with:
+                 { "status": "<injured|suspended|season_ended|other>",
+                   "note": "<one-sentence human-readable reason and expected return if known>",
+                   "updated": "<today YYYY-MM-DD>" }
+               If an existing entry already has an "updated" date within the last 7 days,
+               leave it unchanged (it was already researched recently).
+               Remove any entry whose player has played within the last 7 days — they no
+               longer need a status note.
+               Use the registry player name exactly as the key.
 
             Apply CLAUDE.md name canonicalisation rules before writing any name.
             Never modify existing registry entries — only append.
@@ -54,6 +67,7 @@ jobs:
                   data/unicaja_tracker_log.md \
                   data/players/registry.json \
                   data/players/team_coords.json \
+                  data/players/status.json \
                   .claude/agent-memory/unicaja-roster-tracker/
           git diff --staged --quiet \
             || git commit -m "roster: weekly tracker update $(date -u +%Y-%m-%d)"

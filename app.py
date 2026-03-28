@@ -331,6 +331,18 @@ def _player_card_html(p: dict) -> str:
 
     recent = p.get("recent", False)
 
+    # Determine if the player has been absent for >7 days
+    absent_days: int | None = None
+    if gd:
+        try:
+            from datetime import date as _date
+            last = _date.fromisoformat(gd)
+            absent_days = (_date.today() - last).days
+        except ValueError:
+            pass
+
+    absent = absent_days is not None and absent_days > 7
+
     if gd:
         game_label = "Last game: " if not recent else ""
         meta  = f"{game_label}{comp} · {gd}" + (f" · {res}" if res else "")
@@ -353,6 +365,12 @@ def _player_card_html(p: dict) -> str:
             "</table>"
         )
         body = f"<div style='font-size:10px;color:#666;margin:2px 0 3px;'>{meta}</div>{stats}"
+        if absent and note:
+            body += (
+                f"<div style='margin-top:5px;padding:4px 6px;background:#fff8e6;"
+                f"border-left:3px solid #f0a500;border-radius:3px;"
+                f"font-size:10px;color:#7a5500;'>⚠ {note}</div>"
+            )
     else:
         reason = note if note else "No recent game data"
         body   = f"<div style='font-size:10px;color:#999;margin-top:4px;'>⚠ {reason}</div>"

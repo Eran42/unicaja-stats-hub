@@ -13,25 +13,5 @@
     "status": "unknown",
     "note": "Limited minutes this season — EuroLeague ID not found in recent games",
     "updated": "2026-03-27"
-  },
-  "Jayson Granger": {
-    "status": "unknown",
-    "note": "FEB data available per game — DNP in some jornadas this season",
-    "updated": "2026-03-27"
-  },
-  "Domas Sabonis": {
-    "status": "no_game",
-    "note": "No game today.",
-    "updated": "2026-03-27"
-  },
-  "Sasu Salin": {
-    "status": "no_game",
-    "note": "No game today.",
-    "updated": "2026-03-27"
-  },
-  "Adam Waczyński": {
-    "status": "no_game",
-    "note": "No game today.",
-    "updated": "2026-03-27"
   }
 }
