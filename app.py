@@ -435,7 +435,7 @@ def _player_card_html(p: dict) -> str:
 
     link_url = f"/?history_player={quote(name)}#game-history"
     return (
-        f"<a href='{link_url}' target='_top' style='text-decoration:none;color:inherit;display:block;'>"
+        f"<a href='{link_url}' target='_blank' style='text-decoration:none;color:inherit;display:block;'>"
         f"<div style='{card_style}'>"
         f"{header}"
         f"{body}"
