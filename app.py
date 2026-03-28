@@ -11,6 +11,7 @@ import json
 import os
 import re
 import unicodedata
+import urllib.parse
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -432,10 +433,23 @@ def _player_card_html(p: dict) -> str:
     if recent:
         card_style += "border-left:3px solid #006633;padding-left:8px;"
 
+    # "→ History" link — clicking it changes the parent page hash, which the
+    # JS bridge (in render_map) detects and converts into a Streamlit rerun.
+    nav_id  = urllib.parse.quote(name, safe="")
+    nav_js  = f"window.parent.parent.location.hash='#player-nav-{nav_id}';event.stopPropagation();"
+    nav_link = (
+        "<div onclick=\"" + nav_js + "\" "
+        "style='margin-top:5px;padding-top:4px;border-top:1px solid #eee;"
+        "color:#006633;font-size:11px;font-weight:600;cursor:pointer;"
+        "text-align:right;user-select:none;'>"
+        "→ History</div>"
+    )
+
     return (
         f"<div style='{card_style}'>"
         f"{header}"
         f"{body}"
+        f"{nav_link}"
         "</div>"
     )
 
@@ -496,58 +510,72 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
 
     m.fit_bounds(fit_coords, padding=[35, 35], max_zoom=6)
 
-    result = st_folium(m, use_container_width=True, height=420,
-                       returned_objects=["last_object_clicked"])
+    st_folium(m, use_container_width=True, height=420)
 
-    # When a pin is clicked, detect which city was clicked and either navigate
-    # directly (single player) or surface per-player buttons below the map
-    # (multiple players).
+    # ---------------------------------------------------------------------------
+    # Popup-card navigation bridge
     #
-    # _processing_click latch: after calling st.rerun() we set this flag so
-    # that the immediately-following rerun skips stale component click data.
-    if st.session_state.pop("_processing_click", False):
-        pass  # skip — this rerun was triggered by our own st.rerun() call
-    else:
-        clicked = (result or {}).get("last_object_clicked")
-        if clicked:
-            clat = clicked.get("lat")
-            clng = clicked.get("lng")
-            if clat is not None:
-                for pin_data in map_data.values():
-                    pcl, pcn = pin_data["coords"]
-                    if abs(pcl - clat) < 0.01 and abs(pcn - clng) < 0.01:
-                        players     = pin_data["players"]
-                        new_names   = [p["name"] for p in players]
-                        if st.session_state.get("_city_players") != new_names:
-                            st.session_state["_city_players"] = new_names
-                            st.session_state["_processing_click"] = True
-                            st.rerun()
-                        break
+    # Each player card has a "→ History" link whose onclick sets
+    # window.parent.parent.location.hash = '#player-nav-<encoded_name>'.
+    # The JS below polls that hash and clicks the matching hidden st.button,
+    # which triggers a Streamlit rerun that scrolls to and selects the player.
+    # ---------------------------------------------------------------------------
 
-    # For single-player cities, navigate immediately.  For multi-player cities,
-    # show per-player buttons so the user can pick which history to open.
-    city_players = st.session_state.get("_city_players", [])
-    if city_players:
-        if len(city_players) == 1:
-            name = city_players[0]
-            if st.session_state.get("history_player") != name:
-                st.session_state["history_player"] = name
-                st.session_state["_scroll_to_history"] = True
-                st.rerun()
-        else:
-            st.markdown(
-                "<p style='font-size:12px;margin:6px 0 4px;color:#555;'>"
-                "View history for:</p>",
-                unsafe_allow_html=True,
-            )
-            cols = st.columns(len(city_players))
-            for i, name in enumerate(city_players):
-                with cols[i]:
-                    if st.button(name, key=f"_nav_{name}", use_container_width=True):
-                        st.session_state["history_player"] = name
-                        st.session_state["_scroll_to_history"] = True
-                        st.session_state.pop("_city_players", None)
-                        st.rerun()
+    # Hidden nav buttons — one per tracked player.  The JS bridge below keeps
+    # them visually hidden; Streamlit still detects their clicks.
+    for _rp in _REGISTRY:
+        _rp_name = _rp.get("name", "")
+        if not _rp_name:
+            continue
+        if st.button(f"__nav__{_rp_name}", key=f"_navbtn_{_rp_name}"):
+            st.session_state["history_player"] = _rp_name
+            st.session_state["_scroll_to_history"] = True
+            st.rerun()
+
+    import streamlit.components.v1 as _cv1
+    _cv1.html(
+        """
+<script>
+(function () {
+  var lastHash = '';
+  setInterval(function () {
+    try {
+      var p  = window.parent;
+      var pd = p.document;
+
+      // Keep nav buttons visually hidden
+      pd.querySelectorAll('button').forEach(function (btn) {
+        if (btn.textContent.trim().startsWith('__nav__')) {
+          var wrap = btn.closest('.stButton') || btn.parentElement;
+          if (wrap) {
+            wrap.style.cssText =
+              'position:absolute;width:0;height:0;overflow:hidden;' +
+              'margin:0;padding:0;pointer-events:none;';
+          }
+        }
+      });
+
+      // Detect player navigation hash written by popup card links
+      var hash = p.location.hash;
+      if (hash && hash !== lastHash && hash.startsWith('#player-nav-')) {
+        lastHash = hash;
+        var name = decodeURIComponent(hash.slice(12)); // 12 = '#player-nav-'.length
+        p.history.replaceState(null, '', p.location.pathname + p.location.search);
+        var btns = pd.querySelectorAll('button');
+        for (var i = 0; i < btns.length; i++) {
+          if (btns[i].textContent.trim() === '__nav__' + name) {
+            btns[i].click();
+            break;
+          }
+        }
+      }
+    } catch (e) { /* cross-origin or DOM not ready — fail silently */ }
+  }, 150);
+})();
+</script>
+""",
+        height=0,
+    )
 
     # Surface any tracked players whose team has no coordinates yet.
     unmapped = [
