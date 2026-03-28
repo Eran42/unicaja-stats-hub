@@ -1380,10 +1380,14 @@ st.divider()
 render_history(all_data)
 
 # After a map-pin click triggers st.rerun(), scroll to the history section.
+# A monotonic counter is embedded in the HTML so Streamlit never reuses a
+# cached iframe — without it the setTimeout only fires on the first scroll.
 if st.session_state.pop("_scroll_to_history", False):
     import streamlit.components.v1 as _c
+    _n = st.session_state.get("_scroll_n", 0) + 1
+    st.session_state["_scroll_n"] = _n
     _c.html(
-        "<script>"
+        f"<script>/* {_n} */"
         "setTimeout(function(){"
         "var el=window.parent.document.getElementById('game-history');"
         "if(el)el.scrollIntoView({behavior:'smooth',block:'start'});"
