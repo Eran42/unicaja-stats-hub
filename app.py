@@ -574,15 +574,19 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
     # Use _processing_click latch so the stale last_clicked on the post-rerun
     # doesn't re-trigger navigation.
     if st.session_state.pop("_processing_click", False):
-        pass  # skip — this rerun was triggered by our own st.rerun()
+        pass  # skip — this is the immediate rerun we triggered ourselves
     else:
         _lc = (result or {}).get("last_clicked") or {}
         _clat = round(_lc.get("lat", 0), 4)
-        if 99.9 < _clat < 200.0:
+        # Only act on a NEW encoded click — st_folium persists last_clicked
+        # across all reruns until the user clicks elsewhere, so without this
+        # guard every rerun (including after the user changes the selectbox)
+        # would override history_player back to the map-clicked player.
+        if 99.9 < _clat < 200.0 and _clat != st.session_state.get("_last_nav_lat"):
             _nav_name = _nav_lat_to_name.get(_clat)
             if _nav_name:
-                if st.session_state.get("history_player") != _nav_name:
-                    st.session_state["history_player"] = _nav_name
+                st.session_state["_last_nav_lat"] = _clat
+                st.session_state["history_player"] = _nav_name
                 st.session_state["_scroll_to_history"] = True
                 st.session_state["_processing_click"] = True
                 st.rerun()
@@ -979,11 +983,11 @@ _MOBILE_HIDDEN_COLS = {"T2M", "T2A", "T3M", "T3A", "FTM", "FTA", "RO", "RD", "BL
 
 # Wider text-column widths for mobile — user cannot drag to resize on touch screen
 _MOBILE_TEXT_WIDTHS: dict[str, int] = {
-    "Player":      170,
+    "Player":      140,
     "Team":        130,
     "Competition": 120,
     "Game Date":   115,
-    "Opponent":    170,
+    "Opponent":    160,
     "Result":       95,
 }
 
