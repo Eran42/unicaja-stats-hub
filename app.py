@@ -360,10 +360,32 @@ def _player_card_html(p: dict) -> str:
     photo_url    = _PLAYER_PHOTOS.get(name, "")
     avatar_border = "#006633" if recent else "#bbbbbb"
     if photo_url:
+        # Zoom and position differ by photo source:
+        # - cortextech (EuroLeague): full-body jersey shot, face in top ~25% → zoom 3x into top
+        # - cdn.nba.com: head-and-shoulders official crop → mild zoom
+        # - eurobasket.com: already a close-up headshot → minimal adjustment
+        if "cortextech" in photo_url:
+            # EuroLeague official: full-body jersey shot, face in top ~25%
+            img_style = (
+                "width:100%;height:100%;object-fit:cover;object-position:center top;"
+                "transform:scale(3.2);transform-origin:center 10%;"
+            )
+        elif "cdn.nba.com" in photo_url:
+            # NBA: jersey shot similar to cortextech but slightly tighter framing
+            img_style = (
+                "width:100%;height:100%;object-fit:cover;object-position:center top;"
+                "transform:scale(2.5);transform-origin:center 12%;"
+            )
+        else:
+            # eurobasket.com: already a close-up portrait headshot
+            img_style = (
+                "width:100%;height:100%;object-fit:cover;object-position:center 10%;"
+            )
         avatar = (
-            f"<img src='{photo_url}' "
-            f"style='width:42px;height:42px;border-radius:50%;object-fit:cover;"
+            f"<div style='width:42px;height:42px;border-radius:50%;overflow:hidden;"
             f"border:2px solid {avatar_border};flex-shrink:0;'>"
+            f"<img src='{photo_url}' style='{img_style}'>"
+            f"</div>"
         )
     else:
         avatar = (
