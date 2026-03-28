@@ -357,33 +357,42 @@ def _player_card_html(p: dict) -> str:
         reason = note if note else "No recent game data"
         body   = f"<div style='font-size:10px;color:#999;margin-top:4px;'>⚠ {reason}</div>"
 
-    photo_url = _PLAYER_PHOTOS.get(name, "")
+    photo_url    = _PLAYER_PHOTOS.get(name, "")
+    avatar_border = "#006633" if recent else "#bbbbbb"
     if photo_url:
         avatar = (
             f"<img src='{photo_url}' "
-            "style='width:42px;height:42px;border-radius:50%;object-fit:cover;"
-            "border:2px solid #006633;flex-shrink:0;'>"
+            f"style='width:42px;height:42px;border-radius:50%;object-fit:cover;"
+            f"border:2px solid {avatar_border};flex-shrink:0;'>"
         )
     else:
         avatar = (
-            "<div style='width:42px;height:42px;border-radius:50%;background:#e8f0eb;"
-            "border:2px solid #006633;display:flex;align-items:center;"
+            f"<div style='width:42px;height:42px;border-radius:50%;background:#e8f0eb;"
+            f"border:2px solid {avatar_border};display:flex;align-items:center;"
             "justify-content:center;font-size:18px;flex-shrink:0;'>🏀</div>"
         )
 
+    name_color = "#1a1a1a" if recent else "#888888"
     header = (
         "<div style='display:flex;align-items:center;gap:9px;margin-bottom:5px;'>"
         f"{avatar}"
         "<div>"
-        f"<div style='font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.2;'>{name}</div>"
+        f"<div style='font-size:13px;font-weight:700;color:{name_color};line-height:1.2;'>{name}</div>"
         f"<div style='font-size:10px;font-weight:600;color:#006633;'>{team}</div>"
         "</div>"
         "</div>"
     )
 
+    # Green left-border accent for recently-active players; muted for others
+    card_style = (
+        "font-family:sans-serif;min-width:210px;margin-bottom:7px;"
+        "padding-bottom:7px;border-bottom:1px solid #e8e8e8;"
+    )
+    if recent:
+        card_style += "border-left:3px solid #006633;padding-left:8px;"
+
     return (
-        "<div style='font-family:sans-serif;min-width:210px;"
-        "margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid #e8e8e8;'>"
+        f"<div style='{card_style}'>"
         f"{header}"
         f"{body}"
         "</div>"
