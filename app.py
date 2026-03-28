@@ -12,6 +12,7 @@ import os
 import re
 import unicodedata
 from datetime import datetime, timedelta
+from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
@@ -427,15 +428,19 @@ def _player_card_html(p: dict) -> str:
     card_style = (
         "font-family:sans-serif;min-width:210px;margin-bottom:7px;"
         "padding-bottom:7px;border-bottom:1px solid #e8e8e8;"
+        "cursor:pointer;"
     )
     if recent:
         card_style += "border-left:3px solid #006633;padding-left:8px;"
 
+    link_url = f"/?history_player={quote(name)}#game-history"
     return (
+        f"<a href='{link_url}' target='_top' style='text-decoration:none;color:inherit;display:block;'>"
         f"<div style='{card_style}'>"
         f"{header}"
         f"{body}"
         "</div>"
+        "</a>"
     )
 
 
@@ -1163,6 +1168,8 @@ def render_latest(records: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 
 def render_history(all_data: dict[str, list[dict]]) -> None:
+    # Anchor for deep-linking from map card clicks
+    st.markdown('<div id="game-history"></div>', unsafe_allow_html=True)
     st.markdown(_section_heading("Game history"), unsafe_allow_html=True)
 
     if not all_data:
@@ -1183,6 +1190,12 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 
     _ANY_PLAYER = "— All players —"
     _ANY_DATE   = "— All dates —"
+
+    # Pre-select player from URL query param (set by map card clicks).
+    # Only initialise session state if the widget hasn't been touched yet.
+    qp_player = st.query_params.get("history_player", "")
+    if qp_player and qp_player in all_names and st.session_state.get("history_player", _ANY_PLAYER) == _ANY_PLAYER:
+        st.session_state["history_player"] = qp_player
 
     # Reset the date filter whenever the player selection changes to a specific player,
     # so that selecting a player always shows their full history, not a filtered slice.
