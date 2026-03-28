@@ -520,6 +520,20 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
 
         is_active = data["any_recent"]
         _mob = _is_mobile()
+
+        # Close all non-permanent tooltips the moment the popup content renders.
+        # The <img onerror> trick fires inline JS even when set via innerHTML,
+        # which is how Leaflet injects popup content.
+        _close_tooltip_js = (
+            "if(window.map)window.map.eachLayer(function(l){"
+            "if(l.getTooltip&&l.getTooltip()&&!l.getTooltip().options.permanent)"
+            "l.closeTooltip();});"
+        )
+        _popup_content = (
+            f"<img src='x' onerror=\"{_close_tooltip_js}\" style='display:none'>"
+            + popup_html
+        )
+
         folium.CircleMarker(
             location=[clat, clon],
             radius=(14 if is_active else 10) if _mob else (9 if is_active else 6),
@@ -528,8 +542,8 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
             fill_color=color,
             fill_opacity=0.9 if is_active else 0.55,
             weight=2 if is_active else 1.5,
-            tooltip=folium.Tooltip(tooltip),
-            popup=folium.Popup(popup_html, max_width=260),
+            tooltip=None if _mob else folium.Tooltip(tooltip),
+            popup=folium.Popup(_popup_content, max_width=260),
         ).add_to(m)
 
     m.fit_bounds(fit_coords, padding=[35, 35], max_zoom=6)
@@ -1036,7 +1050,9 @@ def _build_aggrid(
         groupHeaderHeight=28,
         suppressMovableColumns=True,
         suppressHeaderMenuButton=True,
-        onGridSizeChanged=JsCode("function(p){p.api.sizeColumnsToFit();}"),
+        # On mobile, let the grid scroll horizontally so text columns keep their
+        # configured widths.  sizeColumnsToFit would squeeze them to ~21 px each.
+        **({} if mobile else {"onGridSizeChanged": JsCode("function(p){p.api.sizeColumnsToFit();}")}),
     )
     go = gb.build()
 
@@ -1310,7 +1326,7 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
         selected_date = st.selectbox(
             "Filter by date",
             options=[_ANY_DATE] + sorted_dates,
-            index=1,
+            index=0,
             key="history_date",
         )
 
