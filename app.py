@@ -496,11 +496,13 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         min_zoom=2,
     )
 
-    # Hide Leaflet tooltips on touch devices using a CSS media query injected
-    # directly into the folium iframe — reliable without any JS detection round-trip.
-    m.get_root().html.add_child(folium.Element(
+    # Belt-and-suspenders CSS: hide Leaflet tooltips on touch/coarse-pointer
+    # devices.  Placed in the document <head> so it's parsed before any markers
+    # are added.  The popupopen JS handler in each popup's onerror is the primary
+    # fix; this CSS is a fallback for the first render.
+    m.get_root().header.add_child(folium.Element(
         "<style>"
-        "@media (hover: none) and (pointer: coarse) {"
+        "@media (pointer: coarse) {"
         "  .leaflet-tooltip { display: none !important; }"
         "}"
         "</style>"
@@ -531,16 +533,22 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
         is_active = data["any_recent"]
         _mob = _is_mobile()
 
-        # Close all non-permanent tooltips the moment the popup content renders.
-        # The <img onerror> trick fires inline JS even when set via innerHTML,
-        # which is how Leaflet injects popup content.
-        _close_tooltip_js = (
-            "if(window.map)window.map.eachLayer(function(l){"
-            "if(l.getTooltip&&l.getTooltip()&&!l.getTooltip().options.permanent)"
-            "l.closeTooltip();});"
+        # Hide tooltip DOM elements the moment the popup content renders.
+        # We directly manipulate .leaflet-tooltip nodes (bypassing Leaflet API
+        # which sometimes fails to visually remove the tooltip) and also
+        # register a popupopen handler so every subsequent popup does the same.
+        _hide_js = (
+            "var ts=document.querySelectorAll('.leaflet-tooltip');"
+            "for(var i=0;i<ts.length;i++)ts[i].style.display='none';"
+            "if(window.map&&!window._tFix){"
+            "window._tFix=1;"
+            "window.map.on('popupopen',function(){"
+            "var tt=document.querySelectorAll('.leaflet-tooltip');"
+            "for(var j=0;j<tt.length;j++)tt[j].style.display='none';});"
+            "}"
         )
         _popup_content = (
-            f"<img src='x' onerror=\"{_close_tooltip_js}\" style='display:none'>"
+            f"<img src='x' onerror=\"{_hide_js}\" style='display:none'>"
             + popup_html
         )
 
