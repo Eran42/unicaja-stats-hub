@@ -1101,7 +1101,6 @@ _PCT_TRIPLES = [
 ]
 
 
-_MOBILE_HIDDEN_COLS = {"T2M", "T2A", "T3M", "T3A", "FTM", "FTA", "RO", "RD", "BLK-A", "F", "FR"}
 
 # Wider text-column widths for mobile — user cannot drag to resize on touch screen
 _MOBILE_TEXT_WIDTHS: dict[str, int] = {
@@ -1194,8 +1193,6 @@ def _build_aggrid(
             kwargs["valueFormatter"] = vfmt
         if col == "Player":
             kwargs["pinned"] = "left"
-        if mobile and col in _MOBILE_HIDDEN_COLS:
-            kwargs["hide"] = True
         # Prevent auto-sizing from crushing text columns — especially important
         # on mobile where users cannot drag to resize.
         if col in text_widths:
