@@ -258,6 +258,15 @@ def _build_map_data(all_data: dict[str, list[dict]]) -> dict[str, dict]:
       players    : list of per-player dicts with stats + status
     """
     best  = _best_record_per_player(all_data)
+
+    # Teams that had at least one tracked player with a game in the last 24 h
+    teams_with_recent: set[str] = set()
+    for rec in best.values():
+        if rec and _game_is_within_24h(str(rec.get("game_date", ""))):
+            t = rec.get("team", "") or _TEAM_LOOKUP.get(rec.get("player_name", ""), "")
+            if t:
+                teams_with_recent.add(t)
+
     pins: dict[str, dict] = {}
 
     for player in _REGISTRY:
@@ -274,11 +283,14 @@ def _build_map_data(all_data: dict[str, list[dict]]) -> dict[str, dict]:
         recent      = bool(rec and _game_is_within_24h(str(rec.get("game_date", ""))))
 
         entry: dict = {
-            "name":        name,
-            "team":        team,
-            "status":      status_info.get("status", "active"),
-            "status_note": status_info.get("note", ""),
-            "recent":      recent,
+            "name":             name,
+            "team":             team,
+            "status":           status_info.get("status", "active"),
+            "status_note":      status_info.get("note", ""),
+            "recent":           recent,
+            # True when the player's team had a game in the last 24 h but this
+            # player has no matching record — shown as DNP in the map card.
+            "team_played_today": (team in teams_with_recent) and not recent,
         }
         if rec:
             entry.update({
@@ -372,8 +384,19 @@ def _player_card_html(p: dict, nav_lat: float | None = None) -> str:
                 f"font-size:10px;color:#7a5500;'>⚠ {note}</div>"
             )
     else:
-        reason = note if note else "No recent game data"
-        body   = f"<div style='font-size:10px;color:#999;margin-top:4px;'>⚠ {reason}</div>"
+        if p.get("team_played_today"):
+            _icon = _STATUS_ICON.get(p.get("status", ""), "⚠️")
+            _reason = note if note else "Did not play"
+            body = (
+                f"<div style='margin-top:4px;padding:4px 7px;"
+                f"background:#fff8e6;border-left:3px solid #f0a500;border-radius:3px;"
+                f"font-size:10px;color:#7a5500;line-height:1.4;'>"
+                f"{_icon} <strong>DNP</strong> — {_reason}"
+                f"</div>"
+            )
+        else:
+            reason = note if note else "No recent game data"
+            body   = f"<div style='font-size:10px;color:#999;margin-top:4px;'>⚠ {reason}</div>"
 
     photo_url    = _PLAYER_PHOTOS.get(name, "")
     avatar_border = "#006633" if recent else "#bbbbbb"
@@ -1159,102 +1182,6 @@ _STATUS_ICON = {
 }
 
 
-def _render_absent_players(rows: list[dict]) -> None:
-    """Render a compact table of players who didn't play, with their absence reason."""
-    count = len(rows)
-    lines = []
-    for r in rows:
-        icon = _STATUS_ICON.get(r["status"], "❓")
-        lines.append(
-            f"<tr>"
-            f"<td style='padding:5px 10px 5px 0;font-weight:600;white-space:nowrap;'>{icon} {r['player_name']}</td>"
-            f"<td style='padding:5px 10px;color:#555;white-space:nowrap;'>{r['team']}</td>"
-            f"<td style='padding:5px 10px;color:#666;font-size:12px;'>{r['competition']}</td>"
-            f"<td style='padding:5px 0 5px 10px;color:#888;font-size:12px;font-style:italic;'>{r['note']}</td>"
-            f"</tr>"
-        )
-    table_html = (
-        "<table style='border-collapse:collapse;width:100%;margin-top:6px;'>"
-        "<thead><tr>"
-        "<th style='text-align:left;font-size:11px;color:#999;padding:3px 10px 3px 0;font-weight:500;'>Player</th>"
-        "<th style='text-align:left;font-size:11px;color:#999;padding:3px 10px;font-weight:500;'>Team</th>"
-        "<th style='text-align:left;font-size:11px;color:#999;padding:3px 10px;font-weight:500;'>Competition</th>"
-        "<th style='text-align:left;font-size:11px;color:#999;padding:3px 0 3px 10px;font-weight:500;'>Note</th>"
-        "</tr></thead>"
-        "<tbody>" + "".join(lines) + "</tbody>"
-        "</table>"
-    )
-    heading = (
-        f'<div style="font-size:14px;font-weight:700;color:{_UNICAJA_PURPLE};margin-bottom:0;">'
-        f'Did not play'
-        f'<span style="margin-left:9px;background:{_UNICAJA_PURPLE};color:white;'
-        f'padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;">'
-        f'{count}</span></div>'
-    )
-    container = (
-        f'<div style="'
-        f'margin-top:16px;'
-        f'padding:10px 14px 14px 14px;'
-        f'background:rgba(107,47,160,0.05);'
-        f'border-left:3px solid rgba(107,47,160,0.5);'
-        f'border-radius:0 6px 6px 0;">'
-        f'{heading}{table_html}</div>'
-    )
-    st.markdown(container, unsafe_allow_html=True)
-
-
-def _absent_player_rows(latest_records: list[dict]) -> list[dict]:
-    """
-    Return rows for active players whose team played in the last 24 h but
-    who have no game record themselves.
-
-    'Team played' is determined from the actual records: if any tracked player
-    on the same team has a game_date within the last 24 h, we know the team
-    had a fixture — so any teammate missing from the records is a DNP.
-    """
-    # Teams that had at least one game in the last 24 h
-    teams_with_recent: set[str] = set()
-    names_with_recent: set[str] = set()
-    for r in latest_records:
-        if _game_is_within_24h(str(r.get("game_date", ""))):
-            names_with_recent.add(r["player_name"])
-            team = r.get("team") or _TEAM_LOOKUP.get(r.get("player_name", ""), "")
-            if team:
-                teams_with_recent.add(team)
-
-    if not teams_with_recent:
-        return []
-
-    rows = []
-    for player in _REGISTRY:
-        name = player["name"]
-        team = player.get("team", "")
-
-        if not player.get("active", True):
-            continue
-        if name in names_with_recent:
-            continue
-        # Only show if the player's team actually played today
-        if team not in teams_with_recent:
-            continue
-
-        info   = _PLAYER_STATUS.get(name, {})
-        note   = info.get("note", "No data available")
-        status = info.get("status", "unknown")
-
-        competitions = ", ".join(
-            s["competition"] for s in player.get("sources", [])
-            if s.get("competition")
-        )
-        rows.append({
-            "player_name": name,
-            "team":        team,
-            "competition": competitions,
-            "note":        note,
-            "status":      status,
-        })
-
-    return rows
 
 
 def render_latest(records: list[dict]) -> None:
@@ -1273,9 +1200,8 @@ def render_latest(records: list[dict]) -> None:
     ]
 
     played_rows: list[dict] = [_build_row(r) for r in played_records]
-    absent_rows: list[dict] = _absent_player_rows(records)
 
-    if not played_rows and not absent_rows:
+    if not played_rows:
         st.info("No games in the last 24 hours.")
         return
 
@@ -1306,8 +1232,6 @@ def render_latest(records: list[dict]) -> None:
             custom_css=_aggrid_css(),
         )
 
-    if absent_rows:
-        _render_absent_players(absent_rows)
 
 
 # ---------------------------------------------------------------------------
