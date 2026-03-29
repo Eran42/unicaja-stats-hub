@@ -52,10 +52,32 @@ def _inject_css() -> None:
     st.markdown(
         f"""
         <style>
+        /* ── Remove Streamlit's default top padding so the header sits flush ── */
+        .main .block-container {{
+            padding-top: 0.5rem !important;
+            padding-bottom: 1rem !important;
+        }}
+
         /* ── Top accent bar ── */
         [data-testid="stHeader"] {{
             background: {_UNICAJA_GREEN};
             height: 4px;
+        }}
+
+        /* ── Tighten dividers ── */
+        [data-testid="stDivider"] {{
+            margin-top: 6px !important;
+            margin-bottom: 6px !important;
+        }}
+        hr {{
+            border-color: {_UNICAJA_GREEN_MID} !important;
+            border-width: 2px !important;
+            margin: 0 !important;
+        }}
+
+        /* ── Collapse default vertical margins around markdown blocks ── */
+        [data-testid="stMarkdownContainer"] > p {{
+            margin-bottom: 4px !important;
         }}
 
         /* ── Title / headings ── */
@@ -63,11 +85,6 @@ def _inject_css() -> None:
             color: {_UNICAJA_GREEN_DARK} !important;
             font-weight: 800 !important;
             letter-spacing: -0.5px;
-        }}
-        /* ── Divider ── */
-        hr {{
-            border-color: {_UNICAJA_GREEN_MID} !important;
-            border-width: 2px !important;
         }}
 
         /* ── Selectbox labels ── */
@@ -106,7 +123,7 @@ def _section_heading(text: str) -> str:
         f'<h3 style="'
         f"color:{_UNICAJA_GREEN_DARK};"
         f"font-weight:700;"
-        f"margin:4px 0 8px 0;"
+        f"margin:2px 0 6px 0;"
         f"padding-left:12px;"
         f"border-left:4px solid {_UNICAJA_PURPLE};"
         f'">{text}</h3>'
@@ -135,9 +152,9 @@ def _render_header(run_date: str = "") -> None:
             align-items: center;
             flex-wrap: wrap;
             gap: 14px;
-            padding: 16px 0 10px 0;
+            padding: 4px 0 8px 0;
             border-bottom: 3px solid {_UNICAJA_GREEN};
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         ">
             <div style="
                 background: {_UNICAJA_GREEN};
