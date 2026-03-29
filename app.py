@@ -112,27 +112,47 @@ def _inject_css() -> None:
             border-left: 4px solid {_UNICAJA_GREEN} !important;
         }}
         </style>
-        <script>
-        /* On touch devices, prevent the virtual keyboard from opening when the
-           user taps a selectbox.  inputmode="none" tells the browser not to
-           show any keyboard; readonly stops the input from accepting text.
-           MutationObserver ensures late-rendered selectboxes are also patched. */
-        (function () {{
-            if (!window.matchMedia('(pointer: coarse)').matches) return;
-            function patchSelects() {{
-                document.querySelectorAll('[data-baseweb="select"] input').forEach(function (el) {{
-                    if (el.getAttribute('inputmode') !== 'none') {{
-                        el.setAttribute('inputmode', 'none');
-                        el.setAttribute('readonly', 'readonly');
-                    }}
-                }});
-            }}
-            patchSelects();
-            new MutationObserver(patchSelects).observe(document.body, {{childList: true, subtree: true}});
-        }})();
-        </script>
         """,
         unsafe_allow_html=True,
+    )
+
+
+def _inject_select_keyboard_fix() -> None:
+    """
+    On touch devices, prevent the virtual keyboard from opening when the user
+    taps a Streamlit selectbox.
+
+    st.markdown <script> tags are stripped by React's dangerouslySetInnerHTML,
+    so we use st.components.v1.html (a real iframe) which executes scripts, and
+    target window.parent.document to reach the Streamlit page DOM — the same
+    pattern used by the scroll-to-history injection.
+
+    Two complementary techniques:
+    - focusin listener: fires synchronously when the input is focused, sets
+      inputmode="none" before the browser can decide to show a keyboard.
+    - MutationObserver: pre-patches inputs as React renders new selectboxes,
+      so inputmode="none" is already set before the first tap.
+    """
+    import streamlit.components.v1 as _cv1
+    _cv1.html(
+        "<script>"
+        "(function(){"
+        "var d=window.parent.document;"
+        "function patch(el){"
+        "el.setAttribute('inputmode','none');"
+        "}"
+        "function patchAll(){"
+        "d.querySelectorAll('[data-baseweb=\"select\"] input').forEach(patch);"
+        "}"
+        "d.addEventListener('focusin',function(e){"
+        "if(e.target.closest&&e.target.closest('[data-baseweb=\"select\"]')&&e.target.tagName==='INPUT')"
+        "patch(e.target);"
+        "},true);"
+        "patchAll();"
+        "new MutationObserver(patchAll).observe(d.body,{childList:true,subtree:true});"
+        "})();"
+        "</script>",
+        height=0,
     )
 
 
@@ -635,7 +655,8 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
             popup=folium.Popup(_popup_content, max_width=260),
         ).add_to(m)
 
-    m.fit_bounds(fit_coords, padding=[35, 35], max_zoom=6)
+    _pad = [10, 10] if _is_mobile() else [35, 35]
+    m.fit_bounds(fit_coords, padding=_pad, max_zoom=6)
 
     _map_height = 320 if _is_mobile() else 420
     result = st_folium(m, use_container_width=True, height=_map_height,
@@ -1446,6 +1467,8 @@ st_autorefresh(interval=5 * 60 * 1000, key="data_refresh")
 _inject_dark_mode_detector()
 _inject_mobile_detector()
 _inject_css()
+if _is_mobile():
+    _inject_select_keyboard_fix()
 
 dates = get_all_dates()
 _render_header(dates[-1] if dates else "")
