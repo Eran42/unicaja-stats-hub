@@ -907,22 +907,26 @@ def _inject_dark_mode_detector() -> None:
 
 
 def _inject_mobile_detector() -> None:
-    """Inject JS that syncs viewport width → ?_mobile URL param → Streamlit rerun."""
-    st.markdown(
-        """
-<script>
-(function () {
-    var mob = window.innerWidth < 768 ? '1' : '0';
-    var url = new URL(window.location.href);
-    if (url.searchParams.get('_mobile') !== mob) {
-        url.searchParams.set('_mobile', mob);
-        window.history.replaceState({}, '', url.toString());
-        window.dispatchEvent(new PopStateEvent('popstate', {state: history.state}));
-    }
-})();
-</script>
-""",
-        unsafe_allow_html=True,
+    """Inject JS that syncs viewport width → ?_mobile URL param → Streamlit rerun.
+
+    st.markdown <script> tags are stripped by React's dangerouslySetInnerHTML,
+    so we use st.components.v1.html (a real iframe) and target window.parent.
+    """
+    import streamlit.components.v1 as _cv1
+    _cv1.html(
+        "<script>"
+        "(function(){"
+        "var w=window.parent;"
+        "var mob=w.innerWidth<768?'1':'0';"
+        "var url=new URL(w.location.href);"
+        "if(url.searchParams.get('_mobile')!==mob){"
+        "url.searchParams.set('_mobile',mob);"
+        "w.history.replaceState({},\"\",url.toString());"
+        "w.dispatchEvent(new PopStateEvent('popstate',{state:w.history.state}));"
+        "}"
+        "})();"
+        "</script>",
+        height=0,
     )
 
 
@@ -1467,8 +1471,7 @@ st_autorefresh(interval=5 * 60 * 1000, key="data_refresh")
 _inject_dark_mode_detector()
 _inject_mobile_detector()
 _inject_css()
-if _is_mobile():
-    _inject_select_keyboard_fix()
+_inject_select_keyboard_fix()
 
 dates = get_all_dates()
 _render_header(dates[-1] if dates else "")
