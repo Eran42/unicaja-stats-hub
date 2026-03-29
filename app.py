@@ -123,9 +123,9 @@ def _render_header(run_date: str = "") -> None:
         except Exception:
             label = run_date
         date_html = (
-            f'<div style="font-size:11px;font-family:sans-serif;'
-            f'color:{_UNICAJA_PURPLE};margin-top:3px;font-weight:500;">'
-            f'📅 Data as of {label}</div>'
+            f'<div style="font-size:12px;font-family:sans-serif;'
+            f'color:{_UNICAJA_PURPLE};margin-top:4px;font-weight:600;">'
+            f'📅 {label}</div>'
         )
 
     st.markdown(
@@ -133,29 +133,38 @@ def _render_header(run_date: str = "") -> None:
         <div style="
             display: flex;
             align-items: center;
-            gap: 16px;
-            padding: 18px 0 6px 0;
+            flex-wrap: wrap;
+            gap: 14px;
+            padding: 16px 0 10px 0;
             border-bottom: 3px solid {_UNICAJA_GREEN};
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         ">
             <div style="
                 background: {_UNICAJA_GREEN};
                 color: white;
-                font-size: 28px;
+                font-size: clamp(22px, 6vw, 34px);
                 font-weight: 900;
-                letter-spacing: 1px;
-                padding: 6px 16px;
-                border-radius: 4px;
+                letter-spacing: 2px;
+                padding: 8px 18px;
+                border-radius: 6px;
                 font-family: sans-serif;
                 line-height: 1;
+                flex-shrink: 0;
             ">UNICAJA</div>
-            <div>
-                <div style="font-size: 22px; font-weight: 700; font-family: sans-serif;">
-                    Ex-Players Stats
-                </div>
-                <div style="font-size: 13px; opacity: 0.85; font-family: sans-serif;">
-                    Latest game box scores for former Unicaja Baloncesto players
-                </div>
+            <div style="min-width: 0;">
+                <div style="
+                    font-size: clamp(18px, 5vw, 26px);
+                    font-weight: 800;
+                    font-family: sans-serif;
+                    color: {_UNICAJA_GREEN_DARK};
+                    line-height: 1.1;
+                ">Ex-Players Stats</div>
+                <div style="
+                    font-size: clamp(11px, 3vw, 13px);
+                    opacity: 0.75;
+                    font-family: sans-serif;
+                    margin-top: 3px;
+                ">Latest game box scores for former Unicaja Baloncesto players</div>
                 {date_html}
             </div>
         </div>
@@ -1184,9 +1193,14 @@ _STATUS_ICON = {
 
 
 
-def render_latest(records: list[dict]) -> None:
-    cutoff_label = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M")
-    st.markdown(_section_heading(f"Last 24 hours — since {cutoff_label}"), unsafe_allow_html=True)
+def render_latest(records: list[dict], run_date: str = "") -> None:
+    try:
+        from datetime import datetime as _dt
+        _label = _dt.strptime(run_date, "%Y-%m-%d").strftime("%d %b %Y").lstrip("0")
+    except Exception:
+        _label = run_date
+    _updated = f" &nbsp;<span style='font-size:13px;font-weight:500;color:#888;'>Updated · {_label}</span>" if _label else ""
+    st.markdown(_section_heading(f"Last 24 hours{_updated}"), unsafe_allow_html=True)
 
     if not records:
         st.warning("No data yet. Run `python main.py` to fetch stats.")
@@ -1391,14 +1405,14 @@ if not dates:
     st.warning("No data yet. Run `python main.py` to fetch stats.")
     st.stop()
 
-_, latest_records = _load_latest()
+latest_date, latest_records = _load_latest()
 all_data = _load_all()
 
 render_map(all_data)
 
 st.divider()
 
-render_latest(latest_records)
+render_latest(latest_records, run_date=latest_date)
 
 st.divider()
 
