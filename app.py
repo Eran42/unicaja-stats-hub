@@ -1194,11 +1194,21 @@ _STATUS_ICON = {
 
 
 def render_latest(records: list[dict], run_date: str = "") -> None:
-    try:
-        from datetime import datetime as _dt
-        _label = _dt.strptime(run_date, "%Y-%m-%d").strftime("%d %b %Y").lstrip("0")
-    except Exception:
-        _label = run_date
+    _label = ""
+    if run_date:
+        try:
+            import os as _os
+            from datetime import datetime as _dt
+            _stats_path = _os.path.join(
+                _os.path.dirname(__file__), "data", "stats", f"{run_date}.json"
+            )
+            _mtime = _dt.fromtimestamp(_os.path.getmtime(_stats_path))
+            _label = _mtime.strftime("%d %b %Y %H:%M").lstrip("0")
+        except Exception:
+            try:
+                _label = _dt.strptime(run_date, "%Y-%m-%d").strftime("%d %b %Y").lstrip("0")
+            except Exception:
+                _label = run_date
     _updated = f" &nbsp;<span style='font-size:13px;font-weight:500;color:#888;'>Updated · {_label}</span>" if _label else ""
     st.markdown(_section_heading(f"Last 24 hours{_updated}"), unsafe_allow_html=True)
 
