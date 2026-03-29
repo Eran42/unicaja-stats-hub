@@ -1262,11 +1262,19 @@ def render_latest(records: list[dict], run_date: str = "") -> None:
     if run_date:
         try:
             import os as _os
+            import subprocess as _sp
             from datetime import datetime as _dt
-            _stats_path = _os.path.join(
-                _os.path.dirname(__file__), "data", "stats", f"{run_date}.json"
+            _root = _os.path.dirname(__file__)
+            _rel  = f"data/stats/{run_date}.json"
+            _r = _sp.run(
+                ["git", "log", "-1", "--format=%ct", _rel],
+                capture_output=True, text=True, cwd=_root,
             )
-            _mtime = _dt.fromtimestamp(_os.path.getmtime(_stats_path))
+            if _r.returncode == 0 and _r.stdout.strip():
+                _mtime = _dt.fromtimestamp(int(_r.stdout.strip()))
+            else:
+                # fallback: file mtime (less accurate on cloud deployments)
+                _mtime = _dt.fromtimestamp(_os.path.getmtime(_os.path.join(_root, _rel)))
             _label = _mtime.strftime("%d %b %Y %H:%M").lstrip("0")
         except Exception:
             try:
