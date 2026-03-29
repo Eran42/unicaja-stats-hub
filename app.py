@@ -531,11 +531,13 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
 
     map_data = _build_map_data(all_data)
 
-    # Fit to every player's actual location — no geographic filter.
-    # The bounding box is naturally tight around real data points, so empty
-    # continents never appear.  If a player moves to China the map zooms out
-    # to include China; if they leave it snaps back.
-    fit_coords = [data["coords"] for data in map_data.values()]
+    # Desktop: fit to every player's actual location so the bounding box is
+    # tight around real data points (Sabonis in Sacramento included).
+    # Mobile: fit to European players only — the narrow viewport would make
+    # a Sacramento-to-Belgrade span too zoomed-out to be useful.
+    all_coords = [data["coords"] for data in map_data.values()]
+    eu_coords  = [c for c in all_coords if c[1] > -20]
+    fit_coords = (eu_coords or all_coords) if _is_mobile() else all_coords
 
     m = folium.Map(
         location=[0, 0],
