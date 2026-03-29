@@ -20,6 +20,8 @@ from streamlit_autorefresh import st_autorefresh
 
 try:
     import folium
+    from folium import MacroElement
+    from jinja2 import Template as _JinjaTemplate
     from streamlit_folium import st_folium
     _FOLIUM_OK = True
 except ImportError:
@@ -650,25 +652,37 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
             popup=folium.Popup(_popup_content, max_width=260),
         ).add_to(m)
 
-    # Desktop: fit all players (Python fit_bounds runs as part of Leaflet init).
-    # Mobile: whenReady callback fires after Leaflet has sized the container;
-    #   map.getSize().x gives the actual rendered width in pixels — reliable,
-    #   no setTimeout guessing needed.  Re-fit to EU-only coords on narrow maps.
+    # Desktop: Python fit_bounds runs inside Leaflet init → always correct.
+    # Mobile: MacroElement added to the MAP (not root) renders its script AFTER
+    #   the map init block. map.getSize().x inside whenReady then reflects the
+    #   true container width. Tested: L.map() < fitBounds < whenReady in HTML.
     if all_coords:
         m.fit_bounds(all_coords, padding=[35, 35], max_zoom=6)
 
-    _map_var = m.get_name()
     if eu_coords:
         _eu_sw = [min(c[0] for c in eu_coords) - 3, min(c[1] for c in eu_coords) - 5]
         _eu_ne = [max(c[0] for c in eu_coords) + 5, max(c[1] for c in eu_coords) + 5]
-        m.get_root().script.add_child(folium.Element(
-            f"{_map_var}.whenReady(function(){{"
-            f"if({_map_var}.getSize().x<600){{"
-            f"{_map_var}.fitBounds("
-            f"[[{_eu_sw[0]},{_eu_sw[1]}],[{_eu_ne[0]},{_eu_ne[1]}]],"
-            f"{{padding:[5,5],maxZoom:5}});"
-            f"}}}});"
-        ))
+
+        class _MobileFit(MacroElement):
+            def __init__(self, sw, ne):
+                super().__init__()
+                self._name = "MobileFit"
+                self.sw0, self.sw1 = sw[0], sw[1]
+                self.ne0, self.ne1 = ne[0], ne[1]
+                # Triple-quoted template avoids f-string / Jinja2 brace conflicts.
+                # Numeric vars (sw0 etc.) sidestep list-subscript parsing issues.
+                self._template = _JinjaTemplate(
+                    "{% macro script(this, kwargs) %}\n"
+                    "{{ this._parent.get_name() }}.whenReady(function(){\n"
+                    "if({{ this._parent.get_name() }}.getSize().x<600){\n"
+                    "{{ this._parent.get_name() }}.fitBounds(\n"
+                    "[[{{ this.sw0 }},{{ this.sw1 }}],[{{ this.ne0 }},{{ this.ne1 }}]],\n"
+                    "{padding:[5,5],maxZoom:5});}\n"
+                    "});\n"
+                    "{% endmacro %}"
+                )
+
+        _MobileFit(_eu_sw, _eu_ne).add_to(m)
 
     _map_height = 320 if _is_mobile() else 420
     result = st_folium(m, use_container_width=True, height=_map_height,
