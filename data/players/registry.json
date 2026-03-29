@@ -440,6 +440,11 @@
         "competition": "ACB",
         "type": "acb",
         "id": "30003967"
+      },
+      {
+        "competition": "BCL",
+        "type": "bcl",
+        "id": "unicaja/348156-xavier-castaneda"
       }
     ]
   }

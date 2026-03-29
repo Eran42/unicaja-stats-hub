@@ -62,6 +62,16 @@ _TEAM_NAMES: dict[str, str] = {
     "VEF":  "VEF Riga",
 }
 
+# BCL team URL slug → full team name (used to populate team field from player slug)
+_SLUG_TO_TEAM: dict[str, str] = {
+    "unicaja":                 "Unicaja",
+    "la-laguna-tenerife":      "Lenovo Tenerife",
+    "aek-bc":                  "AEK BC",
+    "pallacanestro-trieste":   "Pallacanestro Trieste",
+    "alba-berlin":             "ALBA Berlin",
+    "cholet-basket":           "Cholet Basket",
+}
+
 _HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -380,9 +390,12 @@ def _fetch_from_team_page(slug: str, player_name: str) -> dict:
         logger.debug("BCL: %s %s — DNP (no minutes), skipping", player_name, game_date)
         return {}
 
+    team_from_slug = _SLUG_TO_TEAM.get(slug.split("/")[0]) if "/" in slug else None
+
     return {
         "player_id":    slug,
         "player_name":  player_name or slug,
+        "team":         team_from_slug,
         "source":       "bcl",
         "competition":  "BCL",
         "season":       "2025-26",
