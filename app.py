@@ -570,13 +570,8 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
 
     map_data = _build_map_data(all_data)
 
-    # Desktop: fit to every player's actual location so the bounding box is
-    # tight around real data points (Sabonis in Sacramento included).
-    # Mobile: fit to European players only — the narrow viewport would make
-    # a Sacramento-to-Belgrade span too zoomed-out to be useful.
     all_coords = [data["coords"] for data in map_data.values()]
     eu_coords  = [c for c in all_coords if c[1] > -20]
-    fit_coords = (eu_coords or all_coords) if _is_mobile() else all_coords
 
     m = folium.Map(
         location=[0, 0],
@@ -655,8 +650,22 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
             popup=folium.Popup(_popup_content, max_width=260),
         ).add_to(m)
 
-    _pad = [10, 10] if _is_mobile() else [35, 35]
-    m.fit_bounds(fit_coords, padding=_pad, max_zoom=6)
+    # Desktop: fit all players (including Sacramento).
+    # Mobile: re-fit client-side to European coords via injected JS — this
+    # runs inside the Folium iframe where window.innerWidth is reliable,
+    # with no dependency on _is_mobile() / URL params.
+    m.fit_bounds(all_coords, padding=[35, 35], max_zoom=6)
+
+    _map_var = m.get_name()
+    _eu_sw = [min(c[0] for c in eu_coords) - 1, min(c[1] for c in eu_coords) - 2] if eu_coords else [35.0, -12.0]
+    _eu_ne = [max(c[0] for c in eu_coords) + 2, max(c[1] for c in eu_coords) + 2] if eu_coords else [63.0, 47.0]
+    m.get_root().script.add_child(folium.Element(
+        f"if(window.innerWidth<768){{"
+        f"{_map_var}.fitBounds("
+        f"[[{_eu_sw[0]},{_eu_sw[1]}],[{_eu_ne[0]},{_eu_ne[1]}]],"
+        f"{{padding:[10,10],maxZoom:6}});"
+        f"}}"
+    ))
 
     _map_height = 320 if _is_mobile() else 420
     result = st_folium(m, use_container_width=True, height=_map_height,
