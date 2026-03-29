@@ -531,10 +531,11 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
 
     map_data = _build_map_data(all_data)
 
-    europe_coords = [
-        data["coords"] for data in map_data.values() if data["coords"][1] > -20
-    ]
-    fit_coords = europe_coords if europe_coords else [data["coords"] for data in map_data.values()]
+    # Fit to every player's actual location — no geographic filter.
+    # The bounding box is naturally tight around real data points, so empty
+    # continents never appear.  If a player moves to China the map zooms out
+    # to include China; if they leave it snaps back.
+    fit_coords = [data["coords"] for data in map_data.values()]
 
     m = folium.Map(
         location=[0, 0],
