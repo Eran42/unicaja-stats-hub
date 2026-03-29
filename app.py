@@ -112,6 +112,25 @@ def _inject_css() -> None:
             border-left: 4px solid {_UNICAJA_GREEN} !important;
         }}
         </style>
+        <script>
+        /* On touch devices, prevent the virtual keyboard from opening when the
+           user taps a selectbox.  inputmode="none" tells the browser not to
+           show any keyboard; readonly stops the input from accepting text.
+           MutationObserver ensures late-rendered selectboxes are also patched. */
+        (function () {{
+            if (!window.matchMedia('(pointer: coarse)').matches) return;
+            function patchSelects() {{
+                document.querySelectorAll('[data-baseweb="select"] input').forEach(function (el) {{
+                    if (el.getAttribute('inputmode') !== 'none') {{
+                        el.setAttribute('inputmode', 'none');
+                        el.setAttribute('readonly', 'readonly');
+                    }}
+                }});
+            }}
+            patchSelects();
+            new MutationObserver(patchSelects).observe(document.body, {{childList: true, subtree: true}});
+        }})();
+        </script>
         """,
         unsafe_allow_html=True,
     )
