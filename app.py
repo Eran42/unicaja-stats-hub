@@ -650,24 +650,24 @@ def render_map(all_data: dict[str, list[dict]]) -> None:
             popup=folium.Popup(_popup_content, max_width=260),
         ).add_to(m)
 
-    # Desktop: Python fit_bounds is reliable and runs as part of Leaflet init.
-    # Mobile: setTimeout-based JS override runs after the iframe is laid out,
-    #         so window.innerWidth correctly reflects the narrow viewport.
-    _map_var = m.get_name()
+    # Desktop: fit all players (Python fit_bounds runs as part of Leaflet init).
+    # Mobile: whenReady callback fires after Leaflet has sized the container;
+    #   map.getSize().x gives the actual rendered width in pixels — reliable,
+    #   no setTimeout guessing needed.  Re-fit to EU-only coords on narrow maps.
     if all_coords:
         m.fit_bounds(all_coords, padding=[35, 35], max_zoom=6)
 
+    _map_var = m.get_name()
     if eu_coords:
         _eu_sw = [min(c[0] for c in eu_coords) - 3, min(c[1] for c in eu_coords) - 5]
         _eu_ne = [max(c[0] for c in eu_coords) + 5, max(c[1] for c in eu_coords) + 5]
         m.get_root().script.add_child(folium.Element(
-            f"setTimeout(function(){{"
-            f"if(window.innerWidth<768){{"
+            f"{_map_var}.whenReady(function(){{"
+            f"if({_map_var}.getSize().x<600){{"
             f"{_map_var}.fitBounds("
             f"[[{_eu_sw[0]},{_eu_sw[1]}],[{_eu_ne[0]},{_eu_ne[1]}]],"
             f"{{padding:[5,5],maxZoom:5}});"
-            f"}}}},"
-            f"300);"
+            f"}}}});"
         ))
 
     _map_height = 320 if _is_mobile() else 420
