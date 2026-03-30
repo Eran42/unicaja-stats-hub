@@ -1524,6 +1524,9 @@ st.divider()
 
 render_history(all_data)
 
+st.divider()
+st.link_button("💬 Leave feedback", "https://docs.google.com/forms/d/e/1FAIpQLSfOZf6HxTN9qDne21NV8FBItupLsgxXoEmy97FYugUplLbHaQ/viewform?usp=publish-editor")
+
 # After a map-pin click triggers st.rerun(), scroll to the history section.
 # A monotonic counter is embedded in the HTML so Streamlit never reuses a
 # cached iframe — without it the setTimeout only fires on the first scroll.
