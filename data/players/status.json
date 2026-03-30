@@ -20,13 +20,13 @@
     "updated": "2026-03-28"
   },
   "Sasu Salin": {
-    "status": "no_game",
-    "note": "No game today.",
-    "updated": "2026-03-28"
+    "status": "unknown",
+    "note": "No data today.",
+    "updated": "2026-03-30"
   },
   "Adam Waczyński": {
-    "status": "no_game",
-    "note": "No game today.",
-    "updated": "2026-03-28"
+    "status": "unknown",
+    "note": "No data today.",
+    "updated": "2026-03-30"
   }
 }
