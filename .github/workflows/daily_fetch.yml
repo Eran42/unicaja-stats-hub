@@ -2,7 +2,7 @@ name: Daily Stats Fetch
 
 on:
   schedule:
-    - cron: "0 7 * * *"   # 07:00 UTC every day
+    - cron: "45 4 * * *"  # 04:45 UTC — results available by 05:00 UTC
   workflow_dispatch:        # allow manual trigger from GitHub UI
 
 jobs:
