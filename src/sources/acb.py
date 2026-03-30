@@ -450,8 +450,10 @@ def _extract_result_from_game_page(html: str, opponent_name: str) -> str:
     def _first_name(els: list) -> str:
         for el in els:
             t = el.get_text(separator=" ", strip=True)
-            # Reject pure-number elements and very short strings
+            # Reject pure-number elements and loading placeholders (all-X skeleton text)
             if re.search(r"[A-Za-zÀ-ÿ]{3,}", t) and not re.match(r"^\d+$", t):
+                if re.match(r"^[X\s]+$", t):
+                    continue
                 return t
         return ""
 
@@ -515,22 +517,41 @@ def _extract_result_from_game_page(html: str, opponent_name: str) -> str:
 def _find_player_team_abbr(game_rows: list, col_map: dict) -> str:
     """Find the player's team abbreviation from PARTIDOS matchup strings.
 
-    The player's team appears in every game row (as home or away), so it is
-    the most-frequent token when all matchup strings are split on '-'.
+    Uses the most recent game's matchup and picks whichever of its two sides
+    appears more frequently across all games.  This correctly handles mid-season
+    transfers: the current team appears in recent games while the old team would
+    no longer appear in the latest matchup, so checking both sides of the last
+    game against the full history picks the right one.
     """
-    from collections import Counter
     opp_idx = col_map.get("opponent")
     if opp_idx is None:
         return ""
-    tokens: list[str] = []
+
+    all_matchups: list[str] = []
     for cells in game_rows:
         raw = cells[opp_idx].get_text(strip=True) if opp_idx < len(cells) else ""
         if "-" in raw:
-            left, _, right = raw.partition("-")
-            tokens.extend([left.strip(), right.strip()])
-    if not tokens:
+            all_matchups.append(raw)
+
+    if not all_matchups:
         return ""
-    return Counter(tokens).most_common(1)[0][0]
+
+    # Use the last game's matchup to get the two candidate team names
+    last = all_matchups[-1]
+    left, _, right = last.partition("-")
+    left, right = left.strip(), right.strip()
+    if not left or not right:
+        return left or right
+
+    def _count(token: str) -> int:
+        n = 0
+        for m in all_matchups:
+            l, _, r = m.partition("-")
+            if l.strip() == token or r.strip() == token:
+                n += 1
+        return n
+
+    return left if _count(left) >= _count(right) else right
 
 
 def _strip_matchup(matchup: str, player_team_abbr: str) -> str:
@@ -543,6 +564,139 @@ def _strip_matchup(matchup: str, player_team_abbr: str) -> str:
     if right.strip() == player_team_abbr:
         return left.strip()
     return matchup
+
+
+# Stats-page column names (lowercase, after strip) → canonical field
+_STATS_PAGE_COL_MAP: dict[str, str] = {
+    "min":   "min",
+    "pts":   "pts",
+    "t2":    "t2_combined",
+    "t2%":   "t2_pct",
+    "t3":    "t3_combined",
+    "t3%":   "t3_pct",
+    "tl":    "ft_combined",
+    "tl%":   "ft_pct",
+    "ro":    "reb_off",
+    "rd":    "reb_def",
+    "rt":    "reb",
+    "as":    "ast",
+    "pér":   "tov",    "per": "tov",   # Pérdidas (turnovers) — accented or stripped
+    "rec":   "stl",
+    "tap":   "blk",
+    "tr":    "blk_against",
+    "fp":    "fouls",
+    "fr":    "fouls_received",
+    "+/-":   "plus_minus",
+    "val":   "val",
+}
+
+
+def _extract_full_stats_from_stats_page(html: str, player_name: str) -> dict:
+    """
+    Parse the /estadisticas page and return a complete box-score dict for the player.
+
+    The /estadisticas page uses a flat single-row header:
+      Jugador | Min | Pts | T2 | T2% | T3 | T3% | TL | TL% | RO | RD | RT |
+      As | Pér | Rec | Tap | TR | Mat | Fp | Fr | +/- | Val
+
+    T2/T3/TL cells are in 'M/A' format (e.g. '5/9'); percentages are separate.
+    Returns an empty dict if the player row cannot be found.
+    """
+    import unicodedata as _ud
+
+    def _norm(text: str) -> str:
+        return _ud.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
+
+    pname_tokens = frozenset(t for t in _norm(player_name).split() if len(t) >= 3)
+    if not pname_tokens:
+        return {}
+
+    soup = BeautifulSoup(html, "lxml")
+    for tbl in soup.find_all("table"):
+        rows = tbl.find_all("tr")
+        if len(rows) < 2:
+            continue
+
+        # Detect flat header: first cell must be "Jugador" (player) label
+        header_cells = rows[0].find_all(["th", "td"])
+        if not header_cells:
+            continue
+        first_label = header_cells[0].get_text(strip=True).lower()
+        if first_label not in ("jugador", "player"):
+            continue
+
+        # Build column index map from header
+        col_idx: dict[str, int] = {}
+        for i, cell in enumerate(header_cells):
+            raw = cell.get_text(strip=True)
+            key_norm = _norm(raw)   # ASCII-normalised for accent-insensitive lookup
+            key_orig = raw.lower()
+            for k, field in _STATS_PAGE_COL_MAP.items():
+                if k == key_orig or k == key_norm:
+                    if field not in col_idx:
+                        col_idx[field] = i
+
+        if "pts" not in col_idx:
+            continue  # not the right table
+
+        # Find the player's data row
+        for row in rows[1:]:
+            cells = row.find_all("td")
+            if not cells:
+                continue
+            # Name may start with jersey+initials, e.g. '8D. Brizuela'
+            name_text = cells[0].get_text(strip=True)
+            row_tokens = frozenset(t for t in _norm(name_text).split() if len(t) >= 3)
+            if not row_tokens.intersection(pname_tokens):
+                continue
+
+            n = len(cells)
+
+            def _g(field: str) -> str:
+                idx = col_idx.get(field)
+                return cells[idx].get_text(strip=True) if idx is not None and idx < n else ""
+
+            result: dict = {
+                "min":        _parse_minutes(_g("min")),
+                "pts":        _safe_float(_g("pts")),
+                "reb_off":    _safe_float(_g("reb_off")),
+                "reb_def":    _safe_float(_g("reb_def")),
+                "reb":        _safe_float(_g("reb")),
+                "ast":        _safe_float(_g("ast")),
+                "stl":        _safe_float(_g("stl")),
+                "tov":        _safe_float(_g("tov")),
+                "blk":        _safe_float(_g("blk")),
+                "blk_against": _safe_float(_g("blk_against")),
+                "plus_minus": _safe_float(_g("plus_minus")),
+                "val":        _safe_float(_g("val")),
+            }
+
+            # Fouls — cap at 5 same as game-log logic
+            fp = _safe_float(_g("fouls"))
+            result["fouls"] = fp if fp is None or fp <= 5 else None
+            result["fouls_received"] = _safe_float(_g("fouls_received"))
+
+            # Shooting combined cells (M/A format)
+            for field, src in (("t2_combined", "t2_combined"), ("t3_combined", "t3_combined"), ("ft_combined", "ft_combined")):
+                raw_shot = _g(src)
+                if raw_shot:
+                    m, a, _ = _parse_shot_cell(raw_shot)
+                    # Percentages come from dedicated cells
+                    pct_field = {"t2_combined": "t2_pct", "t3_combined": "t3_pct", "ft_combined": "ft_pct"}[field]
+                    pct_raw = _g(pct_field)
+                    pct = _safe_float(pct_raw.rstrip("%")) if pct_raw else None
+                    if field == "t2_combined":
+                        result["t2m"], result["t2a"], result["t2_pct"] = m, a, pct
+                    elif field == "t3_combined":
+                        result["t3m"], result["t3a"], result["t3_pct"] = m, a, pct
+                    else:
+                        result["ftm"], result["fta"], result["ft_pct"] = m, a, pct
+
+            # Only return if we got something meaningful
+            if result.get("pts") is not None or result.get("min") is not None:
+                return result
+
+    return {}
 
 
 # ---------------------------------------------------------------------------
@@ -712,34 +866,51 @@ def fetch_player_stats(player_id: str) -> dict:
                         game_date = f"{yr}-{int(mo):02d}-{int(d):02d}"
                         break
 
-            # Result / score — extract from the game stats page
+            # Result / score — extract from the game stats page.
+            # Prefer the game-page W/L determination (which uses local/visitor name
+            # matching) over the game-log V/D, because the game log can be stale
+            # right after a match ends.
             extracted = _extract_result_from_game_page(page_text, opponent)
             if extracted:
                 score_m = re.search(r"\d{2,3}-\d{2,3}", extracted)
-                if game_result in ("V", "D") and score_m:
-                    # Game log gives V/D; game page gives the score
-                    game_result = f"{game_result} {score_m.group()}"
-                elif extracted.startswith(("V ", "D ")):
+                if extracted.startswith(("V ", "D ")):
+                    # Game page successfully determined W/L — authoritative
                     game_result = extracted
+                elif game_result in ("V", "D") and score_m:
+                    # Game log has V/D but page only returned a raw score
+                    game_result = f"{game_result} {score_m.group()}"
                 elif game_result in ("V", "D") and extracted.strip():
                     game_result = f"{game_result} {extracted.strip()}"
                 else:
                     game_result = extracted
 
-            # Blocks and fouls — try /estadisticas page first (has TAP/TR/FP/FR),
-            # fall back to /resumen page (has old TAP+TAP / FP+FP colspan format).
+            # Full stats + blocks/fouls — /estadisticas page has a named-column
+            # table that is always up-to-date.  Fall back to /resumen (old colspan
+            # format) and then to the game-log values.
             stats_url = re.sub(r"/resumen$", "/estadisticas", gr.url)
+            full_stats: dict = {}
             if stats_url != gr.url:
                 try:
                     time.sleep(0.3)
                     sr = requests.get(stats_url, headers=_HEADERS, timeout=_TIMEOUT)
                     sr.raise_for_status()
-                    detail_stats = _extract_player_boxscore(sr.text, player_name or player_id)
+                    full_stats = _extract_full_stats_from_stats_page(sr.text, player_name or player_id)
+                    if not full_stats:
+                        detail_stats = _extract_player_boxscore(sr.text, player_name or player_id)
+                    else:
+                        # full_stats already contains blk/fouls — populate detail_stats too
+                        detail_stats = {
+                            "blk":            full_stats.get("blk"),
+                            "blk_against":    full_stats.get("blk_against"),
+                            "fouls":          full_stats.get("fouls"),
+                            "fouls_received": full_stats.get("fouls_received"),
+                        }
                 except requests.RequestException:
                     detail_stats = {}
             if not any(v is not None for v in detail_stats.values()):
                 detail_stats = _extract_player_boxscore(page_text, player_name or player_id)
             logger.debug("ACB game detail stats for %s: %s", player_name, detail_stats)
+            logger.debug("ACB full stats page stats for %s: %s", player_name, full_stats)
 
         except requests.RequestException:
             pass
@@ -749,7 +920,12 @@ def fetch_player_stats(player_id: str) -> dict:
         """ACB tracks this field — treat missing/empty cell as genuine zero."""
         return v if v is not None else 0.0
 
-    # Prefer detail-page blocks/fouls (separate F/C columns); fall back to game-log values
+    # Prefer /estadisticas full stats when available (always up-to-date);
+    # fall back to game-log values which can be stale right after a game ends.
+    def _fs(field: str, fallback):
+        v = full_stats.get(field)
+        return v if v is not None else fallback
+
     blk           = detail_stats.get("blk")
     blk_against   = detail_stats.get("blk_against")
     fouls         = detail_stats.get("fouls")
@@ -769,25 +945,29 @@ def fetch_player_stats(player_id: str) -> dict:
         "opponent":       opponent,
         "result":         game_result,
         "date":           str(date.today()),
-        "min":            stats["min"],          # keep None — player may not have played
-        "pts":            _z(stats["pts"]),
-        "t2m":            _z(stats["t2m"]),   "t2a":  _z(stats["t2a"]),  "t2_pct":  stats["t2_pct"],
-        "t3m":            _z(stats["t3m"]),   "t3a":  _z(stats["t3a"]),  "t3_pct":  stats["t3_pct"],
-        "ftm":            _z(stats["ftm"]),   "fta":  _z(stats["fta"]),  "ft_pct":  stats["ft_pct"],
-        "reb_off":        _z(stats["reb_off"]),
-        "reb_def":        _z(stats["reb_def"]),
-        "reb":            _z(stats["reb"]),
-        "ast":            _z(stats["ast"]),
-        "stl":            _z(stats["stl"]),
-        "tov":            _z(stats["tov"]),
+        "min":            _fs("min", stats["min"]),
+        "pts":            _z(_fs("pts", stats["pts"])),
+        "t2m":            _z(_fs("t2m",  stats["t2m"])),
+        "t2a":            _z(_fs("t2a",  stats["t2a"])),
+        "t2_pct":         _fs("t2_pct",  stats["t2_pct"]),
+        "t3m":            _z(_fs("t3m",  stats["t3m"])),
+        "t3a":            _z(_fs("t3a",  stats["t3a"])),
+        "t3_pct":         _fs("t3_pct",  stats["t3_pct"]),
+        "ftm":            _z(_fs("ftm",  stats["ftm"])),
+        "fta":            _z(_fs("fta",  stats["fta"])),
+        "ft_pct":         _fs("ft_pct",  stats["ft_pct"]),
+        "reb_off":        _z(_fs("reb_off", stats["reb_off"])),
+        "reb_def":        _z(_fs("reb_def", stats["reb_def"])),
+        "reb":            _z(_fs("reb",     stats["reb"])),
+        "ast":            _z(_fs("ast",     stats["ast"])),
+        "stl":            _z(_fs("stl",     stats["stl"])),
+        "tov":            _z(_fs("tov",     stats["tov"])),
         "blk":            blk,
         "blk_against":    blk_against,
-        "fouls":          fouls if fouls is not None else (
-                              stats["fouls"]  # keep None if >5 cap triggered
-                          ),
+        "fouls":          fouls if fouls is not None else stats["fouls"],
         "fouls_received": fouls_received,
-        "plus_minus":     _z(stats["plus_minus"]),
-        "val":            _z(stats["val"]),
+        "plus_minus":     _z(_fs("plus_minus", stats["plus_minus"])),
+        "val":            _z(_fs("val",        stats["val"])),
     }
 
 
