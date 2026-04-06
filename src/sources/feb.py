@@ -1,9 +1,9 @@
 """
-FEB (Spanish Basketball Federation) scraper — v2.
+FEB (Spanish Basketball Federation) scraper — v3.
 
 Strategy
 --------
-1. Fetch the Primera FEB results page (latest jornada) to find the team's
+1. Fetch the competition results page on www.feb.es to find the team's
    most recent game ID, date, and final score.
 2. Fetch /partido/{game_id} box score HTML.
 3. Find the player's row within the team's section.
@@ -11,12 +11,14 @@ Strategy
 
 player_id format
 ----------------
-  "{TEAM_TOKEN}/{PLAYER_TOKEN}"  e.g.  "ESTUDIANTES/GRANGER"
+  "{G}/{TEAM_TOKEN}/{PLAYER_TOKEN}"  e.g.  "5/FUENLABRADA/LIMA"
+  "{TEAM_TOKEN}/{PLAYER_TOKEN}"      legacy form — defaults to g=1 (Primera FEB)
 
-TEAM_TOKEN  — upper-case substring of the team name on the results page
-              (e.g. "ESTUDIANTES" matches "MOVISTAR ESTUDIANTES").
-PLAYER_TOKEN — upper-case substring of the player's surname as shown on
-               the box score in "LAST, FIRST" format (e.g. "GRANGER").
+  G            — FEB competition code: 1=Primera FEB, 5=LEB Oro
+  TEAM_TOKEN   — upper-case substring of the team name on the results page
+                 (e.g. "FUENLABRADA" matches "PROBASKETLAB FUENLABRADA").
+  PLAYER_TOKEN — upper-case substring of the player's surname as shown on
+                 the box score in "LAST, FIRST" format (e.g. "LIMA").
 """
 
 from __future__ import annotations
@@ -42,9 +44,18 @@ _HEADERS = {
     "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
 }
 
-# Results page for Primera FEB 2025/26 — update g/t/nm each season if needed
-_RESULTS_URL   = "https://baloncestoenvivo.feb.es/resultados.aspx?g=1&t=2025&nm=primerafeb"
-_GAME_BASE_URL = "https://baloncestoenvivo.feb.es/partido"
+# www.feb.es endpoints — parameterised by competition g-code
+_BASE_URL      = "https://www.feb.es/competiciones"
+_RESULTS_URL   = _BASE_URL + "/resultados.aspx?g={g}&t=2025"
+_GAME_BASE_URL = _BASE_URL + "/partido"
+
+# FEB competition g-code → human-readable competition name
+# g=1 is "Primera FEB" in FEB's own naming (= LEB Oro, the top FEB-managed league).
+# g=5 is the LEB Oro regular-season phase (same teams, different round).
+_COMPETITION_NAMES: dict[str, str] = {
+    "1": "LEB Oro",
+    "5": "LEB Oro",
+}
 
 # Scan up to this many past jornadas if team absent from the latest
 _MAX_JORNADAS_BACK = 3
@@ -137,9 +148,10 @@ def _parse_results(html: str, team_token: str) -> dict | None:
     return None
 
 
-def _find_game_for_team(team_token: str) -> dict | None:
+def _find_game_for_team(team_token: str, g: str = "1") -> dict | None:
     """Try latest jornada, then step back up to _MAX_JORNADAS_BACK jornadas."""
-    html = _get(_RESULTS_URL)
+    url = _RESULTS_URL.format(g=g)
+    html = _get(url)
     if html:
         info = _parse_results(html, team_token)
         if info:
@@ -150,7 +162,7 @@ def _find_game_for_team(team_token: str) -> dict | None:
         if jm:
             current_j = int(jm.group(1))
             for offset in range(1, _MAX_JORNADAS_BACK + 1):
-                back_html = _get(f"{_RESULTS_URL}&j={current_j - offset}")
+                back_html = _get(f"{url}&j={current_j - offset}")
                 if back_html:
                     info = _parse_results(back_html, team_token)
                     if info:
@@ -177,11 +189,14 @@ def _parse_shot_cell(text: str) -> tuple[float | None, float | None, float | Non
     """
     Parse a combined "made/attendedPCT%" cell into (made, attempted, pct).
 
-    The site concatenates attempted and pct without a space:
-      "4/850%"    → made=4  att=8   pct=50.0
-      "3/742,9%"  → made=3  att=7   pct=42.9
-      "4/4100%"   → made=4  att=4   pct=100.0
-      "26/3672,2%"→ made=26 att=36  pct=72.2
+    Two formats supported:
+      Space-separated (www.feb.es):
+        "1/5 20%"    → made=1  att=5   pct=20.0
+        "0/2 0%"     → made=0  att=2   pct=0.0
+        "1/7 14,3%"  → made=1  att=7   pct=14.3
+      Concatenated (baloncestoenvivo.feb.es, legacy):
+        "4/850%"     → made=4  att=8   pct=50.0
+        "3/742,9%"   → made=3  att=7   pct=42.9
     """
     text = text.strip()
     slash = text.find("/")
@@ -191,10 +206,19 @@ def _parse_shot_cell(text: str) -> tuple[float | None, float | None, float | Non
     if made is None:
         return None, None, None
 
-    rest = text[slash + 1:]
+    rest = text[slash + 1:].strip()
     if not rest.endswith("%"):
         return made, None, None
-    raw = rest[:-1]  # strip trailing "%"
+
+    # ---- space-separated format: "5 20%" or "7 14,3%" -------------------------
+    pct_part = rest[:-1]  # strip trailing "%"
+    space_idx = pct_part.rfind(" ")
+    if space_idx >= 0:
+        att = _safe_float(pct_part[:space_idx].strip())
+        pct = _safe_float(pct_part[space_idx + 1:].strip().replace(",", "."))
+        return made, att, pct
+
+    raw = pct_part  # no space → concatenated format below
 
     if not raw:
         return made, None, None
@@ -222,6 +246,7 @@ def _parse_shot_cell(text: str) -> tuple[float | None, float | None, float | Non
 
     # ---- integer pct ----------------------------------------------------------
     # Try extracting 3, 2, or 1 trailing digits as pct; the rest is attempted.
+    # Validate each candidate against made/att (pct must be ~made/att*100).
     for pct_len in (3, 2, 1):
         if len(raw) >= pct_len:
             pct_candidate = int(raw[-pct_len:].lstrip("0") or "0")
@@ -229,7 +254,15 @@ def _parse_shot_cell(text: str) -> tuple[float | None, float | None, float | Non
                 att_str = raw[:-pct_len] if len(raw) > pct_len else ""
                 try:
                     att = float(att_str) if att_str else 0.0
-                    return made, att, float(pct_candidate)
+                    pct = float(pct_candidate)
+                    # Cross-validate: pct must be consistent with made/att.
+                    # "0/20%" → att=0,pct=20 fails (0 att can't have 20% pct).
+                    # "0/20%" → att=2,pct=0 passes (0/2=0%).
+                    if att > 0 and abs(made / att * 100 - pct) > 5:
+                        continue
+                    if att == 0 and pct != 0:
+                        continue
+                    return made, att, pct
                 except ValueError:
                     continue
 
@@ -361,21 +394,25 @@ def fetch_player_stats(player_id: str) -> dict:
     Fetch last game box score for a FEB player.
 
     Args:
-        player_id:  "TEAMTOKEN/PLAYERTOKEN"  e.g. "ESTUDIANTES/GRANGER"
+        player_id:  "G/TEAMTOKEN/PLAYERTOKEN"  e.g. "5/FUENLABRADA/LIMA"
+                    Legacy 2-part form "TEAMTOKEN/PLAYERTOKEN" defaults to g=1.
 
     Returns:
         Canonical per-game stats dict, or empty dict on failure.
     """
-    parts = str(player_id).split("/", 1)
-    if len(parts) != 2:
-        logger.warning("FEB: invalid player_id '%s' (expected TEAM/PLAYER)", player_id)
+    parts = str(player_id).split("/")
+    if len(parts) == 3:
+        g, team_token, player_token = parts[0], parts[1].upper(), parts[2].upper()
+    elif len(parts) == 2:
+        g, team_token, player_token = "1", parts[0].upper(), parts[1].upper()
+    else:
+        logger.warning("FEB: invalid player_id '%s' (expected G/TEAM/PLAYER)", player_id)
         return {}
 
-    team_token   = parts[0].upper()
-    player_token = parts[1].upper()
+    competition = _COMPETITION_NAMES.get(g, f"FEB g={g}")
 
     # Step 1 — find the team's latest game
-    game_info = _find_game_for_team(team_token)
+    game_info = _find_game_for_team(team_token, g=g)
     if not game_info:
         logger.warning("FEB: no recent game found for team '%s'", team_token)
         return {}
@@ -419,7 +456,7 @@ def fetch_player_stats(player_id: str) -> dict:
         "player_name":     "",        # filled by router from registry
         "team":            "",        # filled by router from registry
         "source":          "feb",
-        "competition":     "Primera FEB",
+        "competition":     competition,
         "season":          "2025-26",
         "game_date":       game_date,
         "opponent":        opponent,
