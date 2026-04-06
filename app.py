@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import streamlit as st
-from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 from streamlit_autorefresh import st_autorefresh
 
 try:
@@ -895,41 +894,11 @@ def _load_all() -> dict[str, list[dict]]:
 # Main table
 # ---------------------------------------------------------------------------
 
-_ROW_HEIGHT_PX       = 35
-_HEADER_HEIGHT_PX    = 50   # AG Grid alpine column header; set explicitly via headerHeight
-_GROUP_HEADER_PX     = 28   # group header row (2PT/3PT/FT/REB/BLK/FOULS); set via groupHeaderHeight
-_GRID_PAD_PX         = 20   # extra pixels for AG Grid borders + horizontal scrollbar
-
-def _is_dark() -> bool:
-    """True when the browser reports prefers-color-scheme: dark (via ?_dark=1)."""
-    return st.query_params.get("_dark") == "1"
-
-
 def _is_mobile() -> bool:
     """True when the browser viewport is < 768 px wide (via ?_mobile=1)."""
     return st.query_params.get("_mobile") == "1"
 
 
-def _inject_dark_mode_detector() -> None:
-    """Inject JS that syncs prefers-color-scheme → URL param → Streamlit rerun."""
-    st.markdown(
-        """
-<script>
-(function () {
-    var dark  = window.matchMedia('(prefers-color-scheme: dark)').matches ? '1' : '0';
-    var url   = new URL(window.location.href);
-    if (url.searchParams.get('_dark') !== dark) {
-        url.searchParams.set('_dark', dark);
-        window.history.replaceState({}, '', url.toString());
-        // Dispatching popstate causes Streamlit to pick up the new query param
-        // and rerun the script, so the correct AG Grid theme is chosen.
-        window.dispatchEvent(new PopStateEvent('popstate', {state: history.state}));
-    }
-})();
-</script>
-""",
-        unsafe_allow_html=True,
-    )
 
 
 def _inject_mobile_detector() -> None:
@@ -956,50 +925,16 @@ def _inject_mobile_detector() -> None:
     )
 
 
-_AGGRID_CSS_BASE = {
-    ".ag-header-cell-text": {"font-size": "12px !important"},
-    ".ag-cell":             {"font-size": "12px !important", "padding-left": "6px !important", "padding-right": "6px !important"},
-    ".ag-header-cell":      {"padding-left": "4px !important", "padding-right": "4px !important"},
-    ".ag-header-cell-filter-button": {"display": "none !important"},
-    ".ag-header-cell-menu-button":   {"display": "none !important"},
-    # Column group headers (2PT / 3PT / FT / REB)
-    ".ag-header-group-cell": {
-        "font-size": "11px !important",
-        "font-weight": "700 !important",
-        "color": "#6B2FA0 !important",
-        "border-bottom": "2px solid rgba(107,47,160,0.35) !important",
-    },
-    ".ag-header-group-cell-label": {"justify-content": "center !important"},
-}
-
-_AGGRID_CSS_DARK_EXTRA = {
-    ".ag-root-wrapper":    {"background-color": "#0e1117 !important", "border-color": "#3d3d3d !important", "color": "#fafafa !important"},
-    ".ag-header":          {"background-color": "#262730 !important", "border-bottom-color": "#3d3d3d !important"},
-    ".ag-header-cell":     {"background-color": "#262730 !important", "color": "#fafafa !important",
-                            "border-color": "#3d3d3d !important",
-                            "padding-left": "4px !important", "padding-right": "4px !important"},
-    ".ag-header-cell-text": {"font-size": "12px !important", "color": "#fafafa !important"},
-    ".ag-row":             {"border-color": "#3d3d3d !important"},
-    ".ag-floating-bottom": {"border-top-color": "#555 !important"},
-    ".ag-body-viewport":   {"background-color": "#0e1117 !important"},
-    ".ag-center-cols-viewport": {"background-color": "#0e1117 !important"},
-    ".ag-header-group-cell": {
-        "background-color": "#262730 !important",
-        "color": "#c4a5e8 !important",
-        "border-bottom": "2px solid rgba(196,165,232,0.35) !important",
-    },
-}
-
-
-def _aggrid_css() -> dict:
-    css = dict(_AGGRID_CSS_BASE)
-    if _is_dark():
-        css.update(_AGGRID_CSS_DARK_EXTRA)
-    return css
-
 # ---------------------------------------------------------------------------
-# Column config
+# Column config for st.dataframe
 # ---------------------------------------------------------------------------
+
+# Pairs: (made_label, attempts_label, pct_label) for average-row computation
+_PCT_TRIPLES = [
+    (_COL_LABELS["t2m"], _COL_LABELS["t2a"], _COL_LABELS["t2_pct"]),
+    (_COL_LABELS["t3m"], _COL_LABELS["t3a"], _COL_LABELS["t3_pct"]),
+    (_COL_LABELS["ftm"], _COL_LABELS["fta"], _COL_LABELS["ft_pct"]),
+]
 
 _TEXT_WIDTHS: dict[str, int] = {
     "Player":      150,
@@ -1009,264 +944,64 @@ _TEXT_WIDTHS: dict[str, int] = {
     "Opponent":    150,
     "Result":       84,
 }
-
-# Stat columns: widths sized for 12px font with 6px cell padding each side.
-# Minimum needed: content_width + 12px padding.  "100.0" ≈ 35px → 47px min.
 _STAT_WIDTHS: dict[str, int] = {
-    "MIN": 48, "PTS": 44,
-    "T2M": 44, "T2A": 44, "T2%": 52,
-    "T3M": 44, "T3A": 44, "T3%": 52,
-    "FTM": 44, "FTA": 44, "FT%": 52,
-    "RO":  42, "RD":  42, "RT":  44,
-    "AST": 44, "STL": 44, "TOV": 44,
-    "BLK": 44, "BLK-A": 56,
-    "F":   38, "FR":   38,
-    "+/-": 48, "VAL":  48,
+    "MIN": 55, "PTS": 50,
+    "T2M": 50, "T2A": 50, "T2%": 58,
+    "T3M": 50, "T3A": 50, "T3%": 58,
+    "FTM": 50, "FTA": 50, "FT%": 58,
+    "RO":  48, "RD":  48, "RT":  50,
+    "AST": 50, "STL": 50, "TOV": 50,
+    "BLK": 50, "BLK-A": 62,
+    "F":   44, "FR":   44,
+    "+/-": 55, "VAL":  55,
 }
 
 
-def _col_config() -> dict:
-    cfg = {}
+def _col_config() -> dict[str, st.column_config.Column]:
+    cfg: dict[str, st.column_config.Column] = {}
     for label, w in _TEXT_WIDTHS.items():
         cfg[label] = st.column_config.TextColumn(label, width=w)
+    pct_labels = {_COL_LABELS[f] for f in _PCT_FIELDS}
     for label, w in _STAT_WIDTHS.items():
-        cfg[label] = st.column_config.NumberColumn(label, width=w)
+        if label in pct_labels:
+            cfg[label] = st.column_config.NumberColumn(label, width=w, format="%.1f")
+        else:
+            cfg[label] = st.column_config.NumberColumn(label, width=w, format="%d")
     return cfg
 
 
-# Columns that open a new group — get a thick left border separator
-_GROUP_DIVIDERS = {"T2M", "T3M", "FTM", "RO", "BLK", "F"}
-
-# Column-group tints: (even-row bg, odd-row bg)
-_COL_GROUP_COLORS: dict[str, tuple[str, str]] = {
-    "T2M":   ("rgba(37,99,235,0.07)",   "rgba(37,99,235,0.15)"),
-    "T2A":   ("rgba(37,99,235,0.07)",   "rgba(37,99,235,0.15)"),
-    "T2%":   ("rgba(37,99,235,0.07)",   "rgba(37,99,235,0.15)"),
-    "T3M":   ("rgba(234,88,12,0.07)",   "rgba(234,88,12,0.15)"),
-    "T3A":   ("rgba(234,88,12,0.07)",   "rgba(234,88,12,0.15)"),
-    "T3%":   ("rgba(234,88,12,0.07)",   "rgba(234,88,12,0.15)"),
-    "FTM":   ("rgba(202,138,4,0.07)",   "rgba(202,138,4,0.15)"),
-    "FTA":   ("rgba(202,138,4,0.07)",   "rgba(202,138,4,0.15)"),
-    "FT%":   ("rgba(202,138,4,0.07)",   "rgba(202,138,4,0.15)"),
-    "RO":    ("rgba(13,148,136,0.07)",  "rgba(13,148,136,0.15)"),
-    "RD":    ("rgba(13,148,136,0.07)",  "rgba(13,148,136,0.15)"),
-    "RT":    ("rgba(13,148,136,0.07)",  "rgba(13,148,136,0.15)"),
-    "BLK":   ("rgba(99,102,241,0.07)",  "rgba(99,102,241,0.15)"),
-    "BLK-A": ("rgba(99,102,241,0.07)",  "rgba(99,102,241,0.15)"),
-    "F":     ("rgba(239,68,68,0.07)",   "rgba(239,68,68,0.15)"),
-    "FR":    ("rgba(239,68,68,0.07)",   "rgba(239,68,68,0.15)"),
-}
+def _render_table(df: pd.DataFrame, height: int, avg_df: pd.DataFrame | None = None) -> None:
+    """Render df as a native st.dataframe. If avg_df given, show it below as a summary."""
+    col_cfg = _col_config()
+    st.dataframe(df, width="stretch", hide_index=True,
+                 height=height, column_config=col_cfg)
+    if avg_df is not None:
+        st.dataframe(avg_df, width="stretch", hide_index=True,
+                     height=58, column_config=col_cfg)
 
 
-def _style_table(df: pd.DataFrame, stripe: str, avg_index: int | None = None) -> pd.DataFrame:
-    """
-    Return a same-shape DataFrame of CSS strings.
-    Grouped columns get a fixed tint (two shades for alternating rows).
-    Ungrouped columns get the standard row stripe on odd rows.
-    The avg_index row (if given) gets a bold summary style.
-    """
-    out = pd.DataFrame("", index=df.index, columns=df.columns)
-    for i in df.index:
-        if i == avg_index:
-            for col in df.columns:
-                parts = [
-                    "background-color: rgba(80,80,80,0.12)",
-                    "font-weight: 700",
-                    "border-top: 2px solid rgba(80,80,80,0.40)",
-                ]
-                if col in _GROUP_DIVIDERS:
-                    parts.append("border-left: 2px solid rgba(80,80,80,0.30)")
-                out.loc[i, col] = "; ".join(parts)
-            continue
-        odd = bool(i % 2)
-        for col in df.columns:
-            if col in _COL_GROUP_COLORS:
-                bg = _COL_GROUP_COLORS[col][1] if odd else _COL_GROUP_COLORS[col][0]
-            else:
-                bg = stripe if odd else ""
-            parts = []
-            if bg:
-                parts.append(f"background-color: {bg}")
-            if col in _GROUP_DIVIDERS:
-                parts.append("border-left: 2px solid rgba(80,80,80,0.30)")
-            out.loc[i, col] = "; ".join(parts)
-    return out
-
-
-# Pairs: (made_label, attempts_label, pct_label) for true-shooting-% computation
-_PCT_TRIPLES = [
-    (_COL_LABELS["t2m"], _COL_LABELS["t2a"], _COL_LABELS["t2_pct"]),
-    (_COL_LABELS["t3m"], _COL_LABELS["t3a"], _COL_LABELS["t3_pct"]),
-    (_COL_LABELS["ftm"], _COL_LABELS["fta"], _COL_LABELS["ft_pct"]),
-]
-
-
-
-# Wider text-column widths for mobile — user cannot drag to resize on touch screen
-_MOBILE_TEXT_WIDTHS: dict[str, int] = {
-    "Player":      140,
-    "Team":        130,
-    "Competition": 120,
-    "Game Date":   115,
-    "Opponent":    160,
-    "Result":       95,
-}
-
-
-def _build_aggrid(
-    df: pd.DataFrame,
-    stripe: str,
-    avg_row: dict | None = None,
-    dark: bool = False,
-    mobile: bool = False,
-) -> dict:
-    """Build AgGrid options. stripe sets odd-row background for ungrouped columns."""
-    row_height = 44 if mobile else _ROW_HEIGHT_PX
-
-    gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_default_column(
-        resizable=True, sortable=True, filter=False,
-        suppressMenu=True,
-        sortingOrder=["desc", "asc", None],
-    )
-
-    text_widths = {**_TEXT_WIDTHS, **((_MOBILE_TEXT_WIDTHS) if mobile else {})}
-    all_widths  = {**text_widths, **_STAT_WIDTHS}
-    stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
-    pct_labels  = {_COL_LABELS[f] for f in _PCT_FIELDS}
-
-    # Dark-mode adjustments
-    text_color  = "#fafafa" if dark else "inherit"
-    avg_bg      = "rgba(120,120,120,0.30)" if dark else "rgba(80,80,80,0.12)"
-    avg_border  = "2px solid rgba(180,180,180,0.50)" if dark else "2px solid rgba(80,80,80,0.40)"
-    grp_border  = "2px solid rgba(180,180,180,0.30)" if dark else "2px solid rgba(80,80,80,0.30)"
-    base_even   = "#0e1117" if dark else "transparent"
-    base_odd    = ("#1c1c2e" if dark else stripe) if not stripe.startswith("rgba") else (
-                  stripe.replace("0.08", "0.25") if dark else stripe
-    )
-
-    for col in df.columns:
-        w         = all_widths.get(col, 42)
-        is_div    = col in _GROUP_DIVIDERS
-        is_stat   = col in stat_labels
-        is_pct    = col in pct_labels
-
-        if col in _COL_GROUP_COLORS:
-            e_bg, o_bg = _COL_GROUP_COLORS[col]
-            if dark:
-                # Boost opacity of group tints for dark backgrounds
-                e_bg = e_bg.replace("0.07", "0.20")
-                o_bg = o_bg.replace("0.15", "0.35")
-            even_bg, odd_bg = e_bg, o_bg
-        else:
-            even_bg, odd_bg = base_even, base_odd
-
-        bl = grp_border if is_div else "none"
-
-        # Value formatter: pass strings through, format numbers
-        if is_pct:
-            vfmt = JsCode("""function(p){
-                if(p.node.rowPinned==='bottom') return p.value==null?'N/A':String(p.value);
-                if(p.value==null) return 'N/A';
-                return typeof p.value==='string'?p.value:p.value.toFixed(1);
-            }""")
-        elif is_stat:
-            vfmt = JsCode("""function(p){
-                if(p.node.rowPinned==='bottom') return p.value==null?'N/A':String(p.value);
-                if(p.value==null) return 'N/A';
-                return typeof p.value==='string'?p.value:Math.round(p.value).toString();
-            }""")
-        else:
-            vfmt = None
-
-        cell_style = JsCode(f"""function(p){{
-            if(p.node.rowPinned==='bottom'){{
-                return{{fontWeight:'700',backgroundColor:'{avg_bg}',
-                        borderTop:'{avg_border}',borderLeft:'{bl}',color:'{text_color}'}};
-            }}
-            var odd=p.node.rowIndex%2!==0;
-            return{{backgroundColor:odd?'{odd_bg}':'{even_bg}',borderLeft:'{bl}',color:'{text_color}'}};
-        }}""")
-
-        kwargs = dict(width=w, cellStyle=cell_style, resizable=True)
-        if vfmt is not None:
-            kwargs["valueFormatter"] = vfmt
-        if col == "Player":
-            kwargs["pinned"] = "left"
-        # Prevent auto-sizing from crushing text columns — especially important
-        # on mobile where users cannot drag to resize.
-        if col in text_widths:
-            kwargs["minWidth"] = text_widths[col]
-        gb.configure_column(col, **kwargs)
-
-    gb.configure_grid_options(
-        pinnedBottomRowData=[avg_row] if avg_row is not None else [],
-        rowHeight=row_height,
-        headerHeight=_HEADER_HEIGHT_PX,
-        groupHeaderHeight=28,
-        suppressMovableColumns=True,
-        suppressHeaderMenuButton=True,
-        # On mobile, let the grid scroll horizontally so text columns keep their
-        # configured widths.  sizeColumnsToFit would squeeze them to ~21 px each.
-        **({} if mobile else {"onGridSizeChanged": JsCode("function(p){p.api.sizeColumnsToFit();}")}),
-    )
-    go = gb.build()
-
-    # Wrap shooting / rebound columns into visible group headers (2PT / 3PT / FT / REB).
-    by_field: dict[str, dict] = {c["field"]: c for c in go["columnDefs"]}
-    new_defs: list[dict] = []
-    seen: set[str] = set()
-    for col_def in go["columnDefs"]:
-        field = col_def.get("field", "")
-        if field in seen:
-            continue
-        if field in _GROUP_FIRST_COL:
-            grp_name, grp_fields = _GROUP_FIRST_COL[field]
-            new_defs.append({
-                "headerName": grp_name,
-                "marryChildren": True,
-                "children": [by_field[f] for f in grp_fields if f in by_field],
-            })
-            seen.update(grp_fields)
-        elif field not in _GROUPED_COLS:
-            new_defs.append(col_def)
-            seen.add(field)
-    go["columnDefs"] = new_defs
-    return go
-
-
-def _build_avg_row(df: pd.DataFrame, n_games: int) -> dict:
-    """Return a summary row with values pre-formatted to 1 decimal as strings.
-
-    Using strings lets the Styler pass them through unchanged while game rows
-    continue to render as integers (via the numeric format in _STAT_FORMAT).
-    Percentages are computed as sum(made)/sum(attempts)*100, not mean(pct).
-    """
+def _build_avg_df(df: pd.DataFrame, n_games: int) -> pd.DataFrame:
+    """Return a 1-row DataFrame with per-column averages for the history table."""
     row: dict = {}
     stat_labels = {_COL_LABELS[f] for f in _STAT_COLS}
     pct_labels  = {triple[2] for triple in _PCT_TRIPLES}
 
     for col in df.columns:
         if col not in stat_labels:
-            row[col] = ""
+            row[col] = f"Avg ({n_games} games)" if col == _COL_LABELS["player_name"] else ""
         elif col in pct_labels:
-            row[col] = "N/A"  # filled below from made/attempts
+            row[col] = None  # filled below
         else:
             series = pd.to_numeric(df[col], errors="coerce").dropna()
-            row[col] = f"{series.mean():.1f}" if len(series) else "N/A"
+            row[col] = round(series.mean(), 1) if len(series) else None
 
-    # True shooting percentages: sum(made) / sum(attempts) * 100
     for made_lbl, att_lbl, pct_lbl in _PCT_TRIPLES:
         made_s = pd.to_numeric(df[made_lbl], errors="coerce").dropna()
         att_s  = pd.to_numeric(df[att_lbl],  errors="coerce").dropna()
         total_att = att_s.sum()
-        row[pct_lbl] = (
-            f"{made_s.sum() / total_att * 100:.1f}" if total_att > 0 else "N/A"
-        )
+        row[pct_lbl] = round(made_s.sum() / total_att * 100, 1) if total_att > 0 else None
 
-    # Label the row
-    row[_COL_LABELS["player_name"]] = f"Average ({n_games} games)"
-    return row
+    return pd.DataFrame([row])
 
 
 
@@ -1326,11 +1061,8 @@ def render_latest(records: list[dict], run_date: str = "") -> None:
 
     if played_rows:
         df = pd.DataFrame(played_rows)
-        dark   = _is_dark()
-        mobile = _is_mobile()
-        rh     = 44 if mobile else _ROW_HEIGHT_PX
-        height = _GROUP_HEADER_PX + _HEADER_HEIGHT_PX + len(played_rows) * rh + _GRID_PAD_PX
         count = len(played_rows)
+        height = min(36 + count * 36 + 20, 600)
         st.markdown(
             f'<div style="margin:4px 0 6px;">'
             f'<span style="background:{_UNICAJA_GREEN};color:white;padding:2px 10px;'
@@ -1339,15 +1071,7 @@ def render_latest(records: list[dict], run_date: str = "") -> None:
             f'</span></div>',
             unsafe_allow_html=True,
         )
-        AgGrid(
-            df,
-            gridOptions=_build_aggrid(df, stripe="rgba(0,102,51,0.08)", dark=dark, mobile=mobile),
-            height=height,
-            allow_unsafe_jscode=True,
-            update_mode="NO_UPDATE",
-            theme="alpine",
-            custom_css=_aggrid_css(),
-        )
+        _render_table(df, height=height)
 
 
 
@@ -1464,27 +1188,10 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
     )
 
     # Avg row only makes sense when browsing a single player's full history
-    dark      = _is_dark()
-    mobile    = _is_mobile()
-    rh        = 44 if mobile else _ROW_HEIGHT_PX
-    show_avg  = filter_player is not None and filter_date is None
-    avg_row   = _build_avg_row(df, len(game_rows)) if show_avg else None
-    grid_opts = _build_aggrid(df, stripe="rgba(107,47,160,0.08)", avg_row=avg_row, dark=dark, mobile=mobile)
-
-    pinned_rows = 1 if show_avg else 0
-    grid_height = min(
-        _GROUP_HEADER_PX + _HEADER_HEIGHT_PX + len(df) * rh + pinned_rows * rh + _GRID_PAD_PX,
-        500 + rh,
-    )
-    AgGrid(
-        df,
-        gridOptions=grid_opts,
-        height=grid_height,
-        allow_unsafe_jscode=True,
-        update_mode="NO_UPDATE",
-        theme="alpine",
-        custom_css=_aggrid_css(),
-    )
+    show_avg = filter_player is not None and filter_date is None
+    avg_df   = _build_avg_df(df, len(game_rows)) if show_avg else None
+    height   = min(36 + len(df) * 36 + 20, 540)
+    _render_table(df, height=height, avg_df=avg_df)
 
 
 # ---------------------------------------------------------------------------
@@ -1495,7 +1202,6 @@ def render_history(all_data: dict[str, list[dict]]) -> None:
 # results are picked up promptly without requiring a manual page reload.
 st_autorefresh(interval=5 * 60 * 1000, key="data_refresh")
 
-_inject_dark_mode_detector()
 _inject_mobile_detector()
 _inject_css()
 _inject_select_keyboard_fix()
