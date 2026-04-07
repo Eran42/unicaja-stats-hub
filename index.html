@@ -19,6 +19,9 @@
       --green-dark: #004d26;
       --green-light:#00a651;
       --green-glow: rgba(0,102,51,.25);
+      --purple:     #6B2FA0;
+      --purple-dark:#4a1e72;
+      --purple-light:#9b59d0;
       --bg:         #0f1117;
       --bg2:        #1a1d27;
       --bg3:        #222535;
@@ -39,19 +42,22 @@
 
     /* ── Header ── */
     header {
-      background: var(--green-dark);
-      border-bottom: 3px solid var(--green-light);
+      background: linear-gradient(135deg, var(--green-dark) 40%, var(--purple-dark) 100%);
+      border-bottom: 3px solid transparent;
+      border-image: linear-gradient(90deg, var(--green-light) 55%, var(--purple-light) 100%) 1;
       padding: 12px 20px;
       display: flex;
       align-items: center;
       gap: 14px;
+      position: relative;
     }
     header .logo {
       width: 36px; height: 36px;
-      background: var(--green-light);
+      background: linear-gradient(135deg, var(--green-light), var(--purple-light));
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-size: 18px;
+      flex-shrink: 0;
     }
     header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -.3px; }
     header .subtitle { font-size: .78rem; color: rgba(255,255,255,.65); margin-top: 1px; }
@@ -78,7 +84,7 @@
       transition: color .15s, border-color .15s;
     }
     nav.tabs button:hover { color: var(--text); }
-    nav.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+    nav.tabs button.active { color: var(--purple-light); border-bottom-color: var(--purple-light); }
 
     /* ── Tab panes ── */
     .tab-pane { display: none; padding: 16px; }
@@ -90,7 +96,9 @@
       font-weight: 600;
       letter-spacing: .06em;
       text-transform: uppercase;
-      color: var(--text-dim);
+      color: var(--purple-light);
+      border-left: 3px solid var(--purple);
+      padding-left: 7px;
       margin-bottom: 8px;
     }
 
@@ -143,43 +151,23 @@
     .tabulator .grp-ft-col   { background: rgba(210, 130,   0, 0.12) !important; }
     .tabulator .grp-reb-col  { background: rgba(140,  60, 200, 0.12) !important; }
 
-    /* ── Avg row — sticky footer bar ── */
-    #avg-row {
-      display: none;
-      position: sticky;
-      bottom: 0;
-      z-index: 20;
-      background: linear-gradient(90deg, #0d2218, #111e16);
-      border: 1px solid var(--green);
-      border-radius: 0 0 8px 8px;
-      margin-top: -1px;
-      padding: 6px 10px;
-      overflow-x: auto;
-      box-shadow: 0 -3px 12px rgba(0,0,0,.5);
-      display: none;
-      align-items: center;
-      gap: 0;
-      flex-wrap: nowrap;
-      scrollbar-width: none;
+    /* ── Tabulator column-calcs (avg row) ── */
+    .tabulator .tabulator-calcs-holder {
+      background: linear-gradient(135deg, #1a0d2a 0%, #0d1a10 100%) !important;
+      border-top: 2px solid var(--purple) !important;
     }
-    #avg-row::-webkit-scrollbar { display: none; }
-    .avg-label {
-      font-size: 10px; font-weight: 700; color: var(--accent);
-      white-space: nowrap; flex-shrink: 0;
-      padding-right: 12px; border-right: 1px solid var(--border);
-      margin-right: 8px;
+    .tabulator .tabulator-calcs-holder .tabulator-cell {
+      color: var(--accent) !important;
+      font-weight: 700 !important;
+      font-size: .78rem !important;
+      border-right: 1px solid #2a1a3a !important;
     }
-    .avg-stat {
-      text-align: center; padding: 0 7px;
-      border-right: 1px solid #2a3040;
-      white-space: nowrap; flex-shrink: 0;
+    /* Label cell (player_name column) */
+    .tabulator .tabulator-calcs-holder .tabulator-cell:first-child {
+      color: var(--purple-light) !important;
+      font-size: .72rem !important;
+      font-weight: 700 !important;
     }
-    .avg-stat:last-child { border-right: none; }
-    .avg-stat .as-label { display: block; font-size: 9px; color: var(--text-dim); line-height: 1.3; }
-    .avg-stat .as-val   { display: block; font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; }
-    .avg-stat.pct .as-val { color: var(--accent); }
-    /* divider between groups */
-    .avg-stat.grp-end { padding-right: 12px; margin-right: 4px; border-right: 2px solid var(--border); }
 
     /* ── History filters ── */
     .filters {
@@ -203,7 +191,7 @@
       outline: none;
       border-color: var(--green-light);
     }
-    .filters label { font-size: .78rem; color: var(--text-dim); }
+    .filters label { font-size: .78rem; color: var(--purple-light); font-weight: 600; }
 
     /* ── Map ── */
     #map {
@@ -236,7 +224,7 @@
       margin-top: 20px;
     }
     footer a {
-      color: var(--green-light);
+      color: var(--purple-light);
       text-decoration: none;
     }
     footer a:hover { text-decoration: underline; }
@@ -322,7 +310,6 @@
     </div>
   </div>
   <div id="table-history"></div>
-  <div id="avg-row"></div>
 </div>
 
 <footer>
@@ -349,6 +336,35 @@ const STATUS_URL  = BASE + 'data/players/status.json';
 const REFRESH_MS = 5 * 60 * 1000;
 
 // ─────────────────────────────────────────────
+//  Avg row via Tabulator bottomCalc
+// ─────────────────────────────────────────────
+let _avgVals = {};
+
+function computeAvg(rows, playerSelected) {
+  _avgVals = {};
+  if (!rows || rows.length === 0 || !playerSelected) return;
+  const n = rows.length;
+  _avgVals._label = `Avg (${n} game${n !== 1 ? 's' : ''})`;
+
+  const simpleFields = ['min','pts','t2m','t2a','t3m','t3a','ftm','fta',
+    'reb_off','reb_def','reb','ast','stl','tov','blk','blk_against',
+    'fouls','fouls_received','plus_minus','val'];
+
+  simpleFields.forEach(f => {
+    const nonNull = rows.filter(r => r[f] !== null && r[f] !== undefined && r[f] !== '');
+    _avgVals[f] = nonNull.length
+      ? (nonNull.reduce((s, r) => s + Number(r[f]), 0) / nonNull.length).toFixed(1)
+      : '';
+  });
+
+  [['t2_pct','t2m','t2a'], ['t3_pct','t3m','t3a'], ['ft_pct','ftm','fta']].forEach(([pct, mf, af]) => {
+    const totM = rows.reduce((s, r) => s + (Number(r[mf]) || 0), 0);
+    const totA = rows.reduce((s, r) => s + (Number(r[af]) || 0), 0);
+    _avgVals[pct] = totA > 0 ? (totM / totA * 100).toFixed(1) : '';
+  });
+}
+
+// ─────────────────────────────────────────────
 //  Column definitions
 // ─────────────────────────────────────────────
 function numCol(title, field, width, decimals, cssClass) {
@@ -364,17 +380,30 @@ function numCol(title, field, width, decimals, cssClass) {
       if (v === null || v === undefined || v === '') return '<span style="color:#444">–</span>';
       return Number(v).toFixed(decimals !== undefined ? decimals : 0);
     },
+    bottomCalc: () => _avgVals[field] !== undefined ? _avgVals[field] : '',
+    bottomCalcFormatter: (cell) => {
+      const v = cell.getValue();
+      return (v !== '' && v != null) ? `<b>${v}</b>` : '';
+    },
   };
 }
 
 // Grouped column definitions
 const ALL_COLS = [
-  { title: 'Player',      field: 'player_name', frozen: true, width: 148, headerFilter: false, sorter: 'string' },
-  { title: 'Team',        field: 'team',        width: 118, headerFilter: false },
-  { title: 'Comp.',       field: 'competition', width: 100, headerFilter: false },
-  { title: 'Date',        field: 'game_date',   width: 88,  sorter: 'date', headerFilter: false },
-  { title: 'Opponent',    field: 'opponent',    width: 118, headerFilter: false },
-  { title: 'Result',      field: 'result',      width: 88,  headerFilter: false },
+  {
+    title: 'Player', field: 'player_name', frozen: true, width: 148,
+    headerFilter: false, sorter: 'string',
+    bottomCalc: () => _avgVals._label || '',
+    bottomCalcFormatter: (cell) => {
+      const v = cell.getValue();
+      return v ? `<span style="color:var(--purple-light);font-weight:700;font-size:.72rem;">${v}</span>` : '';
+    },
+  },
+  { title: 'Team',     field: 'team',        width: 118, headerFilter: false },
+  { title: 'Comp.',    field: 'competition', width: 100, headerFilter: false },
+  { title: 'Date',     field: 'game_date',   width: 88,  sorter: 'date', headerFilter: false },
+  { title: 'Opponent', field: 'opponent',    width: 118, headerFilter: false },
+  { title: 'Result',   field: 'result',      width: 88,  headerFilter: false },
   numCol('MIN', 'min',        54, 0),
   numCol('PTS', 'pts',        48, 0),
   {
@@ -396,9 +425,9 @@ const ALL_COLS = [
   {
     title: 'FT', cssClass: 'grp-ft',
     columns: [
-      numCol('M', 'ftm',   44, 0, 'grp-ft-col'),
-      numCol('A', 'fta',   44, 0, 'grp-ft-col'),
-      numCol('%', 'ft_pct',50, 1, 'grp-ft-col'),
+      numCol('M', 'ftm',    44, 0, 'grp-ft-col'),
+      numCol('A', 'fta',    44, 0, 'grp-ft-col'),
+      numCol('%', 'ft_pct', 50, 1, 'grp-ft-col'),
     ],
   },
   {
@@ -409,13 +438,15 @@ const ALL_COLS = [
       numCol('T', 'reb',     42, 0, 'grp-reb-col'),
     ],
   },
-  numCol('AST', 'ast',        44, 0),
-  numCol('STL', 'stl',        44, 0),
-  numCol('TOV', 'tov',        44, 0),
-  numCol('BLK', 'blk',        44, 0),
-  numCol('F',   'fouls',      38, 0),
-  numCol('+/-', 'plus_minus', 48, 0),
-  numCol('VAL', 'val',        48, 0),
+  numCol('AST',   'ast',           44, 0),
+  numCol('STL',   'stl',           44, 0),
+  numCol('TOV',   'tov',           44, 0),
+  numCol('BLK',   'blk',           44, 0),
+  numCol('BLK-A', 'blk_against',   48, 0),
+  numCol('F',     'fouls',         38, 0),
+  numCol('FR',    'fouls_received',38, 0),
+  numCol('+/-',   'plus_minus',    48, 0),
+  numCol('VAL',   'val',           48, 0),
 ];
 
 // ─────────────────────────────────────────────
@@ -497,76 +528,11 @@ function buildRecentTable(records) {
 }
 
 // ─────────────────────────────────────────────
-//  History table + avg row
+//  History table
 // ─────────────────────────────────────────────
-const STAT_FIELDS = ['min','pts','t2m','t2a','t2_pct','t3m','t3a','t3_pct','ftm','fta','ft_pct',
-  'reb_off','reb_def','reb','ast','stl','tov','blk','fouls','plus_minus','val'];
-const PCT_FIELDS  = new Set(['t2_pct','t3_pct','ft_pct']);
-const MADE_ATT    = { t2_pct: ['t2m','t2a'], t3_pct: ['t3m','t3a'], ft_pct: ['ftm','fta'] };
-
-// Stat layout for avg bar: [field, label, isGroupEnd, isPct]
-const AVG_STATS = [
-  ['min',        'MIN',  false, false],
-  ['pts',        'PTS',  true,  false],
-  ['t2m',        'T2M',  false, false],
-  ['t2a',        'T2A',  false, false],
-  ['t2_pct',     'T2%',  true,  true ],
-  ['t3m',        'T3M',  false, false],
-  ['t3a',        'T3A',  false, false],
-  ['t3_pct',     'T3%',  true,  true ],
-  ['ftm',        'FTM',  false, false],
-  ['fta',        'FTA',  false, false],
-  ['ft_pct',     'FT%',  true,  true ],
-  ['reb_off',    'RO',   false, false],
-  ['reb_def',    'RD',   false, false],
-  ['reb',        'RT',   true,  false],
-  ['ast',        'AST',  false, false],
-  ['stl',        'STL',  false, false],
-  ['tov',        'TOV',  false, false],
-  ['blk',        'BLK',  false, false],
-  ['fouls',      'F',    true,  false],
-  ['plus_minus', '+/-',  false, false],
-  ['val',        'VAL',  false, false],
-];
-
-function buildAvgRow(rows, playerSelected) {
-  const el = document.getElementById('avg-row');
-  // Only show avg when exactly one player is filtered
-  if (!rows || rows.length === 0 || !playerSelected) {
-    el.style.display = 'none';
-    return;
-  }
-
-  const n = rows.length;
-  const vals = {};
-  STAT_FIELDS.forEach(f => {
-    if (PCT_FIELDS.has(f)) {
-      const [mf, af] = MADE_ATT[f];
-      const totMade = rows.reduce((s, r) => s + (Number(r[mf]) || 0), 0);
-      const totAtt  = rows.reduce((s, r) => s + (Number(r[af]) || 0), 0);
-      vals[f] = totAtt > 0 ? (totMade / totAtt * 100).toFixed(1) : '–';
-    } else {
-      const nonNull = rows.filter(r => r[f] !== null && r[f] !== undefined && r[f] !== '');
-      vals[f] = nonNull.length
-        ? (nonNull.reduce((s, r) => s + Number(r[f]), 0) / nonNull.length).toFixed(1)
-        : '–';
-    }
-  });
-
-  const statHtml = AVG_STATS.map(([f, label, grpEnd, isPct]) =>
-    `<div class="avg-stat${isPct ? ' pct' : ''}${grpEnd ? ' grp-end' : ''}">
-      <span class="as-label">${label}</span>
-      <span class="as-val">${vals[f]}</span>
-    </div>`
-  ).join('');
-
-  el.innerHTML = `<span class="avg-label">Avg<br>${n} game${n !== 1 ? 's' : ''}</span>${statHtml}`;
-  el.style.display = 'flex';
-}
-
 function buildHistTable(records) {
   histTable = new Tabulator('#table-history', {
-    data: [],          // empty until player is chosen
+    data: [],
     columns: ALL_COLS,
     layout: 'fitDataFill',
     height: 500,
@@ -574,25 +540,24 @@ function buildHistTable(records) {
     movableColumns: false,
     columnHeaderVertAlign: 'bottom',
     initialSort: [{ column: 'game_date', dir: 'desc' }],
-    placeholder: '<div style="padding:28px;color:#666;font-size:.85rem;">Select a player above to load their game history.</div>',
+    placeholder: '<div style="padding:28px;color:#555;font-size:.85rem;">Select a player above to load their game history.</div>',
   });
 
   histTable.on('dataFiltered', (filters, rows) => {
     const playerSel = document.getElementById('filter-player').value;
-    buildAvgRow(rows.map(r => r.getData()), !!playerSel);
+    computeAvg(rows.map(r => r.getData()), !!playerSel);
+    histTable.recalc();
   });
 
-  // Populate player dropdown
+  // Populate dropdowns
   const players = [...new Set(records.map(r => r.player_name).filter(Boolean))].sort();
   const pSel = document.getElementById('filter-player');
   players.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; pSel.appendChild(o); });
 
-  // Populate competition dropdown (populated dynamically per player below)
   const comps = [...new Set(records.map(r => r.competition).filter(Boolean))].sort();
   const cSel = document.getElementById('filter-comp');
   comps.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; cSel.appendChild(o); });
 
-  // Set default date range to full season
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById('filter-from').value = '2025-09-26';
   document.getElementById('filter-to').value   = today;
@@ -605,14 +570,12 @@ function applyHistFilters() {
   const from   = document.getElementById('filter-from').value;
   const to     = document.getElementById('filter-to').value;
 
-  // No data until a player is selected
   if (!player) {
-    histTable.setData([]);
-    buildAvgRow([], false);
+    computeAvg([], false);
+    histTable.setData([]).then(() => histTable.recalc());
     return;
   }
 
-  // Load records for this player on demand (filter from allRecords)
   const playerRows = allRecords.filter(r => r.player_name === player);
   histTable.setData(playerRows).then(() => {
     const filters = [];
