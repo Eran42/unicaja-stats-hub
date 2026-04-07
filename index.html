@@ -248,13 +248,18 @@
 </header>
 
 <nav class="tabs">
-  <button class="tab-btn active" data-tab="recent">Recent Games (24 h)</button>
+  <button class="tab-btn active" data-tab="map">Map</button>
+  <button class="tab-btn" data-tab="recent">Recent Games (24 h)</button>
   <button class="tab-btn" data-tab="history">All Records</button>
-  <button class="tab-btn" data-tab="map">Map</button>
 </nav>
 
+<!-- Map -->
+<div id="pane-map" class="tab-pane active">
+  <div id="map"></div>
+</div>
+
 <!-- Recent Games -->
-<div id="pane-recent" class="tab-pane active">
+<div id="pane-recent" class="tab-pane">
   <div class="section-label">Games played in the last 24 hours</div>
   <div id="table-recent"></div>
   <div id="empty-recent" class="empty-state" style="display:none">No confirmed games in the last 24 hours.</div>
@@ -282,11 +287,6 @@
   </div>
   <div id="table-history"></div>
   <div id="avg-row"></div>
-</div>
-
-<!-- Map -->
-<div id="pane-map" class="tab-pane">
-  <div id="map"></div>
 </div>
 
 <footer>
@@ -405,11 +405,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const pane = document.getElementById('pane-' + btn.dataset.tab);
     pane.classList.add('active');
 
-    // Lazy-init map on first open
-    if (btn.dataset.tab === 'map' && !mapInstance) buildMap();
-    // Force Tabulator to recalculate layout when tab becomes visible
-    if (btn.dataset.tab === 'history' && histTable) histTable.redraw(true);
+    // Tabulator needs a redraw when its pane becomes visible
+    if (btn.dataset.tab === 'history' && histTable)   histTable.redraw(true);
     if (btn.dataset.tab === 'recent'  && recentTable) recentTable.redraw(true);
+    // Map needs invalidateSize after being hidden/shown
+    if (btn.dataset.tab === 'map' && mapInstance) mapInstance.invalidateSize();
   });
 });
 
@@ -541,7 +541,7 @@ function applyHistFilters() {
 //  Map
 // ─────────────────────────────────────────────
 function buildMap() {
-  mapInstance = L.map('map', { center: [45, 15], zoom: 4, zoomControl: true });
+  mapInstance = L.map('map', { zoomControl: true });
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '© OpenStreetMap © CARTO',
@@ -591,6 +591,14 @@ function buildMap() {
     const html = buildPopupHtml(team, players, latestStat, teamsWithRecent);
     marker.bindPopup(html, { maxWidth: 280, minWidth: 230 });
   });
+
+  // Fit view to show all markers with comfortable padding
+  const allCoords = Object.entries(teamCoords)
+    .filter(([team]) => teamPlayers[team])
+    .map(([, coords]) => coords);
+  if (allCoords.length) {
+    mapInstance.fitBounds(L.latLngBounds(allCoords), { padding: [40, 40] });
+  }
 }
 
 // ─ Player avatar HTML ─
@@ -736,6 +744,7 @@ async function loadAll() {
   document.getElementById('record-count').textContent = `${allRecords.length} records · ${registry.length} players`;
   document.getElementById('footer-date').textContent = idx.last_updated || '—';
 
+  buildMap();
   buildRecentTable(allRecords);
   buildHistTable(allRecords);
 
