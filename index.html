@@ -510,8 +510,7 @@ function buildHistTable(records) {
 
   // Set default date range: today - 30 days to today
   const today = new Date().toISOString().slice(0, 10);
-  const from30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  document.getElementById('filter-from').value = from30;
+  document.getElementById('filter-from').value = '2025-09-26';
   document.getElementById('filter-to').value   = today;
 
   applyHistFilters();
