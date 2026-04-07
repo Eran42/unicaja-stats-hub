@@ -140,16 +140,18 @@
     .tabulator .tabulator-footer { background: var(--bg3) !important; border-top: 1px solid var(--border) !important; }
 
     /* ── Column group colour bands ── */
-    /* Group header rows */
-    .tabulator .grp-2pt  { background: rgba(79,  100, 215, 0.22) !important; }
-    .tabulator .grp-3pt  { background: rgba(0,   166,  80, 0.22) !important; }
-    .tabulator .grp-ft   { background: rgba(210, 130,   0, 0.22) !important; }
-    .tabulator .grp-reb  { background: rgba(140,  60, 200, 0.22) !important; }
-    /* Child column headers (slightly lighter) */
-    .tabulator .grp-2pt-col  { background: rgba(79,  100, 215, 0.12) !important; }
-    .tabulator .grp-3pt-col  { background: rgba(0,   166,  80, 0.12) !important; }
-    .tabulator .grp-ft-col   { background: rgba(210, 130,   0, 0.12) !important; }
-    .tabulator .grp-reb-col  { background: rgba(140,  60, 200, 0.12) !important; }
+    .tabulator .grp-2pt    { background: rgba( 79, 100, 215, 0.22) !important; }
+    .tabulator .grp-3pt    { background: rgba(  0, 166,  80, 0.22) !important; }
+    .tabulator .grp-ft     { background: rgba(210, 130,   0, 0.22) !important; }
+    .tabulator .grp-reb    { background: rgba(140,  60, 200, 0.22) !important; }
+    .tabulator .grp-blk    { background: rgba(210,  40,  40, 0.22) !important; }
+    .tabulator .grp-fouls  { background: rgba(  0, 170, 170, 0.22) !important; }
+    .tabulator .grp-2pt-col   { background: rgba( 79, 100, 215, 0.12) !important; }
+    .tabulator .grp-3pt-col   { background: rgba(  0, 166,  80, 0.12) !important; }
+    .tabulator .grp-ft-col    { background: rgba(210, 130,   0, 0.12) !important; }
+    .tabulator .grp-reb-col   { background: rgba(140,  60, 200, 0.12) !important; }
+    .tabulator .grp-blk-col   { background: rgba(210,  40,  40, 0.12) !important; }
+    .tabulator .grp-fouls-col { background: rgba(  0, 170, 170, 0.12) !important; }
 
     /* ── Tabulator column-calcs (avg row) ── */
     .tabulator .tabulator-calcs-holder {
@@ -195,11 +197,15 @@
 
     /* ── Map ── */
     #map {
-      height: calc(100vh - 130px);
-      min-height: 420px;
+      height: calc(100dvh - 130px);
+      min-height: 340px;
+      max-height: 900px;
       border-radius: 10px;
       border: 1px solid var(--border);
       overflow: hidden;
+    }
+    @media (max-width: 768px) {
+      #map { height: 60dvh; min-height: 280px; }
     }
 
     /* Leaflet popup — light/white to match Streamlit cards */
@@ -371,6 +377,7 @@ function numCol(title, field, width, decimals, cssClass) {
   return {
     title, field,
     width: width || 48,
+    widthGrow: 0, widthShrink: 0,   // stat cols hold their width exactly
     hozAlign: 'right', headerHozAlign: 'center',
     headerFilter: false,
     sorter: 'number',
@@ -392,6 +399,7 @@ function numCol(title, field, width, decimals, cssClass) {
 const ALL_COLS = [
   {
     title: 'Player', field: 'player_name', frozen: true, width: 148,
+    widthGrow: 0, widthShrink: 0,
     headerFilter: false, sorter: 'string',
     bottomCalc: () => _avgVals._label || '',
     bottomCalcFormatter: (cell) => {
@@ -399,11 +407,11 @@ const ALL_COLS = [
       return v ? `<span style="color:var(--purple-light);font-weight:700;font-size:.72rem;">${v}</span>` : '';
     },
   },
-  { title: 'Team',     field: 'team',        width: 118, headerFilter: false },
-  { title: 'Comp.',    field: 'competition', width: 100, headerFilter: false },
-  { title: 'Date',     field: 'game_date',   width: 88,  sorter: 'date', headerFilter: false },
-  { title: 'Opponent', field: 'opponent',    width: 118, headerFilter: false },
-  { title: 'Result',   field: 'result',      width: 88,  headerFilter: false },
+  { title: 'Team',     field: 'team',        width: 110, widthGrow: 1, headerFilter: false },
+  { title: 'Comp.',    field: 'competition', width:  95, widthGrow: 1, headerFilter: false },
+  { title: 'Date',     field: 'game_date',   width:  88, widthGrow: 0, widthShrink: 0, sorter: 'date', headerFilter: false },
+  { title: 'Opponent', field: 'opponent',    width: 110, widthGrow: 2, headerFilter: false },
+  { title: 'Result',   field: 'result',      width:  88, widthGrow: 0, widthShrink: 0, headerFilter: false },
   numCol('MIN', 'min',        54, 0),
   numCol('PTS', 'pts',        48, 0),
   {
@@ -438,15 +446,25 @@ const ALL_COLS = [
       numCol('T', 'reb',     42, 0, 'grp-reb-col'),
     ],
   },
-  numCol('AST',   'ast',           44, 0),
-  numCol('STL',   'stl',           44, 0),
-  numCol('TOV',   'tov',           44, 0),
-  numCol('BLK',   'blk',           44, 0),
-  numCol('BLK-A', 'blk_against',   48, 0),
-  numCol('F',     'fouls',         38, 0),
-  numCol('FR',    'fouls_received',38, 0),
-  numCol('+/-',   'plus_minus',    48, 0),
-  numCol('VAL',   'val',           48, 0),
+  numCol('AST', 'ast',           44, 0),
+  numCol('STL', 'stl',           44, 0),
+  numCol('TOV', 'tov',           44, 0),
+  {
+    title: 'BLK', cssClass: 'grp-blk',
+    columns: [
+      numCol('BLK',  'blk',         44, 0, 'grp-blk-col'),
+      numCol('RCV',  'blk_against', 44, 0, 'grp-blk-col'),
+    ],
+  },
+  {
+    title: 'FOULS', cssClass: 'grp-fouls',
+    columns: [
+      numCol('COM', 'fouls',          42, 0, 'grp-fouls-col'),
+      numCol('RCV', 'fouls_received', 42, 0, 'grp-fouls-col'),
+    ],
+  },
+  numCol('+/-', 'plus_minus', 48, 0),
+  numCol('VAL', 'val',        48, 0),
 ];
 
 // ─────────────────────────────────────────────
@@ -517,7 +535,7 @@ function buildRecentTable(records) {
   recentTable = new Tabulator('#table-recent', {
     data: rows,
     columns: ALL_COLS,
-    layout: 'fitDataFill',
+    layout: 'fitColumns',
     height: Math.min(38 + rows.length * 34 + 20, 580),
     rowHeight: 34,
     movableColumns: false,
@@ -534,7 +552,7 @@ function buildHistTable(records) {
   histTable = new Tabulator('#table-history', {
     data: [],
     columns: ALL_COLS,
-    layout: 'fitDataFill',
+    layout: 'fitColumns',
     height: 500,
     rowHeight: 34,
     movableColumns: false,

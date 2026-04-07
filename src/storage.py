@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -127,7 +127,7 @@ def write_index() -> Path:
     dates = get_all_dates()
     payload = {
         "dates": dates,
-        "last_updated": str(date.today()),
+        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "count": len(dates),
     }
     out_path = stats_dir / "index.json"
