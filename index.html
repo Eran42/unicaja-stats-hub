@@ -300,7 +300,7 @@
   <div class="filters">
     <div>
       <label>Player</label><br>
-      <select id="filter-player"><option value="">All players</option></select>
+      <select id="filter-player"><option value="">— Choose player —</option></select>
     </div>
     <div>
       <label>Competition</label><br>
@@ -563,13 +563,18 @@ function buildHistTable(records) {
 
   histTable.on('dataFiltered', (filters, rows) => {
     const playerSel = document.getElementById('filter-player').value;
-    computeAvg(rows.map(r => r.getData()), !!playerSel);
+    const isSingle  = !!playerSel && playerSel !== '__all__';
+    computeAvg(rows.map(r => r.getData()), isSingle);
     histTable.recalc();
   });
 
   // Populate dropdowns
   const players = [...new Set(records.map(r => r.player_name).filter(Boolean))].sort();
   const pSel = document.getElementById('filter-player');
+  // "All players" option comes first after the placeholder
+  const allOpt = document.createElement('option');
+  allOpt.value = '__all__'; allOpt.textContent = 'All players';
+  pSel.appendChild(allOpt);
   players.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; pSel.appendChild(o); });
 
   const comps = [...new Set(records.map(r => r.competition).filter(Boolean))].sort();
@@ -588,19 +593,29 @@ function applyHistFilters() {
   const from   = document.getElementById('filter-from').value;
   const to     = document.getElementById('filter-to').value;
 
+  // "— Choose player —": show nothing
   if (!player) {
     computeAvg([], false);
     histTable.setData([]).then(() => histTable.recalc());
     return;
   }
 
-  const playerRows = allRecords.filter(r => r.player_name === player);
-  histTable.setData(playerRows).then(() => {
+  // Determine which rows to load
+  const rows = player === '__all__'
+    ? allRecords
+    : allRecords.filter(r => r.player_name === player);
+
+  const isSinglePlayer = player !== '__all__';
+
+  histTable.setData(rows).then(() => {
     const filters = [];
+    if (isSinglePlayer) filters.push({ field: 'player_name', type: '=', value: player });
     if (comp) filters.push({ field: 'competition', type: '=',  value: comp });
     if (from) filters.push({ field: 'game_date',   type: '>=', value: from });
     if (to)   filters.push({ field: 'game_date',   type: '<=', value: to   });
     histTable.setFilter(filters);
+    // Avg row only for a single player
+    if (!isSinglePlayer) { computeAvg([], false); histTable.recalc(); }
   });
 }
 
