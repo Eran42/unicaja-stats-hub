@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -109,7 +110,69 @@ def get_all_dates() -> list[str]:
         Sorted list of ISO date strings (ascending), e.g. ["2025-01-15", "2025-01-16"].
     """
     stats_dir = _ensure_stats_dir()
+    _SKIP = {"index", "recent", ".gitkeep"}
     json_files = sorted(stats_dir.glob("*.json"))
-    dates = [f.stem for f in json_files if f.stem != ".gitkeep"]
+    dates = [f.stem for f in json_files if f.stem not in _SKIP]
     logger.debug("Found %d date(s) with saved stats.", len(dates))
     return dates
+
+
+def write_index() -> Path:
+    """
+    Write data/stats/index.json — a manifest for the static GitHub Pages site.
+
+    Content: {"dates": [...sorted ISO strings...], "last_updated": "YYYY-MM-DD", "count": N}
+    """
+    stats_dir = _ensure_stats_dir()
+    dates = get_all_dates()
+    payload = {
+        "dates": dates,
+        "last_updated": str(date.today()),
+        "count": len(dates),
+    }
+    out_path = stats_dir / "index.json"
+    with out_path.open("w", encoding="utf-8") as fh:
+        json.dump(payload, fh, ensure_ascii=False, indent=2)
+    logger.info("Wrote index.json (%d dates) to %s", len(dates), out_path)
+    return out_path
+
+
+def write_recent(days: int = 60) -> Path:
+    """
+    Aggregate the last *days* days of stats into data/stats/recent.json.
+
+    Records are deduplicated by (player_name, source, competition, game_date).
+    When duplicates exist, the record with the most recent 'date' field wins.
+    The output is sorted by game_date descending, then player_name ascending.
+
+    Used by the static GitHub Pages site so it only needs one data fetch.
+    """
+    stats_dir = _ensure_stats_dir()
+    cutoff = str(date.today() - timedelta(days=days))
+
+    seen: dict[tuple, dict] = {}
+    for date_str in get_all_dates():
+        if date_str < cutoff:
+            continue
+        for rec in load_stats(date_str):
+            key = (
+                rec.get("player_name") or "",
+                rec.get("source") or "",
+                rec.get("competition") or "",
+                rec.get("game_date") or "",
+            )
+            rec_date = rec.get("date") or ""
+            if key not in seen or rec_date > seen[key].get("date", ""):
+                seen[key] = rec
+
+    records = sorted(
+        seen.values(),
+        key=lambda r: (r.get("game_date") or "", r.get("player_name") or ""),
+        reverse=True,
+    )
+
+    out_path = stats_dir / "recent.json"
+    with out_path.open("w", encoding="utf-8") as fh:
+        json.dump(records, fh, ensure_ascii=False, indent=2, default=str)
+    logger.info("Wrote recent.json (%d records) to %s", len(records), out_path)
+    return out_path

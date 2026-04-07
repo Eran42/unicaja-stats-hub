@@ -25,7 +25,7 @@ import time as _time
 
 from src.players import get_active_players, seed_registry
 from src.router import fetch_all_stats
-from src.storage import save_daily_stats, save_csv_snapshot
+from src.storage import save_daily_stats, save_csv_snapshot, write_index, write_recent
 from src.agents import status_agent
 
 # ---------------------------------------------------------------------------
@@ -79,6 +79,8 @@ def run_job() -> None:
 
     json_path = save_daily_stats(stats, today)
     csv_path  = save_csv_snapshot(stats, today)
+    write_index()
+    write_recent()
 
     logger.info("Saved %d record(s) -> %s", len(stats), json_path)
     logger.info("CSV snapshot       -> %s", csv_path)

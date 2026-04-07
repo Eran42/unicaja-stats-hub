@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ex-Unicaja Stats</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Tabulator (midnight dark theme) -->
+  <link href="https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
+
+  <style>
+    :root {
+      --green:      #006633;
+      --green-dark: #004d26;
+      --green-light:#00a651;
+      --green-glow: rgba(0,102,51,.25);
+      --bg:         #0f1117;
+      --bg2:        #1a1d27;
+      --bg3:        #222535;
+      --border:     #2e3250;
+      --text:       #e8eaf0;
+      --text-dim:   #8b9199;
+      --accent:     #00c569;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--green-dark);
+      border-bottom: 3px solid var(--green-light);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    header .logo {
+      width: 36px; height: 36px;
+      background: var(--green-light);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -.3px; }
+    header .subtitle { font-size: .78rem; color: rgba(255,255,255,.65); margin-top: 1px; }
+    header .meta { margin-left: auto; text-align: right; font-size: .75rem; color: rgba(255,255,255,.55); }
+    header .meta b { color: var(--accent); }
+
+    /* ── Nav tabs ── */
+    nav.tabs {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      padding: 0 16px;
+      gap: 4px;
+    }
+    nav.tabs button {
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: .85rem;
+      font-weight: 500;
+      padding: 10px 16px;
+      transition: color .15s, border-color .15s;
+    }
+    nav.tabs button:hover { color: var(--text); }
+    nav.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Tab panes ── */
+    .tab-pane { display: none; padding: 16px; }
+    .tab-pane.active { display: block; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      background: var(--bg2);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 28px 20px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: .875rem;
+    }
+
+    /* ── Tabulator overrides ── */
+    .tabulator {
+      border: 1px solid var(--border) !important;
+      border-radius: 8px !important;
+      overflow: hidden;
+      font-size: .8rem !important;
+    }
+    .tabulator .tabulator-header {
+      background: var(--bg3) !important;
+      border-bottom: 2px solid var(--green-dark) !important;
+    }
+    .tabulator .tabulator-header .tabulator-col-title { font-size: .75rem !important; }
+    .tabulator .tabulator-row:nth-child(even) { background: #161923 !important; }
+    .tabulator .tabulator-row:hover { background: #1f2535 !important; }
+    .tabulator .tabulator-cell { padding: 5px 8px !important; border-right: 1px solid #1e2235 !important; }
+    .tabulator .tabulator-footer { background: var(--bg3) !important; border-top: 1px solid var(--border) !important; }
+
+    /* avg row styling */
+    #avg-row {
+      margin-top: 4px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg3);
+      display: none;
+    }
+    #avg-row table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .8rem;
+    }
+    #avg-row td {
+      padding: 5px 8px;
+      border-right: 1px solid #1e2235;
+      white-space: nowrap;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    #avg-row td:first-child { color: var(--text-dim); font-weight: 400; }
+
+    /* ── History filters ── */
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .filters select, .filters input[type=date] {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: .82rem;
+      padding: 6px 10px;
+      cursor: pointer;
+      min-width: 140px;
+    }
+    .filters select:focus, .filters input[type=date]:focus {
+      outline: none;
+      border-color: var(--green-light);
+    }
+    .filters label { font-size: .78rem; color: var(--text-dim); }
+
+    /* ── Map ── */
+    #map {
+      height: calc(100vh - 130px);
+      min-height: 420px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    /* Leaflet popup */
+    .leaflet-popup-content-wrapper {
+      background: var(--bg2) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--border) !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,.5) !important;
+      border-radius: 10px !important;
+    }
+    .leaflet-popup-tip { background: var(--bg2) !important; }
+    .leaflet-popup-content { margin: 12px 14px !important; min-width: 200px; max-width: 280px; }
+    .popup-team { font-weight: 700; font-size: .9rem; color: var(--accent); margin-bottom: 8px; }
+    .popup-player {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .82rem;
+    }
+    .popup-player:last-child { border-bottom: none; }
+    .popup-player img {
+      width: 28px; height: 28px; border-radius: 50%;
+      object-fit: cover; background: var(--bg3);
+      flex-shrink: 0;
+    }
+    .popup-player .pname { font-weight: 500; }
+    .popup-player .pstat { font-size: .73rem; color: var(--text-dim); }
+    .popup-player .status-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .status-injured { background: #e74c3c; }
+    .status-no_game { background: #f39c12; }
+    .status-active  { background: var(--accent); }
+    .status-unknown { background: var(--text-dim); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 18px;
+      font-size: .75rem;
+      color: var(--text-dim);
+      border-top: 1px solid var(--border);
+      margin-top: 20px;
+    }
+    footer a {
+      color: var(--green-light);
+      text-decoration: none;
+    }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Spinner ── */
+    #spinner {
+      position: fixed; inset: 0; background: rgba(15,17,23,.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999; flex-direction: column; gap: 12px;
+    }
+    .spin-ring {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 4px solid var(--bg3);
+      border-top-color: var(--accent);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #spinner p { font-size: .85rem; color: var(--text-dim); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      header h1 { font-size: 1rem; }
+      nav.tabs button { padding: 8px 10px; font-size: .78rem; }
+      .tab-pane { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="spinner">
+  <div class="spin-ring"></div>
+  <p>Loading stats…</p>
+</div>
+
+<header>
+  <div class="logo">🏀</div>
+  <div>
+    <h1>Ex-Unicaja Players Tracker</h1>
+    <div class="subtitle">Live stats for former Unicaja Baloncesto players worldwide</div>
+  </div>
+  <div class="meta">
+    Last updated: <b id="last-updated">—</b><br>
+    <span id="record-count" style="color:var(--text-dim)"></span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="recent">Recent Games (24 h)</button>
+  <button class="tab-btn" data-tab="history">All Records</button>
+  <button class="tab-btn" data-tab="map">Map</button>
+</nav>
+
+<!-- Recent Games -->
+<div id="pane-recent" class="tab-pane active">
+  <div class="section-label">Games played in the last 24 hours</div>
+  <div id="table-recent"></div>
+  <div id="empty-recent" class="empty-state" style="display:none">No confirmed games in the last 24 hours.</div>
+</div>
+
+<!-- All Records -->
+<div id="pane-history" class="tab-pane">
+  <div class="filters">
+    <div>
+      <label>Player</label><br>
+      <select id="filter-player"><option value="">All players</option></select>
+    </div>
+    <div>
+      <label>Competition</label><br>
+      <select id="filter-comp"><option value="">All competitions</option></select>
+    </div>
+    <div>
+      <label>From</label><br>
+      <input type="date" id="filter-from">
+    </div>
+    <div>
+      <label>To</label><br>
+      <input type="date" id="filter-to">
+    </div>
+  </div>
+  <div id="table-history"></div>
+  <div id="avg-row"></div>
+</div>
+
+<!-- Map -->
+<div id="pane-map" class="tab-pane">
+  <div id="map"></div>
+</div>
+
+<footer>
+  Data refreshes daily &mdash; last pipeline run: <span id="footer-date">—</span> &nbsp;|&nbsp;
+  <a href="https://github.com/Eran42/unicaja-stats-hub/issues/new?title=Stats+feedback" target="_blank">Send feedback</a>
+</footer>
+
+<script>
+// ─────────────────────────────────────────────
+//  Config
+// ─────────────────────────────────────────────
+const BASE = location.href.includes('github.io') || location.protocol === 'file:'
+  ? ''   // same-origin when served from GH Pages root
+  : '';
+
+const RECENT_URL  = BASE + 'data/stats/recent.json';
+const INDEX_URL   = BASE + 'data/stats/index.json';
+const REGISTRY_URL = BASE + 'data/players/registry.json';
+const COORDS_URL  = BASE + 'data/players/team_coords.json';
+const PHOTOS_URL  = BASE + 'data/players/photos.json';
+const STATUS_URL  = BASE + 'data/players/status.json';
+
+// Auto-refresh every 5 minutes
+const REFRESH_MS = 5 * 60 * 1000;
+
+// ─────────────────────────────────────────────
+//  Column definitions
+// ─────────────────────────────────────────────
+const TEXT_COLS = [
+  { title: 'Player',      field: 'player_name', width: 150, frozen: true, headerFilter: false },
+  { title: 'Team',        field: 'team',         width: 130, headerFilter: false },
+  { title: 'Competition', field: 'competition',  width: 110, headerFilter: false },
+  { title: 'Date',        field: 'game_date',    width: 90,  sorter: 'date', headerFilter: false },
+  { title: 'Opponent',    field: 'opponent',     width: 130, headerFilter: false },
+  { title: 'Result',      field: 'result',       width: 100, headerFilter: false },
+];
+
+function numCol(title, field, width, decimals) {
+  return {
+    title, field, width: width || 52, hozAlign: 'right', headerHozAlign: 'right', headerFilter: false,
+    sorter: 'number',
+    formatter: (cell) => {
+      const v = cell.getValue();
+      if (v === null || v === undefined || v === '') return '–';
+      if (decimals !== undefined) return Number(v).toFixed(decimals);
+      return Number.isInteger(Number(v)) ? Math.round(v) : Number(v).toFixed(0);
+    },
+  };
+}
+
+const STAT_COLS = [
+  numCol('MIN',  'min',         60, 0),
+  numCol('PTS',  'pts',         52, 0),
+  numCol('T2M',  't2m',         52, 0),
+  numCol('T2A',  't2a',         52, 0),
+  numCol('T2%',  't2_pct',      52, 1),
+  numCol('T3M',  't3m',         52, 0),
+  numCol('T3A',  't3a',         52, 0),
+  numCol('T3%',  't3_pct',      52, 1),
+  numCol('FTM',  'ftm',         52, 0),
+  numCol('FTA',  'fta',         52, 0),
+  numCol('FT%',  'ft_pct',      52, 1),
+  numCol('RO',   'reb_off',     48, 0),
+  numCol('RD',   'reb_def',     48, 0),
+  numCol('RT',   'reb',         48, 0),
+  numCol('AST',  'ast',         48, 0),
+  numCol('STL',  'stl',         48, 0),
+  numCol('TOV',  'tov',         48, 0),
+  numCol('BLK',  'blk',         48, 0),
+  numCol('F',    'fouls',       42, 0),
+  numCol('+/-',  'plus_minus',  52, 0),
+  numCol('VAL',  'val',         52, 0),
+];
+
+const ALL_COLS = [...TEXT_COLS, ...STAT_COLS];
+
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
+let allRecords  = [];
+let registry    = [];
+let teamCoords  = {};
+let photos      = {};
+let statusData  = {};
+let mapInstance = null;
+let histTable   = null;
+let recentTable = null;
+
+// ─────────────────────────────────────────────
+//  Utilities
+// ─────────────────────────────────────────────
+function within24h(game_date) {
+  if (!game_date || game_date === '—') return false;
+  const gd = new Date(game_date + 'T00:00:00');
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  // compare calendar dates only (cutoff → midnight of that day)
+  const cutoffDate = new Date(cutoff.getFullYear(), cutoff.getMonth(), cutoff.getDate());
+  const gdDate     = new Date(gd.getFullYear(), gd.getMonth(), gd.getDate());
+  return gdDate >= cutoffDate;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ─────────────────────────────────────────────
+//  Tab switching
+// ─────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const pane = document.getElementById('pane-' + btn.dataset.tab);
+    pane.classList.add('active');
+
+    // Lazy-init map on first open
+    if (btn.dataset.tab === 'map' && !mapInstance) buildMap();
+    // Force Tabulator to recalculate layout when tab becomes visible
+    if (btn.dataset.tab === 'history' && histTable) histTable.redraw(true);
+    if (btn.dataset.tab === 'recent'  && recentTable) recentTable.redraw(true);
+  });
+});
+
+// ─────────────────────────────────────────────
+//  Recent table
+// ─────────────────────────────────────────────
+function buildRecentTable(records) {
+  const rows = records.filter(r => r.game_date && within24h(r.game_date));
+
+  if (rows.length === 0) {
+    document.getElementById('empty-recent').style.display = '';
+    return;
+  }
+  document.getElementById('empty-recent').style.display = 'none';
+
+  rows.sort((a, b) => (b.game_date || '').localeCompare(a.game_date || '') ||
+                       (a.player_name || '').localeCompare(b.player_name || ''));
+
+  recentTable = new Tabulator('#table-recent', {
+    data: rows,
+    columns: ALL_COLS,
+    layout: 'fitDataFill',
+    height: Math.min(36 + rows.length * 36 + 20, 600),
+    rowHeight: 36,
+    movableColumns: true,
+    initialSort: [{ column: 'game_date', dir: 'desc' }],
+    placeholder: 'No recent games.',
+  });
+}
+
+// ─────────────────────────────────────────────
+//  History table + avg row
+// ─────────────────────────────────────────────
+const STAT_FIELDS = ['min','pts','t2m','t2a','t2_pct','t3m','t3a','t3_pct','ftm','fta','ft_pct',
+  'reb_off','reb_def','reb','ast','stl','tov','blk','fouls','plus_minus','val'];
+const PCT_FIELDS  = new Set(['t2_pct','t3_pct','ft_pct']);
+const MADE_ATT = { t2_pct: ['t2m','t2a'], t3_pct: ['t3m','t3a'], ft_pct: ['ftm','fta'] };
+
+function buildAvgRow(rows) {
+  const el = document.getElementById('avg-row');
+  if (!rows || rows.length === 0) { el.style.display = 'none'; return; }
+
+  const n = rows.length;
+  const vals = {};
+
+  STAT_FIELDS.forEach(f => {
+    if (PCT_FIELDS.has(f)) {
+      const [mf, af] = MADE_ATT[f];
+      const totMade = rows.reduce((s, r) => s + (Number(r[mf]) || 0), 0);
+      const totAtt  = rows.reduce((s, r) => s + (Number(r[af]) || 0), 0);
+      vals[f] = totAtt > 0 ? (totMade / totAtt * 100).toFixed(1) : '–';
+    } else {
+      const sum = rows.reduce((s, r) => s + (Number(r[f]) || 0), 0);
+      vals[f] = (sum / n).toFixed(1);
+    }
+  });
+
+  // Build a table row matching the column order
+  const headers = [
+    `Avg (${n} games)`, '', '', '', '', '',  // text cols
+    vals.min, vals.pts,
+    vals.t2m, vals.t2a, vals.t2_pct,
+    vals.t3m, vals.t3a, vals.t3_pct,
+    vals.ftm, vals.fta, vals.ft_pct,
+    vals.reb_off, vals.reb_def, vals.reb,
+    vals.ast, vals.stl, vals.tov, vals.blk, vals.fouls, vals.plus_minus, vals.val,
+  ];
+
+  el.innerHTML = `<table><tr>${headers.map(h => `<td>${h}</td>`).join('')}</tr></table>`;
+  el.style.display = '';
+}
+
+function buildHistTable(records) {
+  histTable = new Tabulator('#table-history', {
+    data: records,
+    columns: ALL_COLS,
+    layout: 'fitDataFill',
+    height: 540,
+    rowHeight: 36,
+    movableColumns: true,
+    initialSort: [{ column: 'game_date', dir: 'desc' }],
+    placeholder: 'No records match the selected filters.',
+  });
+
+  histTable.on('dataFiltered', (filters, rows) => {
+    buildAvgRow(rows.map(r => r.getData()));
+  });
+
+  // Populate filter dropdowns
+  const players = [...new Set(records.map(r => r.player_name).filter(Boolean))].sort();
+  const comps   = [...new Set(records.map(r => r.competition).filter(Boolean))].sort();
+
+  const pSel = document.getElementById('filter-player');
+  players.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; pSel.appendChild(o); });
+
+  const cSel = document.getElementById('filter-comp');
+  comps.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; cSel.appendChild(o); });
+
+  // Set default date range: today - 30 days to today
+  const today = new Date().toISOString().slice(0, 10);
+  const from30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  document.getElementById('filter-from').value = from30;
+  document.getElementById('filter-to').value   = today;
+
+  applyHistFilters();
+}
+
+function applyHistFilters() {
+  if (!histTable) return;
+  const player = document.getElementById('filter-player').value;
+  const comp   = document.getElementById('filter-comp').value;
+  const from   = document.getElementById('filter-from').value;
+  const to     = document.getElementById('filter-to').value;
+
+  const filters = [];
+  if (player) filters.push({ field: 'player_name', type: '=', value: player });
+  if (comp)   filters.push({ field: 'competition',  type: '=', value: comp });
+  if (from)   filters.push({ field: 'game_date', type: '>=', value: from });
+  if (to)     filters.push({ field: 'game_date', type: '<=', value: to });
+
+  histTable.setFilter(filters);
+}
+
+['filter-player','filter-comp','filter-from','filter-to'].forEach(id => {
+  document.getElementById(id).addEventListener('change', applyHistFilters);
+});
+
+// ─────────────────────────────────────────────
+//  Map
+// ─────────────────────────────────────────────
+function buildMap() {
+  mapInstance = L.map('map', {
+    center: [45, 15],
+    zoom: 4,
+    zoomControl: true,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(mapInstance);
+
+  // Build team → players map
+  const teamPlayers = {};
+  registry.forEach(p => {
+    if (!teamPlayers[p.team]) teamPlayers[p.team] = [];
+    teamPlayers[p.team].push(p);
+  });
+
+  // Latest stat per player
+  const latestStat = {};
+  [...allRecords].reverse().forEach(r => {
+    if (r.player_name && !latestStat[r.player_name]) latestStat[r.player_name] = r;
+  });
+
+  Object.entries(teamCoords).forEach(([team, coords]) => {
+    if (!teamPlayers[team]) return;
+    const players = teamPlayers[team];
+
+    const dotIcon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:14px;height:14px;border-radius:50%;
+        background:var(--green-light);
+        border:2px solid white;
+        box-shadow:0 0 6px rgba(0,197,105,.6);
+      "></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+    });
+
+    const marker = L.marker(coords, { icon: dotIcon }).addTo(mapInstance);
+
+    const popupContent = buildPopupHtml(team, players, latestStat);
+    marker.bindPopup(popupContent, { maxWidth: 300, minWidth: 200 });
+  });
+}
+
+function buildPopupHtml(team, players, latestStat) {
+  const rows = players.map(p => {
+    const photo = photos[p.name] || '';
+    const st = statusData[p.name];
+    const dotClass = st ? `status-${st.status}` : 'status-active';
+    const stat = latestStat[p.name];
+    const statLine = stat
+      ? `${stat.competition} · ${stat.game_date ? fmtDate(stat.game_date) : '—'} · ${stat.pts ?? '–'} pts`
+      : 'No recent data';
+
+    return `<div class="popup-player">
+      ${photo ? `<img src="${photo}" alt="${p.name}" onerror="this.style.display='none'">` : ''}
+      <div class="status-dot ${dotClass}"></div>
+      <div>
+        <div class="pname">${p.name}</div>
+        <div class="pstat">${statLine}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="popup-team">${team}</div>${rows}`;
+}
+
+// ─────────────────────────────────────────────
+//  Bootstrap
+// ─────────────────────────────────────────────
+async function loadAll() {
+  const [recent, idx, reg, coords, ph, st] = await Promise.all([
+    fetch(RECENT_URL).then(r => r.json()),
+    fetch(INDEX_URL).then(r => r.json()),
+    fetch(REGISTRY_URL).then(r => r.json()),
+    fetch(COORDS_URL).then(r => r.json()),
+    fetch(PHOTOS_URL).then(r => r.json()),
+    fetch(STATUS_URL).then(r => r.json()),
+  ]);
+
+  allRecords = recent.filter(r => r.game_date);  // exclude records without a known game date
+  registry   = reg;
+  teamCoords = coords;
+  photos     = ph;
+  statusData = st;
+
+  // Update header meta
+  document.getElementById('last-updated').textContent = idx.last_updated || '—';
+  document.getElementById('record-count').textContent = `${allRecords.length} records · ${registry.length} players`;
+  document.getElementById('footer-date').textContent = idx.last_updated || '—';
+
+  buildRecentTable(allRecords);
+  buildHistTable(allRecords);
+
+  document.getElementById('spinner').style.display = 'none';
+}
+
+loadAll().catch(err => {
+  console.error('Load failed:', err);
+  document.getElementById('spinner').innerHTML =
+    '<p style="color:#e74c3c">Failed to load data. Check browser console.</p>';
+});
+
+// Auto-refresh
+setTimeout(() => location.reload(), REFRESH_MS);
+</script>
+</body>
+</html>
