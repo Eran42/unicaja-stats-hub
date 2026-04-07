@@ -137,12 +137,14 @@ def write_index() -> Path:
     return out_path
 
 
-def write_recent(days: int = 60) -> Path:
+def write_recent(days: int = 400) -> Path:
     """
     Aggregate the last *days* days of stats into data/stats/recent.json.
 
     Records are deduplicated by (player_name, source, competition, game_date).
     When duplicates exist, the record with the most recent 'date' field wins.
+    Empty/null team values are backfilled from the player registry so that
+    older records saved before the router fix still display correctly.
     The output is sorted by game_date descending, then player_name ascending.
 
     Used by the static GitHub Pages site so it only needs one data fetch.
@@ -165,11 +167,24 @@ def write_recent(days: int = 60) -> Path:
             if key not in seen or rec_date > seen[key].get("date", ""):
                 seen[key] = rec
 
+    # Backfill empty team values from registry for historical records
+    registry_path = _PROJECT_ROOT / "data" / "players" / "registry.json"
+    name_to_team: dict[str, str] = {}
+    try:
+        with registry_path.open(encoding="utf-8") as fh:
+            name_to_team = {p["name"]: p["team"] for p in json.load(fh)}
+    except Exception:
+        pass
+
     records = sorted(
         seen.values(),
         key=lambda r: (r.get("game_date") or "", r.get("player_name") or ""),
         reverse=True,
     )
+
+    for rec in records:
+        if not rec.get("team"):
+            rec["team"] = name_to_team.get(rec.get("player_name") or "", "")
 
     out_path = stats_dir / "recent.json"
     with out_path.open("w", encoding="utf-8") as fh:
