@@ -178,38 +178,17 @@
       overflow: hidden;
     }
 
-    /* Leaflet popup */
+    /* Leaflet popup — light/white to match Streamlit cards */
     .leaflet-popup-content-wrapper {
-      background: var(--bg2) !important;
-      color: var(--text) !important;
-      border: 1px solid var(--border) !important;
-      box-shadow: 0 4px 20px rgba(0,0,0,.5) !important;
+      background: #ffffff !important;
+      color: #1a1a1a !important;
+      border: 1px solid #d0d0d0 !important;
+      box-shadow: 0 4px 24px rgba(0,0,0,.35) !important;
       border-radius: 10px !important;
     }
-    .leaflet-popup-tip { background: var(--bg2) !important; }
-    .leaflet-popup-content { margin: 12px 14px !important; min-width: 200px; max-width: 280px; }
-    .popup-team { font-weight: 700; font-size: .9rem; color: var(--accent); margin-bottom: 8px; }
-    .popup-player {
-      display: flex; align-items: center; gap: 8px;
-      padding: 4px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: .82rem;
-    }
-    .popup-player:last-child { border-bottom: none; }
-    .popup-player img {
-      width: 28px; height: 28px; border-radius: 50%;
-      object-fit: cover; background: var(--bg3);
-      flex-shrink: 0;
-    }
-    .popup-player .pname { font-weight: 500; }
-    .popup-player .pstat { font-size: .73rem; color: var(--text-dim); }
-    .popup-player .status-dot {
-      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-    }
-    .status-injured { background: #e74c3c; }
-    .status-no_game { background: #f39c12; }
-    .status-active  { background: var(--accent); }
-    .status-unknown { background: var(--text-dim); }
+    .leaflet-popup-tip { background: #ffffff !important; }
+    .leaflet-popup-content { margin: 12px 14px !important; padding: 0 !important; }
+    .leaflet-popup-close-button { color: #666 !important; }
 
     /* ── Footer ── */
     footer {
@@ -562,11 +541,7 @@ function applyHistFilters() {
 //  Map
 // ─────────────────────────────────────────────
 function buildMap() {
-  mapInstance = L.map('map', {
-    center: [45, 15],
-    zoom: 4,
-    zoomControl: true,
-  });
+  mapInstance = L.map('map', { center: [45, 15], zoom: 4, zoomControl: true });
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '© OpenStreetMap © CARTO',
@@ -574,64 +549,168 @@ function buildMap() {
     maxZoom: 19,
   }).addTo(mapInstance);
 
-  // Build team → players map
+  // Build team → players index
   const teamPlayers = {};
   registry.forEach(p => {
     if (!teamPlayers[p.team]) teamPlayers[p.team] = [];
     teamPlayers[p.team].push(p);
   });
 
-  // Latest stat per player
+  // Latest stat per player (most recent game_date)
   const latestStat = {};
-  [...allRecords].reverse().forEach(r => {
-    if (r.player_name && !latestStat[r.player_name]) latestStat[r.player_name] = r;
+  allRecords.forEach(r => {
+    if (!r.player_name) return;
+    const cur = latestStat[r.player_name];
+    if (!cur || (r.game_date || '') > (cur.game_date || '')) latestStat[r.player_name] = r;
   });
+
+  // Which teams had a game in the last 24h
+  const teamsWithRecent = new Set(
+    allRecords.filter(r => within24h(r.game_date)).map(r => r.team)
+  );
 
   Object.entries(teamCoords).forEach(([team, coords]) => {
     if (!teamPlayers[team]) return;
     const players = teamPlayers[team];
+    const teamActive = teamsWithRecent.has(team);
 
     const dotIcon = L.divIcon({
       className: '',
       html: `<div style="
-        width:14px;height:14px;border-radius:50%;
-        background:var(--green-light);
+        width:${teamActive ? 16 : 12}px;height:${teamActive ? 16 : 12}px;
+        border-radius:50%;
+        background:${teamActive ? '#00a651' : '#888'};
         border:2px solid white;
-        box-shadow:0 0 6px rgba(0,197,105,.6);
+        box-shadow:${teamActive ? '0 0 8px rgba(0,166,81,.7)' : 'none'};
       "></div>`,
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
     });
 
     const marker = L.marker(coords, { icon: dotIcon }).addTo(mapInstance);
-
-    const popupContent = buildPopupHtml(team, players, latestStat);
-    marker.bindPopup(popupContent, { maxWidth: 300, minWidth: 200 });
+    const html = buildPopupHtml(team, players, latestStat, teamsWithRecent);
+    marker.bindPopup(html, { maxWidth: 280, minWidth: 230 });
   });
 }
 
-function buildPopupHtml(team, players, latestStat) {
-  const rows = players.map(p => {
-    const photo = photos[p.name] || '';
-    const st = statusData[p.name];
-    const dotClass = st ? `status-${st.status}` : 'status-active';
-    const stat = latestStat[p.name];
-    const statLine = stat
-      ? `${stat.competition} · ${stat.game_date ? fmtDate(stat.game_date) : '—'} · ${stat.pts ?? '–'} pts`
-      : 'No recent data';
-
-    return `<div class="popup-player">
-      ${photo ? `<img src="${photo}" alt="${p.name}" onerror="this.style.display='none'">` : ''}
-      <div class="status-dot ${dotClass}"></div>
-      <div>
-        <div class="pname">${p.name}</div>
-        <div class="pstat">${statLine}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  return `<div class="popup-team">${team}</div>${rows}`;
+// ─ Player avatar HTML ─
+function buildAvatar(photoUrl, hasRecent) {
+  const border = hasRecent ? '#006633' : '#bbbbbb';
+  const base   = `width:42px;height:42px;border-radius:50%;overflow:hidden;border:2px solid ${border};flex-shrink:0;`;
+  if (!photoUrl) {
+    return `<div style="${base}background:#e8f0eb;display:flex;align-items:center;justify-content:center;font-size:20px;">🏀</div>`;
+  }
+  let imgStyle;
+  if (photoUrl.includes('cortextech')) {
+    imgStyle = 'width:100%;height:100%;object-fit:cover;object-position:center top;transform:scale(3.2);transform-origin:center 10%;';
+  } else if (photoUrl.includes('cdn.nba.com') || photoUrl.includes('espncdn')) {
+    imgStyle = 'width:100%;height:100%;object-fit:cover;object-position:center top;transform:scale(2.5);transform-origin:center 12%;';
+  } else {
+    imgStyle = 'width:100%;height:100%;object-fit:cover;object-position:center 10%;';
+  }
+  return `<div style="${base}"><img src="${photoUrl}" style="${imgStyle}" onerror="this.parentElement.innerHTML='🏀'"></div>`;
 }
+
+// ─ Stats mini-table ─
+function buildStatsTable(stat) {
+  const v = (f, dec) => {
+    const n = stat[f];
+    if (n === null || n === undefined) return '—';
+    return dec !== undefined ? Number(n).toFixed(dec) : Math.round(n);
+  };
+  return `<table style="width:100%;border-collapse:collapse;margin-top:5px;">
+    <tr style="background:#f5f5f5;text-align:center;">
+      <th style="padding:3px 6px;font-size:10px;font-weight:600;color:#555;">PTS</th>
+      <th style="padding:3px 6px;font-size:10px;font-weight:600;color:#555;">REB</th>
+      <th style="padding:3px 6px;font-size:10px;font-weight:600;color:#555;">AST</th>
+      <th style="padding:3px 6px;font-size:10px;font-weight:600;color:#555;">+/-</th>
+      <th style="padding:3px 6px;font-size:10px;font-weight:600;color:#6B2FA0;">VAL</th>
+    </tr>
+    <tr style="text-align:center;">
+      <td style="padding:4px 6px;font-size:14px;font-weight:700;">${v('pts')}</td>
+      <td style="padding:4px 6px;font-size:14px;font-weight:700;">${v('reb')}</td>
+      <td style="padding:4px 6px;font-size:14px;font-weight:700;">${v('ast')}</td>
+      <td style="padding:4px 6px;font-size:14px;font-weight:700;">${v('plus_minus')}</td>
+      <td style="padding:4px 6px;font-size:14px;font-weight:700;color:#6B2FA0;">${v('val')}</td>
+    </tr>
+  </table>`;
+}
+
+// ─ Single player card ─
+function buildPlayerCard(player, stat, teamsWithRecent) {
+  const name       = player.name;
+  const team       = player.team;
+  const hasRecent  = stat && within24h(stat.game_date);
+  const teamPlayed = teamsWithRecent.has(team);
+  const st         = statusData[name];
+  const photoUrl   = photos[name] || '';
+
+  const nameColor = hasRecent ? '#1a1a1a' : '#888888';
+  const header = `<div style="display:flex;align-items:center;gap:9px;margin-bottom:5px;">
+    ${buildAvatar(photoUrl, hasRecent)}
+    <div>
+      <div style="font-size:13px;font-weight:700;color:${nameColor};line-height:1.2;">${name}</div>
+      <div style="font-size:10px;font-weight:600;color:#006633;">${team}</div>
+    </div>
+  </div>`;
+
+  let body;
+  if (stat && stat.game_date) {
+    const gameLabel = hasRecent ? '' : 'Last game: ';
+    const meta = `${gameLabel}${stat.competition} · ${stat.game_date}${stat.result ? ' · ' + stat.result : ''}`;
+    body = `<div style="font-size:10px;color:#666;margin:2px 0 3px;">${meta}</div>${buildStatsTable(stat)}`;
+
+    // Absent warning if last game was >7 days ago
+    const daysSince = Math.floor((Date.now() - new Date(stat.game_date + 'T00:00:00')) / 86400000);
+    if (daysSince > 7 && st && st.note) {
+      body += `<div style="margin-top:5px;padding:4px 6px;background:#fff8e6;border-left:3px solid #f0a500;border-radius:3px;font-size:10px;color:#7a5500;">⚠ ${st.note}</div>`;
+    }
+  } else if (teamPlayed) {
+    // Team played but player didn't appear
+    const icon = st && st.status === 'injured' ? '🤕' : '⚠️';
+    const reason = (st && st.note) ? st.note : 'Did not play';
+    body = `<div style="margin-top:4px;padding:4px 7px;background:#fff8e6;border-left:3px solid #f0a500;border-radius:3px;font-size:10px;color:#7a5500;line-height:1.4;">${icon} <strong>DNP</strong> — ${reason}</div>`;
+  } else {
+    const reason = (st && st.note) ? st.note : 'No recent game data';
+    body = `<div style="font-size:10px;color:#999;margin-top:4px;">⚠ ${reason}</div>`;
+  }
+
+  const cardStyle = [
+    'font-family:sans-serif;min-width:210px;margin-bottom:7px;',
+    'padding-bottom:7px;border-bottom:1px solid #e8e8e8;',
+    hasRecent ? 'border-left:3px solid #006633;padding-left:8px;' : '',
+  ].join('');
+
+  // Escape name for inline onclick
+  const escapedName = name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const navLink = `<div onclick="viewHistory('${escapedName}')"
+    style="margin-top:6px;padding:8px 10px;border-top:1px solid #eee;
+    background:#eef7f1;border-radius:4px;color:#006633;font-size:12px;
+    font-weight:700;cursor:pointer;text-align:center;user-select:none;">
+    → View history
+  </div>`;
+
+  return `<div style="${cardStyle}">${header}${body}${navLink}</div>`;
+}
+
+// ─ Full popup (all players for one team) ─
+function buildPopupHtml(team, players, latestStat, teamsWithRecent) {
+  const cards = players.map(p => buildPlayerCard(p, latestStat[p.name], teamsWithRecent)).join('');
+  return `<div style="font-family:sans-serif;">${cards}</div>`;
+}
+
+// ─ "View history" from popup ─
+window.viewHistory = function(playerName) {
+  if (mapInstance) mapInstance.closePopup();
+  // Switch to history tab
+  document.querySelector('[data-tab="history"]').click();
+  // Set player filter and apply
+  const sel = document.getElementById('filter-player');
+  sel.value = playerName;
+  applyHistFilters();
+  // Scroll table into view
+  setTimeout(() => document.getElementById('table-history').scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+};
 
 // ─────────────────────────────────────────────
 //  Bootstrap
