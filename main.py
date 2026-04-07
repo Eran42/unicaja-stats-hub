@@ -79,7 +79,7 @@ def run_job() -> None:
 
     json_path = save_daily_stats(stats, today)
     csv_path  = save_csv_snapshot(stats, today)
-    write_index()
+    write_index(update_timestamp=True)
     write_recent()
 
     logger.info("Saved %d record(s) -> %s", len(stats), json_path)

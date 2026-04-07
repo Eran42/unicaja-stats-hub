@@ -117,20 +117,39 @@ def get_all_dates() -> list[str]:
     return dates
 
 
-def write_index() -> Path:
+def write_index(update_timestamp: bool = False) -> Path:
     """
     Write data/stats/index.json — a manifest for the static GitHub Pages site.
 
-    Content: {"dates": [...sorted ISO strings...], "last_updated": "YYYY-MM-DD", "count": N}
+    Content: {"dates": [...sorted ISO strings...], "last_updated": "YYYY-MM-DD HH:MM UTC", "count": N}
+
+    Args:
+        update_timestamp: Set True only when called after an actual stats fetch
+                          (i.e. from main.py run_job). Manual/code-only calls
+                          leave the existing timestamp intact so the dashboard
+                          always shows when player data was last retrieved.
     """
     stats_dir = _ensure_stats_dir()
     dates = get_all_dates()
+    out_path = stats_dir / "index.json"
+
+    # Preserve existing timestamp unless we just fetched fresh data
+    last_updated = None
+    if out_path.exists():
+        try:
+            with out_path.open(encoding="utf-8") as fh:
+                last_updated = json.load(fh).get("last_updated")
+        except Exception:
+            pass
+
+    if update_timestamp or not last_updated:
+        last_updated = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
     payload = {
         "dates": dates,
-        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "last_updated": last_updated,
         "count": len(dates),
     }
-    out_path = stats_dir / "index.json"
     with out_path.open("w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2)
     logger.info("Wrote index.json (%d dates) to %s", len(dates), out_path)
