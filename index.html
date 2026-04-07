@@ -382,6 +382,7 @@ function numCol(title, field, width, decimals, cssClass) {
     hozAlign: 'right', headerHozAlign: 'center',
     headerFilter: false,
     sorter: 'number',
+    headerSortStartingDir: 'desc',
     cssClass: cssClass || '',
     formatter: (cell) => {
       const v = cell.getValue();
