@@ -803,11 +803,13 @@ function buildPopupHtml(team, players, latestStat, teamsWithRecent) {
 // ─ "View history" from popup ─
 window.viewHistory = function(playerName) {
   if (mapInstance) mapInstance.closePopup();
+  // Reset all history filters to defaults before switching
+  document.getElementById('filter-player').value = playerName;
+  document.getElementById('filter-comp').value   = '';
+  document.getElementById('filter-from').value   = '2025-09-26';
+  document.getElementById('filter-to').value     = new Date().toISOString().slice(0, 10);
   // Switch to history tab
   document.querySelector('[data-tab="history"]').click();
-  // Set player filter and apply
-  const sel = document.getElementById('filter-player');
-  sel.value = playerName;
   applyHistFilters();
   // Scroll table into view
   setTimeout(() => document.getElementById('table-history').scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
