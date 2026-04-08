@@ -662,33 +662,40 @@ function buildMap() {
     allRecords.filter(r => within24h(r.game_date)).map(r => r.team)
   );
 
+  // Group teams sharing the same coordinates into one marker
+  const coordGroups = {};
   Object.entries(teamCoords).forEach(([team, coords]) => {
     if (!teamPlayers[team]) return;
-    const players = teamPlayers[team];
-    const teamActive = teamsWithRecent.has(team);
+    const key = coords[0] + ',' + coords[1];
+    if (!coordGroups[key]) coordGroups[key] = { coords, teams: [] };
+    coordGroups[key].teams.push(team);
+  });
+
+  Object.values(coordGroups).forEach(({ coords, teams }) => {
+    const locationActive = teams.some(t => teamsWithRecent.has(t));
 
     const dotIcon = L.divIcon({
       className: '',
       html: `<div style="
-        width:${teamActive ? 16 : 12}px;height:${teamActive ? 16 : 12}px;
+        width:${locationActive ? 16 : 12}px;height:${locationActive ? 16 : 12}px;
         border-radius:50%;
-        background:${teamActive ? '#00a651' : '#888'};
+        background:${locationActive ? '#00a651' : '#888'};
         border:2px solid white;
-        box-shadow:${teamActive ? '0 0 8px rgba(0,166,81,.7)' : 'none'};
+        box-shadow:${locationActive ? '0 0 8px rgba(0,166,81,.7)' : 'none'};
       "></div>`,
       iconSize: [16, 16],
       iconAnchor: [8, 8],
     });
 
+    const html = teams
+      .map(t => buildPopupHtml(t, teamPlayers[t], latestStat, teamsWithRecent))
+      .join('');
     const marker = L.marker(coords, { icon: dotIcon }).addTo(mapInstance);
-    const html = buildPopupHtml(team, players, latestStat, teamsWithRecent);
-    marker.bindPopup(html, { maxWidth: 280, minWidth: 230 });
+    marker.bindPopup(`<div style="font-family:sans-serif;">${html}</div>`, { maxWidth: 280, minWidth: 230 });
   });
 
   // Fit view to show all markers with comfortable padding
-  const allCoords = Object.entries(teamCoords)
-    .filter(([team]) => teamPlayers[team])
-    .map(([, coords]) => coords);
+  const allCoords = Object.values(coordGroups).map(g => g.coords);
   if (allCoords.length) {
     mapInstance.fitBounds(L.latLngBounds(allCoords), { padding: [40, 40] });
   }
@@ -796,8 +803,7 @@ function buildPlayerCard(player, stat, teamsWithRecent) {
 
 // ─ Full popup (all players for one team) ─
 function buildPopupHtml(team, players, latestStat, teamsWithRecent) {
-  const cards = players.map(p => buildPlayerCard(p, latestStat[p.name], teamsWithRecent)).join('');
-  return `<div style="font-family:sans-serif;">${cards}</div>`;
+  return players.map(p => buildPlayerCard(p, latestStat[p.name], teamsWithRecent)).join('');
 }
 
 // ─ "View history" from popup ─
