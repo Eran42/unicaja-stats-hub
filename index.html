@@ -513,7 +513,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
     // Tabulator needs a redraw when its pane becomes visible
     if (btn.dataset.tab === 'history' && histTable)   histTable.redraw(true);
-    if (btn.dataset.tab === 'recent'  && recentTable) recentTable.redraw(true);
+    if (btn.dataset.tab === 'recent'  && recentTable) {
+      // Clear any stale avg row left over from the history table
+      _avgVals = {};
+      recentTable.recalc();
+      recentTable.redraw(true);
+    }
     // Map needs invalidateSize after being hidden/shown
     if (btn.dataset.tab === 'map' && mapInstance) mapInstance.invalidateSize();
   });
