@@ -1206,6 +1206,21 @@ _inject_mobile_detector()
 _inject_css()
 _inject_select_keyboard_fix()
 
+st.markdown(
+    """
+    <div style="background:#c0392b;color:white;padding:14px 20px;border-radius:8px;
+                font-size:1.1rem;font-weight:600;text-align:center;margin-bottom:12px;">
+        ⚠️ This page is no longer maintained.
+        The new, better-supported dashboard is at
+        <a href="https://eran42.github.io/unicaja-stats-hub/"
+           style="color:white;text-decoration:underline;" target="_blank">
+            eran42.github.io/unicaja-stats-hub
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 dates = get_all_dates()
 _render_header(dates[-1] if dates else "")
 
