@@ -2,7 +2,7 @@ name: Daily Stats Fetch
 
 on:
   schedule:
-    - cron: "30 2 * * *"  # 02:30 UTC — after NBA games end; targets ~08:00 Spain time accounting for GH queue delays
+    - cron: "43 6 * * *"  # 06:43 UTC — off-peak time avoids GH queue; runs within ~2 min, data live by ~07:00 UTC
   workflow_dispatch:        # allow manual trigger from GitHub UI
 
 jobs:
