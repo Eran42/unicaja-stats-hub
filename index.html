@@ -103,6 +103,9 @@
       margin-bottom: 8px;
     }
 
+    /* ── Recent table: expand to fit all rows, cap at viewport ── */
+    #table-recent .tabulator { max-height: 75vh; overflow-y: auto; }
+
     /* ── Empty state ── */
     .empty-state {
       background: var(--bg2);
@@ -543,7 +546,7 @@ function buildRecentTable(records) {
     data: rows,
     columns: ALL_COLS,
     layout: 'fitColumns',
-    height: Math.min(38 + rows.length * 34 + 20, 580),
+    height: false,
     rowHeight: 34,
     movableColumns: false,
     columnHeaderVertAlign: 'bottom',
