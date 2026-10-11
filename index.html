@@ -414,7 +414,7 @@ const ALL_COLS = [
   },
   { title: 'Team',     field: 'team',        width: 110, widthGrow: 1, headerFilter: false },
   { title: 'Comp.',    field: 'competition', width:  95, widthGrow: 1, headerFilter: false },
-  { title: 'Date',     field: 'game_date',   width:  88, widthGrow: 0, widthShrink: 0, sorter: 'date', headerFilter: false },
+  { title: 'Date',     field: 'game_date',   width:  88, widthGrow: 0, widthShrink: 0, sorter: 'string', headerFilter: false },
   { title: 'Opponent', field: 'opponent',    width: 110, widthGrow: 2, headerFilter: false },
   { title: 'Result',   field: 'result',      width:  88, widthGrow: 0, widthShrink: 0, headerFilter: false },
   numCol('MIN', 'min',        54, 0),
@@ -639,10 +639,14 @@ function applyHistFilters() {
 function buildMap() {
   mapInstance = L.map('map', { zoomControl: true });
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '© OpenStreetMap © CARTO',
-    subdomains: 'abcd',
-    maxZoom: 19,
+  // CARTO's free dark_all tiles now require an API key (return a watermark placeholder),
+  // so we use Esri's no-key dark-gray canvas (base + label reference) instead.
+  L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri',
+    maxZoom: 16,
+  }).addTo(mapInstance);
+  L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 16,
   }).addTo(mapInstance);
 
   // Build team → players index
