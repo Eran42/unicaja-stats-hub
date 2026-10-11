@@ -744,7 +744,11 @@ function buildAvatar(photoUrl, hasRecent) {
   if (photoUrl.includes('cortextech')) {
     imgStyle = 'width:100%;height:100%;object-fit:cover;object-position:center top;transform:scale(3.2);transform-origin:center 10%;';
   } else if (photoUrl.includes('cdn.nba.com') || photoUrl.includes('espncdn')) {
-    imgStyle = 'width:100%;height:100%;object-fit:cover;object-position:center top;transform:scale(2.5);transform-origin:center 12%;';
+    // ESPN/NBA headshots are already tightly framed (face fills most of the
+    // image) — the old scale(2.5)/origin:12% zoomed in so far it cropped
+    // off at eyebrow level. Plain cover with a slightly-below-top anchor
+    // frames the whole face correctly.
+    imgStyle = 'width:100%;height:100%;object-fit:cover;object-position:center 25%;';
   } else {
     imgStyle = 'width:100%;height:100%;object-fit:cover;object-position:center 10%;';
   }
