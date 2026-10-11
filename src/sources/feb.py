@@ -457,7 +457,7 @@ def fetch_player_stats(player_id: str) -> dict:
         "team":            "",        # filled by router from registry
         "source":          "feb",
         "competition":     competition,
-        "season":          "2025-26",
+        "season":          "2026-27",
         "game_date":       game_date,
         "opponent":        opponent,
         "result":          result,

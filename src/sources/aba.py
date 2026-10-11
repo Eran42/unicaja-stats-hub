@@ -4,7 +4,7 @@ ABA Liga latest game box score.
 Endpoint:
   GET https://www.aba-liga.com/player/{player_id}/{season}/{league}/{slug}/
 
-season codes:  25 = 2025-26
+season codes:  26 = 2026-27
 league codes:   1 = ABA Liga 1
 
 The page contains a stats table with game rows (one per game played),
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 _BASE_URL       = "https://www.aba-liga.com/player"
 _TIMEOUT        = 15
-_CURRENT_SEASON = "25"
+_CURRENT_SEASON = "26"
 _LEAGUE         = "1"
 
 _HEADERS = {
@@ -91,7 +91,7 @@ def _parse_aba_date(raw: str) -> str:
 
     Handles:
       'DD.MM.YYYY'  e.g. '15.02.2026'
-      'DD.MM.'      e.g. '15.02.'  — year inferred from season (2025-26)
+      'DD.MM.'      e.g. '15.02.'  — year inferred from season (2026-27)
     """
     raw = raw.strip()
     # Full date with year
@@ -102,11 +102,11 @@ def _parse_aba_date(raw: str) -> str:
             return f"{y}-{mo:02d}-{d:02d}"
         except (ValueError, OverflowError):
             pass
-    # Short date without year (season 2025-26: Sep-Dec → 2025, Jan-Aug → 2026)
+    # Short date without year (season 2026-27: Sep-Dec → 2026, Jan-Aug → 2027)
     m = re.match(r"(\d{1,2})\.(\d{1,2})\.", raw)
     if m:
         d, mo = int(m.group(1)), int(m.group(2))
-        year = 2025 if mo >= 9 else 2026
+        year = 2026 if mo >= 9 else 2027
         return f"{year}-{mo:02d}-{d:02d}"
     return raw
 
@@ -339,7 +339,7 @@ def fetch_player_stats(
         "player_name": player_name,
         "source":      "aba",
         "competition": "ABA League",
-        "season":      "2025-26",
+        "season":      "2026-27",
         "game_date":   _parse_aba_date(last_game_date),
         "opponent":    opponent,
         "result":      result,
@@ -424,7 +424,7 @@ def _cells_to_record(
         "player_name": player_name,
         "source":      "aba",
         "competition": "ABA League",
-        "season":      "2025-26",
+        "season":      "2026-27",
         "game_date":   game_date,
         "opponent":    opponent,
         "result":      result,

@@ -307,6 +307,10 @@
       <select id="filter-player"><option value="">— Choose player —</option></select>
     </div>
     <div>
+      <label>Season</label><br>
+      <select id="filter-season"><option value="">All seasons</option></select>
+    </div>
+    <div>
       <label>Competition</label><br>
       <select id="filter-comp"><option value="">All competitions</option></select>
     </div>
@@ -344,6 +348,9 @@ const STATUS_URL  = BASE + 'data/players/status.json';
 
 // Auto-refresh every 5 minutes
 const REFRESH_MS = 5 * 60 * 1000;
+
+// Default season shown in the All Records tab until the user picks another
+const DEFAULT_SEASON = '2026-27';
 
 // ─────────────────────────────────────────────
 //  Avg row via Tabulator bottomCalc
@@ -591,14 +598,25 @@ function buildHistTable(records) {
   const cSel = document.getElementById('filter-comp');
   comps.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; cSel.appendChild(o); });
 
+  // Season dropdown — defaults to the current season; "All seasons" is the
+  // first option (added in the HTML) for anyone who wants the full history.
+  const seasons = new Set(records.map(r => r.season).filter(Boolean));
+  seasons.add(DEFAULT_SEASON);
+  const sSel = document.getElementById('filter-season');
+  [...seasons].sort().reverse().forEach(s => {
+    const o = document.createElement('option'); o.value = s; o.textContent = s; sSel.appendChild(o);
+  });
+  sSel.value = DEFAULT_SEASON;
+
   const today = new Date().toISOString().slice(0, 10);
-  document.getElementById('filter-from').value = '2025-09-26';
+  document.getElementById('filter-from').value = '';
   document.getElementById('filter-to').value   = today;
 }
 
 function applyHistFilters() {
   if (!histTable) return;
   const player = document.getElementById('filter-player').value;
+  const season = document.getElementById('filter-season').value;
   const comp   = document.getElementById('filter-comp').value;
   const from   = document.getElementById('filter-from').value;
   const to     = document.getElementById('filter-to').value;
@@ -620,6 +638,7 @@ function applyHistFilters() {
   histTable.setData(rows).then(() => {
     const filters = [];
     if (isSinglePlayer) filters.push({ field: 'player_name', type: '=', value: player });
+    if (season) filters.push({ field: 'season',      type: '=',  value: season });
     if (comp) filters.push({ field: 'competition', type: '=',  value: comp });
     if (from) filters.push({ field: 'game_date',   type: '>=', value: from });
     if (to)   filters.push({ field: 'game_date',   type: '<=', value: to   });
@@ -629,7 +648,7 @@ function applyHistFilters() {
   });
 }
 
-['filter-player','filter-comp','filter-from','filter-to'].forEach(id => {
+['filter-player','filter-season','filter-comp','filter-from','filter-to'].forEach(id => {
   document.getElementById(id).addEventListener('change', applyHistFilters);
 });
 
@@ -656,9 +675,15 @@ function buildMap() {
     teamPlayers[p.team].push(p);
   });
 
-  // Latest stat per player (most recent game_date)
+  // Map only reflects the current season — fall back to game_date for
+  // older records that predate the "season" field being populated.
+  const seasonRecords = allRecords.filter(r =>
+    r.season ? r.season === DEFAULT_SEASON : (r.game_date || '') >= '2026-09-01'
+  );
+
+  // Latest stat per player (most recent game_date), current season only
   const latestStat = {};
-  allRecords.forEach(r => {
+  seasonRecords.forEach(r => {
     if (!r.player_name) return;
     const cur = latestStat[r.player_name];
     if (!cur || (r.game_date || '') > (cur.game_date || '')) latestStat[r.player_name] = r;
@@ -666,7 +691,7 @@ function buildMap() {
 
   // Which teams had a game in the last 24h
   const teamsWithRecent = new Set(
-    allRecords.filter(r => within24h(r.game_date)).map(r => r.team)
+    seasonRecords.filter(r => within24h(r.game_date)).map(r => r.team)
   );
 
   // Group teams sharing the same coordinates into one marker
@@ -818,8 +843,9 @@ window.viewHistory = function(playerName) {
   if (mapInstance) mapInstance.closePopup();
   // Reset all history filters to defaults before switching
   document.getElementById('filter-player').value = playerName;
+  document.getElementById('filter-season').value = DEFAULT_SEASON;
   document.getElementById('filter-comp').value   = '';
-  document.getElementById('filter-from').value   = '2025-09-26';
+  document.getElementById('filter-from').value   = '';
   document.getElementById('filter-to').value     = new Date().toISOString().slice(0, 10);
   // Switch to history tab
   document.querySelector('[data-tab="history"]').click();

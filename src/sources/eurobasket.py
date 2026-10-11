@@ -84,8 +84,8 @@ def _parse_date_flexible(raw: str) -> str:
 
     Handles: '15 Feb 2026', 'Feb 15, 2026', '15/02/2026', '02/15/2026',
              '2026-02-15', '15.02.2026', 'Feb 15'.
-    For formats without a year, the season 2025-26 rule applies:
-      month >= 9 → 2025, month <= 8 → 2026.
+    For formats without a year, the season 2026-27 rule applies:
+      month >= 9 → 2026, month <= 8 → 2027.
     """
     from datetime import datetime as _dt
     raw = raw.strip()
@@ -112,7 +112,7 @@ def _parse_date_flexible(raw: str) -> str:
         try:
             dt = _dt.strptime(raw, fmt)
             if not has_year:
-                year = 2025 if dt.month >= 9 else 2026
+                year = 2026 if dt.month >= 9 else 2027
                 dt = dt.replace(year=year)
             return dt.strftime("%Y-%m-%d")
         except ValueError:
@@ -278,8 +278,8 @@ def _extract_record(
     game_date = _parse_date_flexible(game_date_raw)
     if not game_date or not re.match(r"\d{4}-\d{2}-\d{2}", game_date):
         return None
-    # Reject games from before the 2025-26 season
-    if game_date < "2025-09-01":
+    # Reject games from before the 2026-27 season
+    if game_date < "2026-09-01":
         return None
 
     def _get(field: str) -> float | None:
@@ -332,7 +332,7 @@ def _extract_record(
         "player_name": player_name,
         "source":      "eurobasket",
         "competition": competition,
-        "season":      "2025-26",
+        "season":      "2026-27",
         "game_date":   game_date,
         "opponent":    opponent,
         "result":      result,

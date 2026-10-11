@@ -2,15 +2,15 @@
 EuroLeague / EuroCup latest game box score via incrowdsports v2 API.
 
 Two-step process:
-  1. GET /competitions/{comp}/seasons/{season}/games?limit=200
+  1. GET /competitions/{comp}/seasons/{season}/games?limit=500
      → returns all season games; filter to status='result' (played)
   2. GET /competitions/{comp}/seasons/{season}/games/{gameCode}/stats
      → returns full box score; teams are under 'local'/'road' keys,
        players at p['player']['person']['code'] (no 'P' prefix)
 
 Competition codes:
-  EuroLeague : comp="E"  season="E2025"
-  EuroCup    : comp="U"  season="U2025"
+  EuroLeague : comp="E"  season="E2026"
+  EuroCup    : comp="U"  season="U2026"
 
 Player codes in the registry use the P0XXXXX format (e.g. "P003842").
 The box score API uses the code without the leading 'P' (e.g. "003842").
@@ -31,8 +31,8 @@ _TIMEOUT = 15
 
 _EL_COMP   = "E"
 _EC_COMP   = "U"
-_EL_SEASON = "E2025"
-_EC_SEASON = "U2025"
+_EL_SEASON = "E2026"
+_EC_SEASON = "U2026"
 
 _HEADERS = {
     "User-Agent": (
@@ -83,6 +83,16 @@ def _pct(value: Any) -> float | None:
     if v is None:
         return None
     return round(v * 100, 1) if v <= 1.0 else round(v, 1)
+
+
+def _season_label(season: str) -> str:
+    """Convert an internal season code ('E2026'/'U2025') to a display label ('2026-27')."""
+    digits = season[1:] if season and season[0] in "EU" else season
+    try:
+        year = int(digits)
+        return f"{year}-{str(year + 1)[-2:]}"
+    except ValueError:
+        return season
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +221,7 @@ def fetch_player_stats(
 
     # Fetch all season games (default limit returns only future games)
     url  = f"{_BASE}/{competition}/seasons/{season}/games"
-    data = _get_json(url, params={"limit": 200})
+    data = _get_json(url, params={"limit": 500})
 
     if not data or not isinstance(data, dict):
         logger.warning("EL/EC: could not fetch games list for %s/%s", competition, season)
@@ -268,7 +278,7 @@ def fetch_player_stats(
             "player_name": player_name or player_code,
             "source":      competition_label.lower().replace(" ", ""),
             "competition": competition_label,
-            "season":      season,
+            "season":      _season_label(season),
             "game_date":   game_date,
             "opponent":    opponent,
             "result":      result,
@@ -307,7 +317,7 @@ def fetch_season_stats(
     competition_label = "EuroLeague" if competition == _EL_COMP else "EuroCup"
 
     url  = f"{_BASE}/{competition}/seasons/{season}/games"
-    data = _get_json(url, params={"limit": 200})
+    data = _get_json(url, params={"limit": 500})
     if not data or not isinstance(data, dict):
         return []
 
@@ -347,7 +357,7 @@ def fetch_season_stats(
             "player_name":    player_name or player_code,
             "source":         competition_label.lower().replace(" ", ""),
             "competition":    competition_label,
-            "season":         season,
+            "season":         _season_label(season),
             "game_date":      game_date,
             "opponent":       opponent,
             "result":         result,
@@ -395,7 +405,7 @@ def find_player_code(
         python -c "from src.sources.euroleague import find_player_code; print(find_player_code('lessort'))"
     """
     url  = f"{_BASE}/{competition}/seasons/{season}/games"
-    data = _get_json(url, params={"limit": 200})
+    data = _get_json(url, params={"limit": 500})
     if not data or not isinstance(data, dict):
         return []
 

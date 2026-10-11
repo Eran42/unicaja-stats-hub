@@ -10,28 +10,43 @@
     "updated": "2026-03-27"
   },
   "Yankuba Sima": {
-    "status": "unknown",
-    "note": "Limited minutes this season — EuroLeague ID not found in recent games",
-    "updated": "2026-03-27"
+    "status": "no_game",
+    "note": "No game today.",
+    "updated": "2026-10-11"
   },
   "Jayson Granger": {
-    "status": "no_game",
-    "note": "No game today.",
-    "updated": "2026-03-28"
-  },
-  "Sasu Salin": {
-    "status": "no_game",
-    "note": "No game today.",
-    "updated": "2026-03-30"
+    "status": "retired",
+    "note": "Retired from playing on 2026-07-24; joined Movistar Estudiantes' organizational/mentoring staff. Confirmed via feb.es announcement.",
+    "updated": "2026-10-11"
   },
   "Adam Waczyński": {
-    "status": "no_game",
-    "note": "No game today.",
-    "updated": "2026-03-30"
+    "status": "retired",
+    "note": "Not on WKS Śląsk Wrocław's 2026-27 roster; no new club found. Treated as retired per owner decision 2026-10-11.",
+    "updated": "2026-10-11"
   },
   "Mindaugas Kuzminskas": {
     "status": "no_game",
     "note": "No game today.",
-    "updated": "2026-03-30"
+    "updated": "2026-10-11"
+  },
+  "Domas Sabonis": {
+    "status": "no_game",
+    "note": "No game today.",
+    "updated": "2026-10-11"
+  },
+  "Nemanja Nedović": {
+    "status": "no_game",
+    "note": "No game today.",
+    "updated": "2026-10-11"
+  },
+  "Jeffrey Brooks": {
+    "status": "no_game",
+    "note": "No game today.",
+    "updated": "2026-10-11"
+  },
+  "James Webb III": {
+    "status": "no_game",
+    "note": "No game today.",
+    "updated": "2026-10-11"
   }
 }

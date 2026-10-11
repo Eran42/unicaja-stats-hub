@@ -11,10 +11,6 @@
     43.738,
     7.424
   ],
-  "Partizan Mozzart Bet": [
-    44.805,
-    20.466
-  ],
   "FC Barcelona": [
     41.381,
     2.173
@@ -31,10 +27,6 @@
     28.464,
     -16.252
   ],
-  "MoraBanc Andorra": [
-    42.506,
-    1.522
-  ],
   "San Pablo Burgos": [
     42.344,
     -3.697
@@ -47,21 +39,9 @@
     44.454,
     17.281
   ],
-  "CB Estudiantes": [
-    40.417,
-    -3.704
-  ],
   "Umana Reyer Venezia": [
     45.441,
     12.316
-  ],
-  "Gonzaga Bulldogs": [
-    47.667,
-    -117.402
-  ],
-  "WKS Śląsk Wrocław": [
-    51.108,
-    17.038
   ],
   "Hiopos Lleida": [
     41.618,
@@ -71,20 +51,28 @@
     43.362,
     -8.412
   ],
-  "Dubai Basketball": [
-    25.205,
-    55.271
-  ],
-  "Pallacanestro Trieste": [
-    45.65,
-    13.777
-  ],
   "Budućnost VOLI": [
     42.43,
     19.259
   ],
-  "Fuenlabrada": [
-    40.2842,
-    -3.7938
+  "Baskonia": [
+    42.8644,
+    -2.6412
+  ],
+  "Joventut Badalona": [
+    41.4424,
+    2.2321
+  ],
+  "Nanterre 92": [
+    48.8924,
+    2.2066
+  ],
+  "Dinamo Sassari": [
+    40.7259,
+    8.5557
+  ],
+  "Esenler Erokspor": [
+    41.0543,
+    28.8797
   ]
 }

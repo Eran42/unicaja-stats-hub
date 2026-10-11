@@ -198,7 +198,7 @@ def fetch_season_averages(espn_athlete_id: str | int) -> dict:
         "player_name": "",                   # router fills via setdefault
         "source":      "nba",
         "competition": "NBA",
-        "season":      "2025-26",
+        "season":      "2026-27",
         "game_date":   game_date,
         "opponent":    opponent,
         "result":      result,

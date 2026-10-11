@@ -50,7 +50,7 @@
   },
   {
     "name": "Dylan Osetkowski",
-    "team": "Partizan Mozzart Bet",
+    "team": "Valencia Basket",
     "country": "United States",
     "active": true,
     "sources": [
@@ -60,9 +60,9 @@
         "id": "P010581"
       },
       {
-        "competition": "ABA League",
-        "type": "aba",
-        "id": "5100"
+        "competition": "ACB",
+        "type": "acb",
+        "id": "30001979"
       }
     ]
   },
@@ -163,7 +163,7 @@
   },
   {
     "name": "Rubén Guerrero",
-    "team": "MoraBanc Andorra",
+    "team": "San Pablo Burgos",
     "country": "Spain",
     "active": true,
     "sources": [
@@ -171,19 +171,6 @@
         "competition": "ACB",
         "type": "acb",
         "id": "20210707"
-      }
-    ]
-  },
-  {
-    "name": "Augusto Lima",
-    "team": "Fuenlabrada",
-    "country": "Brazil",
-    "active": true,
-    "sources": [
-      {
-        "competition": "LEB Oro",
-        "type": "feb",
-        "id": "FUENLABRADA/LIMA"
       }
     ]
   },
@@ -238,29 +225,10 @@
   },
   {
     "name": "Jayson Granger",
-    "team": "CB Estudiantes",
+    "team": "Retired",
     "country": "Uruguay",
-    "active": true,
-    "sources": [
-      {
-        "competition": "Primera FEB",
-        "type": "feb",
-        "id": "ESTUDIANTES/GRANGER"
-      }
-    ]
-  },
-  {
-    "name": "Sasu Salin",
-    "team": "CB Estudiantes",
-    "country": "Finland",
-    "active": true,
-    "sources": [
-      {
-        "competition": "Primera FEB",
-        "type": "feb",
-        "id": "ESTUDIANTES/SALIN"
-      }
-    ]
+    "active": false,
+    "sources": []
   },
   {
     "name": "Kyle Wiltjer",
@@ -282,29 +250,28 @@
   },
   {
     "name": "Mario Saint-Supéry",
-    "team": "Gonzaga Bulldogs",
+    "team": "Valencia Basket",
     "country": "Spain",
     "active": true,
     "sources": [
       {
-        "competition": "NCAA",
-        "type": "ncaa_espn",
-        "id": "5313012"
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P011706"
+      },
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20213210"
       }
     ]
   },
   {
     "name": "Adam Waczyński",
-    "team": "WKS Śląsk Wrocław",
+    "team": "Retired",
     "country": "Poland",
-    "active": true,
-    "sources": [
-      {
-        "competition": "PLK",
-        "type": "eurobasket",
-        "id": "103227"
-      }
-    ]
+    "active": false,
+    "sources": []
   },
   {
     "name": "Jaime Fernández",
@@ -339,19 +306,6 @@
         "competition": "BCL",
         "type": "bcl",
         "id": "la-laguna-tenerife/201675-tim-abromaitis"
-      }
-    ]
-  },
-  {
-    "name": "Yannick Nzosa",
-    "team": "San Pablo Burgos",
-    "country": "Congo",
-    "active": true,
-    "sources": [
-      {
-        "competition": "ACB",
-        "type": "acb",
-        "id": "30000479"
       }
     ]
   },
@@ -395,56 +349,113 @@
     ]
   },
   {
-    "name": "Aleksa Avramović",
-    "team": "Dubai Basketball",
-    "country": "Serbia",
-    "active": true,
-    "sources": [
-      {
-        "competition": "EuroLeague",
-        "type": "euroleague",
-        "id": "P003983"
-      },
-      {
-        "competition": "ABA League",
-        "type": "aba",
-        "id": "3857"
-      }
-    ]
-  },
-  {
     "name": "Jeffrey Brooks",
-    "team": "Pallacanestro Trieste",
+    "team": "Dinamo Sassari",
     "country": "United States",
     "active": true,
     "sources": [
       {
-        "competition": "Lega A",
+        "competition": "Serie A2",
         "type": "eurobasket",
         "id": "136973"
-      },
-      {
-        "competition": "BCL",
-        "type": "bcl",
-        "id": "pallacanestro-trieste/192665-jeff-brooks"
       }
     ]
   },
   {
     "name": "Xavier Castañeda",
-    "team": "MoraBanc Andorra",
+    "team": "Nanterre 92",
     "country": "United States",
+    "active": true,
+    "sources": [
+      {
+        "competition": "LNB Pro A",
+        "type": "eurobasket",
+        "id": "420655"
+      },
+      {
+        "competition": "BCL",
+        "type": "bcl",
+        "id": "nanterre-92/348156-xavier-castaneda"
+      }
+    ]
+  },
+  {
+    "name": "Chris Duarte",
+    "team": "Baskonia",
+    "country": "Dominican Republic",
+    "active": true,
+    "sources": [
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P014735"
+      },
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "30003966"
+      }
+    ]
+  },
+  {
+    "name": "Chase Audige",
+    "team": "San Pablo Burgos",
+    "country": "Jamaica",
     "active": true,
     "sources": [
       {
         "competition": "ACB",
         "type": "acb",
-        "id": "30003967"
+        "id": "30005183"
+      }
+    ]
+  },
+  {
+    "name": "Aleksander Balcerowski",
+    "team": "FC Barcelona",
+    "country": "Poland",
+    "active": true,
+    "sources": [
+      {
+        "competition": "EuroLeague",
+        "type": "euroleague",
+        "id": "P007553"
+      },
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20212243"
+      }
+    ]
+  },
+  {
+    "name": "Emir Sulejmanović",
+    "team": "Joventut Badalona",
+    "country": "Bosnia and Herzegovina",
+    "active": true,
+    "sources": [
+      {
+        "competition": "ACB",
+        "type": "acb",
+        "id": "20210828"
       },
       {
         "competition": "BCL",
         "type": "bcl",
-        "id": "unicaja/348156-xavier-castaneda"
+        "id": "asisa-joventut/189599-emir-sulejmanovic"
+      }
+    ]
+  },
+  {
+    "name": "James Webb III",
+    "team": "Esenler Erokspor",
+    "country": "United States",
+    "active": true,
+    "sources": [
+      {
+        "competition": "Turkish BSL",
+        "type": "eurobasket",
+        "id": "309680"
       }
     ]
   }
