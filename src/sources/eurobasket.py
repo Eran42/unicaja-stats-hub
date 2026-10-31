@@ -172,9 +172,12 @@ _COMP_KEYWORDS: dict[str, list[str]] = {
     "eurocup":       ["eurocup", "7days"],
     "bcl":           ["champions league", "bcl"],
     "acb":           ["acb"],
-    "lega a":        ["italy", "serie a"],
+    # "serie a2" must precede "lega a": its competition name contains "serie a".
+    "serie a2":      ["serie a2"],
+    "lega a":        ["serie a)", "lega a"],   # closing paren excludes "Serie A2"
     "plk":           ["poland", "obl"],
     "bbl":           ["germany-bbl)"],   # closing paren excludes "Germany-BBL Cup"
+    "turkish bsl":   ["turkey-bsl"],
 }
 
 
