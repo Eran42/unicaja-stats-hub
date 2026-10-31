@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project goal
 
-Track the most reliable, up-to-date stats for as many ex-Unicaja players as possible. **Quality matters**: every data source and daily output must be reviewed for accuracy and completeness. After any pipeline run or data change, always verify the result visually in the production dashboard at https://ex-unicaja-stats.streamlit.app/ before considering the work done.
+Track the most reliable, up-to-date stats for as many ex-Unicaja players as possible. **Quality matters**: every data source and daily output must be reviewed for accuracy and completeness. After any pipeline run or data change, always verify the result visually in the production dashboard at https://eran42.github.io/unicaja-stats-hub/ before considering the work done.
 
-**Dashboard verification is mandatory and must be done by Claude directly** — do not ask the user to check. Use WebFetch to load https://ex-unicaja-stats.streamlit.app/ and confirm the data shown matches what was just written. Never skip this step.
+**Dashboard verification is mandatory and must be done by Claude directly** — do not ask the user to check. The dashboard is the static `index.html` at the repo root, served by GitHub Pages from `main`; it loads `data/stats/recent.json`, `data/players/registry.json`, `team_coords.json`, `status.json` and `photos.json`. It is JS-rendered, so WebFetch only sees an empty shell: use headless Selenium (or Claude in Chrome) to load it and confirm the data shown matches what was just written. GitHub Pages files are CDN-cached for ~10 minutes after a push. Never skip this step. (The old Streamlit app `app.py` is no longer used.)
 
 ## Commands
 
