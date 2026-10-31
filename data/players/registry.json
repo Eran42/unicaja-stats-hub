@@ -194,9 +194,9 @@
   },
   {
     "name": "Mindaugas Kuzminskas",
-    "team": "AEK BC",
+    "team": "Free Agent",
     "country": "Lithuania",
-    "active": true,
+    "active": false,
     "sources": [
       {
         "competition": "BCL",

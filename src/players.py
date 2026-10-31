@@ -226,10 +226,11 @@ _SEED_PLAYERS: list[dict] = [
     },
     # --- Greek League + BCL ---
     {
+        # Free agent since his AEK contract ended (summer 2026); sources kept for re-enabling.
         "name": "Mindaugas Kuzminskas",
-        "team": "AEK Athens",
+        "team": "Free Agent",
         "country": "Lithuania",
-        "active": True,
+        "active": False,
         "sources": [
             {"competition": "Greek League", "type": "eurobasket", "id": "26892"},
             {"competition": "BCL",          "type": "bcl",        "id": "161021"},
