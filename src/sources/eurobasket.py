@@ -33,7 +33,9 @@ _HEADERS = {
     ),
     "Accept":                  "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "Accept-Language":         "en-US,en;q=0.9",
-    "Accept-Encoding":         "gzip, deflate, br",
+    # No "br": requests can't decode Brotli unless the optional brotli package
+    # is installed, and the server then returns undecodable bytes.
+    "Accept-Encoding":         "gzip, deflate",
     "Connection":              "keep-alive",
     "Upgrade-Insecure-Requests": "1",
     "Cache-Control":           "max-age=0",
@@ -172,6 +174,7 @@ _COMP_KEYWORDS: dict[str, list[str]] = {
     "acb":           ["acb"],
     "lega a":        ["italy", "serie a"],
     "plk":           ["poland", "obl"],
+    "bbl":           ["germany-bbl)"],   # closing paren excludes "Germany-BBL Cup"
 }
 
 

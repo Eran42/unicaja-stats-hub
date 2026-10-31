@@ -166,12 +166,12 @@ _SEED_PLAYERS: list[dict] = [
     },
     {
         "name": "Yankuba Sima",
-        "team": "Valencia Basket",
+        "team": "ALBA Berlin",
         "country": "Spain",
         "active": True,
         "sources": [
-            {"competition": "EuroLeague", "type": "euroleague", "id": "P005596"},
-            {"competition": "ACB",        "type": "acb",        "id": "20213230"},
+            {"competition": "BBL", "type": "eurobasket", "id": "329409"},
+            {"competition": "BCL", "type": "bcl",        "id": "alba-berlin/210287-yankuba-sima"},
         ],
     },
     {

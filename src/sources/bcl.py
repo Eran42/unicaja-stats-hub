@@ -143,6 +143,47 @@ def _parse_shot_cell(cell: Tag) -> tuple[float | None, float | None, float | Non
     return made, att, pct
 
 
+_live_names: dict[str, str] | None = None
+
+
+def _live_team_names() -> dict[str, str]:
+    """Current-season abbreviation → name map scraped from the /en/teams listing.
+
+    The BCL field changes every season (and codes get reused, e.g. "TS" went
+    from Trieste to Trabzonspor in 2026-27), so the static map goes stale.
+    Fetched once per process; empty dict on failure.
+    """
+    global _live_names
+    if _live_names is None:
+        _live_names = {}
+        try:
+            resp = requests.get(_TEAM_URL, headers=_HEADERS, timeout=_TIMEOUT)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            for h2 in soup.find_all("h2"):
+                code_el = h2.find_next_sibling("span")
+                code = code_el.get_text(strip=True) if code_el else ""
+                if code and code.isupper():
+                    _live_names[code] = h2.get_text(strip=True)
+        except requests.RequestException as exc:
+            logger.warning("BCL team list fetch failed: %s", exc)
+    return _live_names
+
+
+def _team_name(abbr: str) -> str:
+    """Resolve a BCL team abbreviation to a full name.
+
+    Prefers the live name, but keeps the static one when both refer to the
+    same club (same first word) since static names are cleaner ("ALBA Berlin"
+    vs "ALBA BERLIN").
+    """
+    live   = _live_team_names().get(abbr)
+    static = _TEAM_NAMES.get(abbr)
+    if live and not (static and static.split()[0].lower() == live.split()[0].lower()):
+        return live
+    return static or live or abbr
+
+
 def _parse_game_cell(cell: Tag) -> tuple[str, str, str, str]:
     """
     Parse BCL game-info cell.
@@ -163,7 +204,7 @@ def _parse_game_cell(cell: Tag) -> tuple[str, str, str, str]:
             if not opp_abbrev:
                 opp_abbrev = part
 
-    opponent = _TEAM_NAMES.get(opp_abbrev, opp_abbrev)
+    opponent = _team_name(opp_abbrev)
     a_tag = cell.find("a", href=re.compile(r"/en/games/"))
     game_href = a_tag["href"] if a_tag and a_tag.get("href") else ""
     return game_date, opponent, game_href, opp_abbrev

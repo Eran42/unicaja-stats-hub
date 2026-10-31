@@ -124,6 +124,10 @@ Before committing or publishing any stats output, go through each of these steps
 - **FIXED 2026-03-24**: Three-part fix: (1) "Details" tables have a two-row header (title in rows[0], headers in rows[1]) — now correctly detected. (2) Competition filtering via nearest `<h4>` heading prevents EuroLeague games bleeding into national league sources. (3) Compound "M-A" shooting columns (2FGP, 3FGP, FT) now parsed into separate made/attempt fields.
 - **Lessort Greek League (id=252481)**: Still returns no data because Lessort has played no 2025-26 Greek League games yet (fractured fibula Dec 2024, returned to EuroLeague only on March 12 2026). Will populate automatically once she plays a GBL game.
 - **ABA League result field**: When fetching ABA League games for Carter (id=402220), the result field is populated from the score only (no W/L prefix) because the result column is on the eurobasket.com "Against Team" format.
+- **FIXED 2026-10-31**: `Accept-Encoding` advertised `br`, but `requests` can't decode Brotli without the optional `brotli` package, so every page came back as raw bytes and all eurobasket sources silently returned nothing for 2026-27. Header is now `gzip, deflate`. New `BBL` competition filter matches `Germany-BBL)` (excludes BBL Cup).
+
+#### BCL (`bcl.py`)
+- Opponent names now come from the live `/en/teams` listing (codes are reused across seasons, e.g. `TS` = Trabzonspor in 2026-27, not Trieste); static `_TEAM_NAMES` is a fallback.
 
 #### ABA League (`aba.py`)
 - **FIXED 2026-03-24**: Table format changed from date-first to game-number-first rows. `_is_game_row` now accepts both formats. Date retrieved by following the match page link (one extra HTTP request). Offset corrected to 2 for game-number rows.
@@ -132,7 +136,7 @@ Before committing or publishing any stats output, go through each of these steps
 
 #### EuroLeague player availability
 - **Tyson Carter** (P011305, Crvena Zvezda): hospitalized with pulmonary embolism in Oct–Nov 2025; missed most of the season. ID is correct but he hasn't appeared in the last 20 played EuroLeague games. Monitor and re-enable when he resumes regular play.
-- **Yankuba Sima** (P005596): ID not found in EuroLeague last-20-games window. He plays limited minutes for Valencia — verify whether his EuroLeague ID is current.
+- **Yankuba Sima**: left Valencia 2026-10-16 for ALBA Berlin. Now tracked via eurobasket (BBL, id=329409) and BCL (`alba-berlin/210287-yankuba-sima`). BBL Cup games are not tracked.
 
 #### NBA (`nba.py`)
 - `stats.nba.com` regularly times out (15 s limit). Consider raising the timeout or adding a retry, or switch to an unofficial mirror endpoint.
